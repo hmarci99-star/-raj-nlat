@@ -31,6 +31,16 @@
     .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px 16px; }
     label { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
     label span { flex: 1; }
+    .lepteto { display: inline-flex; align-items: stretch; flex: none; }
+    .lepteto input[type=number] { width: 52px; border-radius: 0; text-align: center; -moz-appearance: textfield; }
+    .lepteto input[type=number]::-webkit-inner-spin-button,
+    .lepteto input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    .lepes { width: 38px; min-height: 38px; padding: 0; font-size: 1.25rem; line-height: 1; cursor: pointer;
+      border: 1px solid var(--line); background: var(--card); color: var(--accent); }
+    .lepes:first-child { border-radius: 6px 0 0 6px; border-right: none; }
+    .lepes:last-child { border-radius: 0 6px 6px 0; border-left: none; }
+    .lepes:active { background: var(--line); }
+    .lepes:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; position: relative; }
     input[type=number] { width: 80px; padding: 6px 8px; font: inherit; text-align: right;
       border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--text); }
     select { padding: 6px 8px; font: inherit; border: 1px solid var(--line);

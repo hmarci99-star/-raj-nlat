@@ -45,6 +45,34 @@ function felepit() {
   $('kiallasok').innerHTML = KIALLAS_TIPUSOK.map((t) => szamMezo(`kiallasok.${t.kod}`, t.nev)).join('');
   $('szerelvenyek').innerHTML = SZERELVENY_KODOK
     .map((kod) => szamMezo(`szerelvenyek.${kod}`, allapot.tabla.get(kod).tetel)).join('');
+  leptetok();
+}
+
+// − és + gomb minden számmező mellé. A lépés a mező step értéke (alapból 1), nulla alá nem megy.
+function leptetok() {
+  for (const input of form.querySelectorAll('input[type=number]')) {
+    if (input.parentElement.classList.contains('lepteto')) continue;
+    const cimke = input.closest('label')?.querySelector('span')?.textContent ?? '';
+    const doboz = document.createElement('span');
+    doboz.className = 'lepteto';
+    input.replaceWith(doboz);
+    const gomb = (jel, irany, felirat) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'lepes';
+      b.textContent = jel;
+      b.setAttribute('aria-label', `${felirat}: ${cimke}`);
+      b.addEventListener('click', (ev) => {
+        ev.preventDefault();
+        const lepes = Number(input.step) || 1;
+        const uj = Math.max(0, Math.round(((Number(input.value) || 0) + irany * lepes) / lepes) * lepes);
+        input.value = uj ? String(uj) : '';
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+      return b;
+    };
+    doboz.append(gomb('−', -1, 'Csökkentés'), input, gomb('+', 1, 'Növelés'));
+  }
 }
 
 function olvas() {
