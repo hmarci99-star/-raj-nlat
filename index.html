@@ -79,19 +79,34 @@
     .nezet-cim { margin: 4px 2px 0; font-size: 1.35rem; }
     .nezet-leiras { margin: -8px 2px 0; color: var(--muted); font-size: .92rem; }
     .kartya { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; min-width: 0; }
-    .kartya > h2 { font-size: 1rem; margin: 0 0 12px; display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
-    .kartya > h2 .muted { font-weight: 400; }
+    .kartya > h2 { font-size: 1rem; margin: 0 0 12px; display: flex; gap: 10px; align-items: center; }
+    .kartya > h2 .muted { font-weight: 400; margin-left: auto; }
+
+    /* ---- Piktogramok ---- */
+    .ikon { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+    .fej-ikon { width: 32px; height: 32px; border-radius: 9px; background: var(--accent); color: var(--on-accent);
+      display: grid; place-items: center; flex: none; }
+    .fej-ikon .ikon { width: 19px; height: 19px; stroke-width: 1.9; }
+    .mezo-ikon { width: 36px; height: 36px; border-radius: 10px; background: var(--accent-soft); color: var(--accent);
+      display: grid; place-items: center; flex: none; transition: background-color .15s, color .15s; }
+    .mezo-ikon .ikon { width: 22px; height: 22px; }
+    label.kitoltott .mezo-ikon { background: var(--accent); color: var(--on-accent); }
+    label.kitoltott .mezo-nev { font-weight: 600; }
+    .button .ikon, button .ikon, .fajl-gomb .ikon { width: 18px; height: 18px; flex: none; }
+    a.button[data-ikon], button[data-ikon], .fajl-gomb[data-ikon] { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+    .fajl-gomb[data-ikon] { display: flex; }
+    @media (prefers-reduced-motion: reduce) { .mezo-ikon { transition: none; } }
     .kartya.belso { border-style: dashed; }
     h3 { font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 18px 0 6px; }
     .kartya > h3:first-of-type { margin-top: 0; }
-    .tovabb { display: flex; justify-content: flex-end; }
+    .tovabb { display: flex; justify-content: flex-end; margin-bottom: 76px; } /* hely a hanggombnak */
     .tovabb button { min-width: 50%; }
 
     /* ---- Mezők ---- */
     .mezolista { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 2px 24px; }
     .mezolista label, .sor-mezo { display: flex; justify-content: space-between; align-items: center; gap: 12px;
       min-height: 48px; border-bottom: 1px solid var(--line); }
-    .mezolista label span { flex: 1; min-width: 0; }
+    .mezolista label .mezo-nev { flex: 1; min-width: 0; }
     .lepteto { display: inline-flex; align-items: stretch; flex: none; }
     .lepteto input[type=number] { width: 52px; border-radius: 0; text-align: center; -moz-appearance: textfield; }
     .lepteto input[type=number]::-webkit-inner-spin-button,
@@ -123,6 +138,8 @@
       background: var(--accent); color: var(--on-accent); text-decoration: none; cursor: pointer; font-weight: 600;
       text-align: center; touch-action: manipulation; }
     .button { background: transparent; color: var(--accent); }
+    .button.fo-gomb { background: var(--accent); color: var(--on-accent); }
+    .kartya-fej { font-size: 1rem; margin: 0 0 12px; display: flex; gap: 10px; align-items: center; }
     button.kicsi, .button.kicsi { padding: 6px 12px; font-size: .88rem; border-radius: 8px; }
     button:disabled { opacity: .5; cursor: default; }
     button:focus-visible, .button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -168,6 +185,8 @@
     .plusz-uj #plusz-uj-cikk { flex: 1 1 200px; min-width: 0; }
     .plusz-uj #plusz-uj-menny { width: 70px; }
     #plusz h3:first-child { margin-top: 0; }
+    .ikonos-cim { display: flex; align-items: center; gap: 8px; }
+    .ikonos-cim .ikon { width: 18px; height: 18px; color: var(--accent); }
     .diktalas { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 4px 0 10px; }
     .diktalas button { display: inline-flex; align-items: center; gap: 6px; }
     .diktalas .ikon { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
@@ -334,13 +353,13 @@
     <h2 class="nezet-cim">Projekt</h2>
     <form id="projekt" class="nezet">
       <section class="kartya">
-        <h2>Vízszerelési kiállások</h2>
+        <h2 data-ikon="csepp">Vízszerelési kiállások</h2>
         <div class="mezolista" id="kiallasok"></div>
         <p class="megj">Minden kiállás után vízszerelés alapszerelés jár.</p>
       </section>
 
       <section class="kartya">
-        <h2>Fűtés</h2>
+        <h2 data-ikon="radiator">Fűtés</h2>
         <div class="mezolista">
           <label><span>Radiátor kiállás</span><input type="number" min="0" name="radiatorKiallas"></label>
           <label><span>Radiátor felszerelés</span><input type="number" min="0" name="radiatorFelszereles"></label>
@@ -359,12 +378,12 @@
       </section>
 
       <section class="kartya">
-        <h2>Szerelvények</h2>
+        <h2 data-ikon="csavarkulcs">Szerelvények</h2>
         <div class="mezolista" id="szerelvenyek"></div>
       </section>
 
       <section class="kartya">
-        <h2>Gerinc és külső szerelés</h2>
+        <h2 data-ikon="cso">Gerinc és külső szerelés</h2>
         <div class="mezolista">
           <label><span>Gerinc, 16-os cső (fm)</span><input type="number" min="0" step="0.5" name="gerinc.16"></label>
           <label><span>Gerinc, 20-as cső (fm)</span><input type="number" min="0" step="0.5" name="gerinc.20"></label>
@@ -376,7 +395,7 @@
     </form>
 
     <section class="kartya">
-      <h2>Munkadíj</h2>
+      <h2 data-ikon="kalapacs">Munkadíj</h2>
       <div id="eredmeny"><p class="muted">Betöltés…</p></div>
     </section>
     <div class="tovabb"><button type="button" data-ugras="anyag">Tovább: anyaglista</button></div>
@@ -388,8 +407,8 @@
     <p class="nezet-leiras">Ezt küldöd el a boltnak árajánlatkérésre.</p>
     <section class="kartya">
       <div class="actions anyag-gombok" id="anyag-gombok">
-        <a id="email" class="button" href="#">E-mail a boltnak</a>
-        <button type="button" id="masol" class="button">Másolás</button>
+        <a id="email" class="button fo-gomb" href="#" data-ikon="level">E-mail a boltnak</a>
+        <button type="button" id="masol" class="button" data-ikon="masol">Másolás</button>
         <span id="masol-uzenet" class="muted" aria-live="polite"></span>
       </div>
       <div id="anyaglista"><p class="muted">Betöltés…</p></div>
@@ -409,12 +428,12 @@
       <section class="kartya">
         <div class="feltoltesek">
           <div class="feltoltes">
-            <label class="button fajl-gomb" for="pdf-bolti">Bolti árak PDF</label>
+            <label class="button fajl-gomb" for="pdf-bolti" data-ikon="feltolt">Bolti árak PDF</label>
             <input type="file" id="pdf-bolti" accept="application/pdf,.pdf" class="rejtett-fajl">
             <div id="eredmeny-bolti" class="feltoltes-eredmeny" aria-live="polite"></div>
           </div>
           <div class="feltoltes">
-            <label class="button fajl-gomb" for="pdf-kedvezmenyes">Kedvezményes árak PDF</label>
+            <label class="button fajl-gomb" for="pdf-kedvezmenyes" data-ikon="feltolt">Kedvezményes árak PDF</label>
             <input type="file" id="pdf-kedvezmenyes" accept="application/pdf,.pdf" class="rejtett-fajl">
             <div id="eredmeny-kedvezmenyes" class="feltoltes-eredmeny" aria-live="polite"></div>
           </div>
@@ -428,7 +447,7 @@
         </details>
       </section>
       <section class="kartya">
-        <h2>Egységárak <span class="muted">kézzel is javítható</span></h2>
+        <h2 data-ikon="cimke">Egységárak <span class="muted">kézzel is javítható</span></h2>
         <div id="ar-tabla"></div>
         <div class="actions"><button type="button" id="arak-torlese" class="button kicsi">Árak törlése</button></div>
       </section>
@@ -440,7 +459,7 @@
   <div class="nezet" id="nezet-ajanlat" hidden>
     <h2 class="nezet-cim">Ajánlat</h2>
     <section class="kartya">
-      <h2>Ajánlat adatai</h2>
+      <h2 data-ikon="szemely">Ajánlat adatai</h2>
       <form id="adatok" class="adatok">
         <label class="mezo"><span>Megrendelő neve</span><input name="ugyfel.nev" autocomplete="off"></label>
         <label class="mezo"><span>Megrendelő címe</span><input name="ugyfel.cim" autocomplete="off"></label>
@@ -464,21 +483,21 @@
     </section>
 
     <section class="kartya">
-      <h2>Ügyfélajánlat</h2>
+      <h2 data-ikon="dokumentum">Ügyfélajánlat</h2>
       <div id="ugyfel"></div>
-      <div class="actions"><button type="button" id="pdf-ugyfel">Ügyfélajánlat PDF</button></div>
+      <div class="actions"><button type="button" id="pdf-ugyfel" data-ikon="letolt">Ügyfélajánlat PDF</button></div>
     </section>
 
     <section class="kartya belso">
-      <h2>Belső összesítő <span class="muted">csak neked</span></h2>
+      <h2 data-ikon="lakat">Belső összesítő <span class="muted">csak neked</span></h2>
       <div id="belso"></div>
-      <div class="actions"><button type="button" id="pdf-belso" class="button">Belső összesítő PDF</button></div>
+      <div class="actions"><button type="button" id="pdf-belso" class="button" data-ikon="letolt">Belső összesítő PDF</button></div>
     </section>
     <p class="megj">A PDF gomb a nyomtatási ablakot nyitja meg: ott válaszd a „Mentés PDF-ként” lehetőséget
       (iPhone-on: Megosztás → Mentés a Fájlokba).</p>
   </div>
 </main>
 <div id="nyomtat"></div>
-<script type="module" src="dist/app.js?v=1c393a466e"></script>
+<script type="module" src="dist/app.js?v=0ebeb78504"></script>
 </body>
 </html>

@@ -22,6 +22,7 @@ Telefonról is használható weboldal. A beírt adatokat és árakat a böngész
 - `src/anyaglista.js`: az anyaglista összegyűjtése, a gerinc és a hüvelyszabály.
 - `src/arak.js`: a bolt válaszának beolvasása és az ajánlat összesítése.
 - `src/sablonok.js`: az ügyfélajánlat és a belső összesítő nyomtatható sablonja.
+- `src/ikonok.js`: a saját vonalas piktogramok (kiállások, szerelvények, fűtés, csövek, műveletek).
 - `src/diktalas.js`: a diktált mondat tételekre bontása és a beszédfelismerés.
 - `src/konyvtar.js`: a kiállás-könyvtár bővítése és CSV-exportja.
 - `src/pdfszoveg.js`: a bolt PDF-jének szövegét soronként kinyeri, és a cellán belül tördelt megnevezéseket visszailleszti a sorukba.

@@ -7,6 +7,7 @@ import { ugyfelAjanlatHtml, belsoOsszesitoHtml, fajlnev } from './sablonok.js';
 import { pdfSzoveg } from './pdfszoveg.js';
 import { diktaltTetelek, vanDiktalas, diktalas } from './diktalas.js';
 import { hangosModInit } from './hangosfelulet.js';
+import { ikon, MEZO_IKON } from './ikonok.js';
 
 const MENTES_KULCS = 'arajanlat.projekt';
 const ARAK_KULCS = 'arajanlat.arak';
@@ -93,6 +94,35 @@ function felepit() {
   $('szerelvenyek').innerHTML = SZERELVENY_KODOK
     .map((kod) => szamMezo(`szerelvenyek.${kod}`, allapot.tabla.get(kod).tetel)).join('');
   leptetok();
+  ikonozas();
+}
+
+// Piktogramok: minden mezősor elé a tárgy ikonja, a kártyafejlécekbe és a gombokba
+// a data-ikon szerinti ikon.
+function ikonozas() {
+  for (const label of form.querySelectorAll('.mezolista label')) {
+    if (label.querySelector('.mezo-ikon')) continue;
+    const mezo = label.querySelector('input, select');
+    const nev = label.querySelector(':scope > span:not(.lepteto)');
+    nev?.classList.add('mezo-nev');
+    const ik = MEZO_IKON[mezo?.name];
+    if (ik) label.insertAdjacentHTML('afterbegin', `<span class="mezo-ikon">${ikon(ik)}</span>`);
+  }
+  for (const el of document.querySelectorAll('[data-ikon]')) {
+    if (el.querySelector(':scope > .ikon, :scope > .fej-ikon')) continue;
+    const svg = ikon(el.dataset.ikon);
+    el.insertAdjacentHTML('afterbegin', el.tagName === 'H2' ? `<span class="fej-ikon">${svg}</span>` : svg);
+  }
+}
+
+// A kitöltött sorok (nem nulla érték, kiválasztott hőtermelő) kiemelve.
+function kitoltesJelolese() {
+  for (const label of form.querySelectorAll('.mezolista label')) {
+    const el = label.querySelector('input, select');
+    if (!el) continue;
+    const kitoltott = el.tagName === 'SELECT' ? el.value !== 'nincs' : Number(el.value) > 0;
+    label.classList.toggle('kitoltott', kitoltott);
+  }
 }
 
 // − és + gomb minden számmező mellé. A lépés a mező step értéke (alapból 1), nulla alá nem megy.
@@ -464,7 +494,7 @@ function megjelenitPlusz() {
     </li>`).join('');
 
   $('plusz').innerHTML = `
-    <h3>Plusz tételek ehhez az ajánlathoz</h3>
+    <h2 class="kartya-fej"><span class="fej-ikon">${ikon('plusz')}</span>Plusz tételek</h2>
     ${allapot.plusz.length ? lenyilo('plusz', `Plusz tételek (${allapot.plusz.length})`, '', `<ul class="plusz-lista">${sorok}</ul>`)
       : '<p class="muted">A bolt PDF-jében talált új tételek, vagy amit kézzel adsz hozzá. A „Könyvtárba…” gombbal egy kiállás csomagjába is elmenthető, így legközelebb magától benne lesz.</p>'}
     <form id="plusz-uj" class="plusz-uj">
@@ -760,6 +790,7 @@ function frissit() {
     $('eredmeny').innerHTML = `<p class="error">${escape(err.message)}</p>`;
   }
   allapot.projekt = p;
+  kitoltesJelolese();
   try {
     allapot.anyag = gyujtAnyaglista(p, allapot.konyvtar);
     for (const t of allapot.plusz) {
