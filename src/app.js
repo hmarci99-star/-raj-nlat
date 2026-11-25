@@ -166,6 +166,32 @@ function munkadijHtml(e) {
     </table>`;
 }
 
+// ---- Lenyitható tétellisták ----
+
+// A hosszú listák alapból csukva vannak; a sávon a darabszám és az összeg látszik.
+// Ami nyitva van, újrarajzoláskor is nyitva marad (oldal-újratöltésig).
+const nyitottListak = new Set();
+
+function lenyilo(kulcs, cim, osszegzes, tartalom) {
+  const nyitva = nyitottListak.has(kulcs);
+  return `<div class="lenyilo">
+    <button type="button" class="lenyilo-gomb" data-lenyilo="${kulcs}" aria-expanded="${nyitva}">
+      <span class="nyil" aria-hidden="true"></span><span class="lenyilo-cim">${cim}</span>
+      <span class="lenyilo-ossz">${osszegzes ?? ''}</span>
+    </button>
+    <div class="lenyilo-tartalom"${nyitva ? '' : ' hidden'}>${tartalom}</div>
+  </div>`;
+}
+
+document.addEventListener('click', (ev) => {
+  const b = ev.target.closest('.lenyilo-gomb');
+  if (!b) return;
+  const nyit = b.getAttribute('aria-expanded') !== 'true';
+  b.setAttribute('aria-expanded', String(nyit));
+  b.nextElementSibling.hidden = !nyit;
+  if (nyit) nyitottListak.add(b.dataset.lenyilo); else nyitottListak.delete(b.dataset.lenyilo);
+});
+
 // ---- Anyaglista ----
 
 const levelSzoveg = (lista) => `Szia!
@@ -196,11 +222,11 @@ function megjelenitAnyag() {
       <td class="num">${ft.format(s.mennyiseg)} ${escape(s.egyseg)}${s.listaMennyiseg !== undefined
         ? `<div class="muted">PDF szerint; lista: ${ft.format(s.listaMennyiseg)}</div>` : ''}</td>
     </tr>`).join('');
-  $('anyaglista').innerHTML = `${figyelmeztetesHtml(e.figyelmeztetesek)}
+  $('anyaglista').innerHTML = figyelmeztetesHtml(e.figyelmeztetesek) + lenyilo('anyaglista', `Tételek (${e.sorok.length})`, '', `
     <table>
       <thead><tr>${vanCikkszam ? '<th>Cikkszám</th>' : ''}<th>Cikk</th><th class="num">Mennyiség</th></tr></thead>
       <tbody>${sorok}</tbody>
-    </table>`;
+    </table>`);
 }
 
 // ---- Árak ----
@@ -216,7 +242,8 @@ function megjelenitArTabla(kenyszer = false) {
   allapot.arTablaAlairas = alairas;
   $('ar-szakasz').hidden = sorok.length === 0;
   $('ar-ures').hidden = sorok.length > 0;
-  $('ar-tabla').innerHTML = `
+  const arazott = sorok.filter((s) => Number.isFinite(allapot.arak[tetelKulcs(s)]?.bolti)).length;
+  $('ar-tabla').innerHTML = lenyilo('artabla', `Tételek (${sorok.length})`, `${arazott}/${sorok.length} bolti ár`, `
     <table class="ar-tabla">
       <thead><tr><th>Cikk</th><th class="num">Bolti ár<br>(bruttó)</th><th class="num">Kedv. ár<br>(bruttó)</th></tr></thead>
       <tbody>${sorok.map((s) => {
@@ -229,7 +256,7 @@ function megjelenitArTabla(kenyszer = false) {
           <td class="num">${arMezo(k, 'kedvezmenyes', ar.kedvezmenyes)}</td>
         </tr>`;
       }).join('')}</tbody>
-    </table>`;
+    </table>`);
 }
 
 const MEZO_NEV = { bolti: 'bolti', kedvezmenyes: 'kedvezményes' };
@@ -438,7 +465,7 @@ function megjelenitPlusz() {
 
   $('plusz').innerHTML = `
     <h3>Plusz tételek ehhez az ajánlathoz</h3>
-    ${allapot.plusz.length ? `<ul class="plusz-lista">${sorok}</ul>`
+    ${allapot.plusz.length ? lenyilo('plusz', `Plusz tételek (${allapot.plusz.length})`, '', `<ul class="plusz-lista">${sorok}</ul>`)
       : '<p class="muted">A bolt PDF-jében talált új tételek, vagy amit kézzel adsz hozzá. A „Könyvtárba…” gombbal egy kiállás csomagjába is elmenthető, így legközelebb magától benne lesz.</p>'}
     <form id="plusz-uj" class="plusz-uj">
       <input id="plusz-uj-cikk" placeholder="Új tétel megnevezése" aria-label="Új tétel megnevezése" required>
@@ -648,14 +675,13 @@ function megjelenitKimenetek() {
   $('ugyfel').innerHTML = `
     ${a.hianyzoBolti ? `<p class="warn">${a.hianyzoBolti} anyagtételnek nincs bolti ára, az összeg hiányos.</p>` : ''}
     ${kimaradtHtml}
-    <h3>Munkadíj</h3>
-    ${munkadijHtml(a.munkadij)}
-    ${a.anyag.length ? `<h3>Anyag</h3>
+    ${lenyilo('ugyfel-munkadij', `Munkadíj (${a.munkadij.sorok.length} tétel)`, penz(a.munkadij.osszesen), munkadijHtml(a.munkadij))}
+    ${a.anyag.length ? lenyilo('ugyfel-anyag', `Anyag (${a.anyag.length} tétel)`, penz(a.anyagBolti), `
     <table>
       <thead><tr><th>Cikk</th><th class="num">Menny.</th><th class="num hide-sm">Egységár</th><th class="num">Összeg</th></tr></thead>
       <tbody>${anyagSorok}</tbody>
       <tfoot><tr><td colspan="2">Anyag összesen</td><td class="hide-sm"></td><td class="num">${penz(a.anyagBolti)}</td></tr></tfoot>
-    </table>` : ''}
+    </table>`) : ''}
     <p class="vegosszeg"><span>Végösszeg</span><span>${penz(a.vegosszeg)}</span></p>
     <p class="muted">Alanyi adómentes, ÁFA nélkül.</p>`;
 
@@ -668,17 +694,18 @@ function megjelenitKimenetek() {
     </tr>`).join('');
   $('belso').innerHTML = a.anyag.length === 0 ? '<p class="muted">Nincs anyagtétel.</p>' : `
     ${a.hianyzoKedvezmenyes ? `<p class="warn">${a.hianyzoKedvezmenyes} tételnek nincs kedvezményes ára, a haszon hiányos.</p>` : ''}
-    <table>
-      <thead><tr><th>Cikk</th><th class="num">Beszerzés</th><th class="num hide-sm">Bolti</th><th class="num">Haszon</th></tr></thead>
-      <tbody>${belsoSorok}</tbody>
-      <tfoot><tr><td>Összesen</td><td class="num">${penz(a.anyagKedvezmenyes)}</td><td class="num hide-sm">${penz(a.anyagBolti)}</td><td class="num">${penz(a.haszon)}</td></tr></tfoot>
-    </table>
     <dl class="osszesito">
       <dt>Munkadíj</dt><dd>${penz(a.munkadij.osszesen)}</dd>
       <dt>Haszon az anyagon</dt><dd>${penz(a.haszon)}</dd>
       <dt>Ügyfél fizet</dt><dd>${penz(a.vegosszeg)}</dd>
       <dt>Anyagbeszerzés</dt><dd>${penz(a.anyagKedvezmenyes)}</dd>
-    </dl>`;
+    </dl>
+    ${lenyilo('belso-anyag', `Tételesen (${a.anyag.length})`, `haszon ${penz(a.haszon)}`, `
+    <table>
+      <thead><tr><th>Cikk</th><th class="num">Beszerzés</th><th class="num hide-sm">Bolti</th><th class="num">Haszon</th></tr></thead>
+      <tbody>${belsoSorok}</tbody>
+      <tfoot><tr><td>Összesen</td><td class="num">${penz(a.anyagKedvezmenyes)}</td><td class="num hide-sm">${penz(a.anyagBolti)}</td><td class="num">${penz(a.haszon)}</td></tr></tfoot>
+    </table>`)}`;
 }
 
 // ---- Ajánlat adatai és PDF ----

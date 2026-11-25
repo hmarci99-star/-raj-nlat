@@ -135,6 +135,20 @@
     details > summary { cursor: pointer; color: var(--accent); }
     .nowrap { white-space: nowrap; }
 
+    /* ---- Lenyitható tétellisták ---- */
+    .lenyilo { margin: 10px 0; }
+    .lenyilo-gomb { display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 14px; border-radius: 10px;
+      border: 1px solid var(--line); background: var(--bg); color: var(--text); font-weight: 600; text-align: left;
+      -webkit-tap-highlight-color: transparent; }
+    .lenyilo-gomb .nyil { flex: none; width: 8px; height: 8px; border-right: 2px solid var(--accent); border-bottom: 2px solid var(--accent);
+      transform: rotate(-45deg); transition: transform .15s; margin: 0 2px; }
+    .lenyilo-gomb[aria-expanded="true"] .nyil { transform: rotate(45deg); }
+    .lenyilo-gomb[aria-expanded="true"] { border-radius: 10px 10px 0 0; }
+    .lenyilo-cim { flex: 1; min-width: 0; }
+    .lenyilo-ossz { color: var(--muted); font-weight: 500; font-size: .9rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .lenyilo-tartalom { border: 1px solid var(--line); border-top: 0; border-radius: 0 0 10px 10px; padding: 4px 10px 10px; }
+    @media (prefers-reduced-motion: reduce) { .lenyilo-gomb .nyil { transition: none; } }
+
     /* ---- Anyag: plusz tételek, könyvtár ---- */
     .jeloltek, .plusz-lista, .bovites-lista { list-style: none; padding: 0; margin: 6px 0 10px; display: grid; gap: 8px; }
     .jeloltek li, .bovites-lista li { display: flex; justify-content: space-between; align-items: center; gap: 10px;
@@ -465,6 +479,6 @@
   </div>
 </main>
 <div id="nyomtat"></div>
-<script type="module" src="dist/app.js?v=819d847528"></script>
+<script type="module" src="dist/app.js?v=1c393a466e"></script>
 </body>
 </html>
