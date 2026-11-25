@@ -46,6 +46,15 @@ Telefonról is használható weboldal. A beírt adatokat és árakat a böngész
 
 Négy lépés, telefonon alul fülekkel: **Projekt**, **Anyag**, **Árak**, **Ajánlat**. Felül mindig látszik a munkadíj, az anyag és a végösszeg. A füleken kis szám mutatja az anyaglista tételeinek számát, és hogy hány tételnek van már bolti ára.
 
+## Ajánlatok és profit
+
+Az Ajánlat lépésnél a „Mentés az ajánlatok közé” gombbal az ajánlat bekerül az Ajánlatok közé; utána minden változás magától mentődik. Az „Új ajánlat” tiszta lappal indít (a saját adatok maradnak), a listából bármelyik ajánlat újra megnyitható a projekttel, árakkal, PDF-ekkel és plusz tételekkel együtt.
+
+- Állapotok: Felmérés, Anyaglista elküldve, Árak megérkeztek, Ajánlat elküldve, Elfogadva, Kivitelezés, Kész, Elutasítva.
+- Az Ajánlatok lépés tetején évre szűrhetően: a **profit** az elfogadott (elfogadva, kivitelezés, kész) ajánlatokon (munkadíj + az anyagon maradó haszon), a bevétel, az elfogadott ajánlatok száma és aránya, és a döntésre váró ajánlatok értéke.
+- Biztonsági mentés: „Mentés fájlba” / „Betöltés fájlból” (JSON), az ajánlatokkal, a saját adatokkal és a könyvtár bővítéseivel; így másik eszközre is átvihető.
+- A logika a `src/ajanlatok.js`-ben van.
+
 ## Hangos árajánlat
 
 A jobb alsó „Hangos árajánlat” gombbal az alkalmazás végigkérdez a négy lépésen: felolvassa a kérdést, meghallgatja a választ, és beírja a mezőbe, ahogy kézzel is kitöltenéd.
