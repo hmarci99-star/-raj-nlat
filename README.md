@@ -37,12 +37,20 @@ Telefonról is használható weboldal. A beírt adatokat és árakat a böngész
 - Árak: a bolt bruttó (ÁFÁ-s) árakat küld. Alanyi adómentesként az ÁFA nem igényelhető vissza, ezért ez a valódi beszerzési költség. Az ügyfélnek a bruttó bolti ár megy tovább, a haszon a két bruttó ár különbsége.
 - Árbeolvasás: a sorokat cikkszám, vagy ennek hiányában a megnevezés szavai alapján köti tételhez. A számot tartalmazó szavaknak (méret, átmérő) pontosan egyezniük kell, így a PX 25 T-idom nem lesz PX 20 T-idom, hanem új tételként jelenik meg. Az ár a sor végi számokból jön: a mennyiséget és a soronkénti összeget kihagyja, a két ár közül a nagyobb a bolti. A beolvasott árakat a bolt valódi válaszain még ellenőrizni kell.
 
+## Felület
+
+Négy lépés, telefonon alul fülekkel: **Projekt**, **Anyag**, **Árak**, **Ajánlat**. Felül mindig látszik a munkadíj, az anyag és a végösszeg. A füleken kis szám mutatja az anyaglista tételeinek számát, és hogy hány tételnek van már bolti ára.
+
 ## Futtatás
 
 ```
+npm install    # egyszer (esbuild)
+npm run build  # minden módosítás után: dist/app.js és a verziójel az index.html-ben
 npm start      # http://localhost:3000
 npm test
 ```
+
+A program a `src/` mappában van, a weboldal a `dist/app.js` csomagolt változatot tölti be. A hivatkozás a tartalomból számolt verziójelet kap (`dist/app.js?v=…`), így a telefon böngészője nem keverheti a régi és az új fájlokat.
 
 ### Telefonról
 

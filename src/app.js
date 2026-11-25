@@ -11,7 +11,7 @@ const ARAK_KULCS = 'arajanlat.arak';
 const ADATOK_KULCS = 'arajanlat.adatok';
 const PLUSZ_KULCS = 'arajanlat.plusz';
 const BOVITES_KULCS = 'arajanlat.konyvtar-bovites';
-const NYITOTT_KULCS = 'arajanlat.nyitott-szakaszok';
+const NEZET_KULCS = 'arajanlat.nezet';
 const ft = new Intl.NumberFormat('hu-HU', { useGrouping: 'always' });
 const $ = (id) => document.getElementById(id);
 const form = $('projekt');
@@ -45,68 +45,32 @@ function betoltMentett(kulcs) {
   try { return JSON.parse(localStorage.getItem(kulcs)); } catch { return null; }
 }
 
-// ---- Lenyitható szakaszok ----
+// ---- Nézetek (lépések) ----
 
-// Minden szakasz (section[data-szakasz]) fejléce egy gomb, ami a tartalmat ki-be csukja.
-// Saját megoldás (nem <details>), hogy minden telefonos böngészőben ugyanúgy működjön.
-// Csukott állapotban a fejlécben a legfontosabb adat látszik. Az állapotot megjegyzi.
-function szakaszok() {
-  const nyitott = betoltMentett(NYITOTT_KULCS) ?? {};
-  const allit = (sec, nyit, mentes = true) => {
-    sec.querySelector(':scope > .szakasz-fej > button').setAttribute('aria-expanded', String(nyit));
-    sec.querySelector(':scope > .szakasz-tartalom').hidden = !nyit;
-    sec.classList.toggle('csukva', !nyit);
-    if (mentes) {
-      const allas = betoltMentett(NYITOTT_KULCS) ?? {};
-      allas[sec.dataset.szakasz] = nyit;
-      ment(NYITOTT_KULCS, allas);
-    }
-  };
-  const szakaszLista = [...document.querySelectorAll('section[data-szakasz]')];
-  for (const sec of szakaszLista) {
-    const kulcs = sec.dataset.szakasz;
-    const regiCim = sec.querySelector(':scope > h2');
-    const tartalom = document.createElement('div');
-    tartalom.className = 'szakasz-tartalom';
-    tartalom.id = `szakasz-${kulcs}`;
-    regiCim.remove();
-    tartalom.append(...[...sec.childNodes]);
+// Egyszerre egy lépés látszik: Projekt, Anyag, Árak, Ajánlat. A fülek és a
+// "Tovább" gombok váltanak; az utoljára nyitott lépést megjegyzi.
+const NEZETEK = ['projekt', 'anyag', 'arak', 'ajanlat'];
 
-    const h2 = document.createElement('h2');
-    h2.className = 'szakasz-fej';
-    const gomb = document.createElement('button');
-    gomb.type = 'button';
-    gomb.setAttribute('aria-controls', tartalom.id);
-    gomb.innerHTML = `<span class="nyil" aria-hidden="true"></span><span class="cim">${regiCim.innerHTML}</span>`
-      + `<span class="osszegzes" id="osszegzes-${kulcs}"></span>`;
-    h2.append(gomb);
-    sec.append(h2, tartalom);
-    gomb.addEventListener('click', () => allit(sec, gomb.getAttribute('aria-expanded') !== 'true'));
-    allit(sec, nyitott[kulcs] ?? true, false);
+function nezetValtas(nev, gorget = true) {
+  if (!NEZETEK.includes(nev)) nev = 'projekt';
+  for (const n of NEZETEK) $(`nezet-${n}`).hidden = n !== nev;
+  for (const f of document.querySelectorAll('.ful')) {
+    if (f.dataset.nezet === nev) f.setAttribute('aria-current', 'page');
+    else f.removeAttribute('aria-current');
   }
-  const mind = (nyit) => szakaszLista.forEach((sec) => allit(sec, nyit));
-  $('mind-ki').addEventListener('click', () => mind(true));
-  $('mind-be').addEventListener('click', () => mind(false));
+  try { localStorage.setItem(NEZET_KULCS, nev); } catch { /* nem kötelező */ }
+  if (gorget) window.scrollTo({ top: 0 });
 }
 
-function osszegzes(kulcs, szoveg) {
-  const el = $(`osszegzes-${kulcs}`);
-  if (el) el.textContent = szoveg || '';
+function nezetek() {
+  for (const f of document.querySelectorAll('.ful')) f.addEventListener('click', () => nezetValtas(f.dataset.nezet));
+  for (const b of document.querySelectorAll('[data-ugras]')) b.addEventListener('click', () => nezetValtas(b.dataset.ugras));
+  let mentett = null;
+  try { mentett = localStorage.getItem(NEZET_KULCS); } catch { /* nincs */ }
+  nezetValtas(mentett ?? 'projekt', false);
 }
 
-function projektOsszegzesek(p) {
-  const osszeg = (o) => Object.values(o ?? {}).reduce((t, v) => t + (Number(v) || 0), 0);
-  const db = (n, mit) => (n ? `${ft.format(n)} ${mit}` : '');
-  osszegzes('kiallasok', db(osszeg(p.kiallasok), 'kiállás'));
-  const hotermelo = form.elements.hotermelo;
-  osszegzes('futes', [
-    db(p.radiatorKiallas, 'radiátor'), db(p.padlofutesKor, 'kör'),
-    p.hotermelo !== 'nincs' ? hotermelo.options[hotermelo.selectedIndex].text : '',
-  ].filter(Boolean).join(', '));
-  osszegzes('gerinc', db(osszeg(p.gerinc), 'fm'));
-  osszegzes('kulso', db((Number(p.kulsoVizFm) || 0) + (Number(p.kulsoSzennyvizFm) || 0), 'fm'));
-  osszegzes('szerelvenyek', db(osszeg(p.szerelvenyek), 'db'));
-}
+const kiir = (id, szoveg) => { const el = $(id); if (el) el.textContent = szoveg; };
 
 // ---- Projekt űrlap ----
 
@@ -204,7 +168,7 @@ ${lista}
 
 function megjelenitAnyag() {
   const e = allapot.anyag;
-  osszegzes('anyag', e.sorok.length ? `${e.sorok.length} tétel` : '');
+  kiir('jelveny-anyag', e.sorok.length ? String(e.sorok.length) : '');
   const szoveg = anyaglistaSzoveg(e.sorok);
   $('email').href = `mailto:?subject=${encodeURIComponent('Árajánlatkérés – anyaglista')}`
     + `&body=${encodeURIComponent(levelSzoveg(szoveg))}`;
@@ -240,6 +204,7 @@ function megjelenitArTabla(kenyszer = false) {
   if (!kenyszer && alairas === allapot.arTablaAlairas) return;
   allapot.arTablaAlairas = alairas;
   $('ar-szakasz').hidden = sorok.length === 0;
+  $('ar-ures').hidden = sorok.length > 0;
   $('ar-tabla').innerHTML = `
     <table class="ar-tabla">
       <thead><tr><th>Cikk</th><th class="num">Bolti ár<br>(bruttó)</th><th class="num">Kedv. ár<br>(bruttó)</th></tr></thead>
@@ -515,9 +480,10 @@ function megjelenitKimenetek() {
   if (!allapot.munkadij) return;
   const a = ajanlat(allapot.munkadij, allapot.anyag.sorok, allapot.arak);
   const n = a.anyag.length;
-  osszegzes('arak', n ? `bolti ${n - a.hianyzoBolti}/${n}, kedv. ${n - a.hianyzoKedvezmenyes}/${n}` : '');
-  osszegzes('ugyfelajanlat', a.vegosszeg ? penz(a.vegosszeg) : '');
-  osszegzes('belso', n ? `haszon ${penz(a.haszon)}` : '');
+  // A fülön: hány tételnek van már bolti ára.
+  kiir('jelveny-arak', n ? `${n - a.hianyzoBolti}/${n}` : '');
+  kiir('sum-anyag', a.anyagBolti ? penz(a.anyagBolti) : '–');
+  kiir('sum-vegosszeg', a.vegosszeg ? penz(a.vegosszeg) : '–');
 
   const anyagSorok = a.anyag.map((s) => `
     <tr>
@@ -607,13 +573,12 @@ function frissit() {
   try {
     allapot.munkadij = szamolMunkadij(p, allapot.tabla);
     $('eredmeny').innerHTML = figyelmeztetesHtml(allapot.munkadij.figyelmeztetesek) + munkadijHtml(allapot.munkadij);
-    osszegzes('munkadij', allapot.munkadij.osszesen ? penz(allapot.munkadij.osszesen) : '');
+    kiir('sum-munkadij', allapot.munkadij.osszesen ? penz(allapot.munkadij.osszesen) : '–');
   } catch (err) {
     allapot.munkadij = null;
     $('eredmeny').innerHTML = `<p class="error">${escape(err.message)}</p>`;
   }
   allapot.projekt = p;
-  projektOsszegzesek(p);
   try {
     allapot.anyag = gyujtAnyaglista(p, allapot.konyvtar);
     for (const t of allapot.plusz) {
@@ -632,13 +597,14 @@ function frissit() {
 }
 
 async function betolt(utvonal, nev) {
-  const valasz = await fetch(utvonal);
+  // Mindig ellenőrzi, van-e frissebb változat (a táblázatok a webről jönnek, gyorsítótárazva).
+  const valasz = await fetch(utvonal, { cache: 'no-cache' });
   if (!valasz.ok) throw new Error(`A(z) ${nev} nem tölthető be (${valasz.status}).`);
   return valasz.text();
 }
 
 async function indit() {
-  szakaszok();
+  nezetek();
   try {
     const [tablaCsv, konyvtarCsv] = await Promise.all([
       betolt('data/munkadij.csv', 'munkadíj-táblázat'),
@@ -699,9 +665,7 @@ async function indit() {
   });
   const mentettAdatok = betoltMentett(ADATOK_KULCS) ?? {};
   kitoltAdatok({ ...mentettAdatok, ajanlat: { datum: maISO(), ervenyesNap: 15, ...mentettAdatok.ajanlat } });
-  const adatokOsszegzes = () => osszegzes('adatok', olvasAdatok().ugyfel.nev);
-  adatokForm.addEventListener('input', () => { ment(ADATOK_KULCS, olvasAdatok()); adatokOsszegzes(); });
-  adatokOsszegzes();
+  adatokForm.addEventListener('input', () => ment(ADATOK_KULCS, olvasAdatok()));
   adatokForm.addEventListener('submit', (ev) => ev.preventDefault());
 
   // A böngésző saját Nyomtatás menüjéből az ügyfélajánlat készül.
