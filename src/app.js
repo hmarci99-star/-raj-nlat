@@ -131,7 +131,7 @@ function megjelenitArTabla(kenyszer = false) {
   $('ar-szakasz').hidden = sorok.length === 0;
   $('ar-tabla').innerHTML = `
     <table>
-      <thead><tr><th>Cikk</th><th class="num">Bolti egységár</th><th class="num">Kedv. egységár</th></tr></thead>
+      <thead><tr><th>Cikk</th><th class="num">Bolti bruttó egységár</th><th class="num">Kedv. bruttó egységár</th></tr></thead>
       <tbody>${sorok.map((s) => {
         const k = tetelKulcs(s);
         const ar = allapot.arak[k] ?? {};

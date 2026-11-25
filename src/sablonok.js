@@ -121,7 +121,7 @@ export function belsoOsszesitoHtml(a, adatok) {
         <tr><td>Haszon az anyagon</td><td class="num">${penz(a.haszon)}</td></tr>
         <tr class="ny-vegosszeg"><td>Bevétel összesen (munkadíj + haszon)</td><td class="num">${penz(a.munkadij.osszesen + a.haszon)}</td></tr>
         <tr><td>Az ügyfél fizet</td><td class="num">${penz(a.vegosszeg)}</td></tr>
-        <tr><td>Anyagbeszerzés (kedvezményes áron)</td><td class="num">${penz(a.anyagKedvezmenyes)}</td></tr>
+        <tr><td>Anyagbeszerzés (kedvezményes bruttó áron)</td><td class="num">${penz(a.anyagKedvezmenyes)}</td></tr>
       </table>
       ${a.anyag.length ? `
       <h2>Anyag tételesen</h2>

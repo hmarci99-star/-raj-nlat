@@ -29,6 +29,7 @@ Telefonról is használható weboldal. A beírt adatokat és árakat a böngész
 - Anyaglista: a csomag sorai szorozva a kiállások számával, azonos cikkek összevonva. Ehhez jön a gerinc csöve és csőhéja (16-oshoz 4x18, 20-ashoz 4x22 mm-es).
 - Hüvelyszabály: T-idom 3, falikorong 1, könyök 2, toldóidom 2 hüvely, átmérő szerint. A program figyelmeztet, ha egy csomag ettől eltér. A könyvtár jelenleg minden csomagja megfelel neki.
 - Projektenként felülírható csomag: a számítás már kezeli, a felülethez még nincs szerkesztő.
+- Árak: a bolt bruttó (ÁFÁ-s) árakat küld. Alanyi adómentesként az ÁFA nem igényelhető vissza, ezért ez a valódi beszerzési költség. Az ügyfélnek a bruttó bolti ár megy tovább, a haszon a két bruttó ár különbsége.
 - Árbeolvasás: a sorokat cikkszám, vagy ennek hiányában a megnevezés szavai alapján köti tételhez. Az ár a sor végi számokból jön: a mennyiséget és a soronkénti összeget kihagyja, a két ár közül a nagyobb a bolti. A beolvasott árakat a bolt valódi válaszain még ellenőrizni kell.
 
 ## Futtatás
