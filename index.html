@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Árajánlat – munkadíj</title>
+  <style>
+    :root {
+      --bg: #f6f7f9; --card: #fff; --text: #1b1f24; --muted: #5f6b7a;
+      --line: #dde2e8; --accent: #1f6feb; --warn-bg: #fff4d6; --warn: #7a5600;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #111418; --card: #1a1f26; --text: #e6e9ed; --muted: #9aa5b1;
+        --line: #2c333c; --accent: #4c8dff; --warn-bg: #3a2f10; --warn: #f2cc6b;
+      }
+    }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body { margin: 0; background: var(--bg); color: var(--text);
+      font: 16px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
+    main { max-width: 760px; margin: 0 auto; padding: 16px; }
+    h1 { font-size: 1.4rem; margin: 8px 0 16px; }
+    h2 { font-size: 1.05rem; margin: 0 0 12px; }
+    section { background: var(--card); border: 1px solid var(--line);
+      border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px 16px; }
+    label { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    label span { flex: 1; }
+    input[type=number] { width: 80px; padding: 6px 8px; font: inherit; text-align: right;
+      border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--text); }
+    select { padding: 6px 8px; font: inherit; border: 1px solid var(--line);
+      border-radius: 6px; background: var(--bg); color: var(--text); }
+    .check { justify-content: flex-start; margin-top: 10px; }
+    .check span { flex: initial; }
+    .muted { color: var(--muted); font-size: .9rem; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 8px 4px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { text-align: left; font-size: .85rem; color: var(--muted); font-weight: 600; }
+    td.num, th.num { text-align: right; white-space: nowrap; }
+    tfoot td { font-weight: 700; border-bottom: none; }
+    .warn { background: var(--warn-bg); color: var(--warn); padding: 8px 12px;
+      border-radius: 6px; margin: 0 0 8px; }
+    .error { color: #d1242f; }
+    @media (max-width: 520px) { .hide-sm { display: none; } }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Árajánlat: munkadíj</h1>
+  <form id="projekt">
+    <section>
+      <h2>Vízszerelési kiállások</h2>
+      <div class="grid" id="kiallasok"></div>
+      <p class="muted">Minden kiállás után vízszerelés alapszerelés jár.</p>
+    </section>
+
+    <section>
+      <h2>Fűtés</h2>
+      <div class="grid">
+        <label><span>Radiátor kiállás</span><input type="number" min="0" name="radiatorKiallas"></label>
+        <label><span>Radiátor felszerelés</span><input type="number" min="0" name="radiatorFelszereles"></label>
+        <label><span>Padlófűtés kör</span><input type="number" min="0" name="padlofutesKor"></label>
+        <label><span>Hőtermelő</span>
+          <select name="hotermelo">
+            <option value="nincs">nincs</option>
+            <option value="gaz">gázkazán</option>
+            <option value="vegyes">vegyes tüzelésű kazán</option>
+            <option value="hoszivattyu">hőszivattyú</option>
+          </select>
+        </label>
+      </div>
+      <label class="check" id="puffer-sor"><input type="checkbox" name="puffer"><span>Puffertartály (vegyes kazánhoz)</span></label>
+      <label class="check" id="felar-hsz-sor"><input type="checkbox" name="felarHoszivattyunal"><span>Vegyes kör felára hőszivattyúnál is</span></label>
+    </section>
+
+    <section>
+      <h2>Külső szerelés (ásás nélkül)</h2>
+      <div class="grid">
+        <label><span>Külső vízbekötés (fm)</span><input type="number" min="0" step="0.5" name="kulsoVizFm"></label>
+        <label><span>Külső szennyvíz (fm)</span><input type="number" min="0" step="0.5" name="kulsoSzennyvizFm"></label>
+      </div>
+    </section>
+
+    <section>
+      <h2>Szerelvények</h2>
+      <div class="grid" id="szerelvenyek"></div>
+    </section>
+  </form>
+
+  <section>
+    <h2>Munkadíj</h2>
+    <div id="eredmeny"><p class="muted">Betöltés…</p></div>
+    <p class="muted">Alanyi adómentes, ÁFA nélkül.</p>
+  </section>
+</main>
+<script type="module" src="src/app.js"></script>
+</body>
+</html>
