@@ -14,7 +14,9 @@ function szegmensek(ds) {
   let akt = null;
   for (const d of ds) {
     const res = akt ? d.x - akt.x1 : Infinity;
-    if (!akt || res > d.h * 1.2) {
+    // Két egymás melletti szám (pl. egységár és érték) kisebb réssel is külön oszlop.
+    const szamUtanSzam = akt && /(\d|ft\.?|db|fm|pár)$/i.test(akt.szoveg.trim()) && /^\d/.test(d.str.trim());
+    if (!akt || res > d.h * (szamUtanSzam ? 0.6 : 1.2)) {
       akt = { x0: d.x, x1: d.x + d.w, szoveg: d.str };
       segs.push(akt);
     } else {

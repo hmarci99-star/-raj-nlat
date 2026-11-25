@@ -8,7 +8,7 @@ Telefonról is használható weboldal. A beírt adatokat és árakat a böngész
 
 1. **Munkadíj** a projekt adataiból.
 2. **Anyaglista** a boltnak: vágólapra másolható, vagy előre kitöltött e-mailként küldhető.
-3. **Árak a boltból:** a bolt PDF-jét feltöltöd a „PDF feltöltése” gombbal, vagy bemásolod a válasz szövegét, és a program tételenként kiolvassa a bolti és a kedvezményes egységárat. Amit nem tud tételhez kötni, kilistázza, és a hiányzó árat kézzel beírhatod.
+3. **Árak a boltból:** a bolt két PDF-jét feltöltöd a „Bolti árak PDF” és a „Kedvezményes árak PDF” gombbal, mindegyik csak a saját oszlopát tölti ki. Ha mindkét ár egy levélben jön, a szövegét bemásolhatod, és a program tételenként kiolvassa a bolti és a kedvezményes egységárat. Amit nem tud tételhez kötni, kilistázza, és a hiányzó árat kézzel beírhatod.
 4. **Ügyfélajánlat:** munkadíj tételesen, anyag bolti áron, végösszeg. **Belső összesítő:** beszerzési ár és haszon tételenként, illetve összesen.
 5. **PDF:** mindkét kimenet külön sablonnal, A4-es lapra. A gomb a böngésző nyomtatási ablakát nyitja meg, ott a „Mentés PDF-ként” lehetőséget kell választani. A fájlnév javaslata például `Arajanlat_Kovács_Anna_2026-11-25`. A fejlécbe a vállalkozó adatai, a megrendelő, az ajánlat száma, a kelte és az érvényessége kerül. A saját adataidat a böngésző megjegyzi.
 

@@ -53,3 +53,8 @@ test('a fejléc tördelt szava nem kerül az árak közé', () => {
   ];
   assert.equal(sorokbaRendez(items), 'Lista\tEgyedi\nRehau PX 20 T-idom\t2 db\t2 100\t1 600');
 });
+
+test('két szám kis réssel is külön oszlop', () => {
+  const items = [d('HL 440 csatlakozó', 50, 300, 150), d('1 db', 260, 300, 18), d('12 990 Ft', 300, 300, 45), d('12 990 Ft', 352, 300, 45)];
+  assert.equal(sorokbaRendez(items), 'HL 440 csatlakozó\t1 db\t12 990 Ft\t12 990 Ft');
+});

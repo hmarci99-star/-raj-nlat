@@ -26,14 +26,17 @@ function sorVegiSzamok(sor) {
   const oszlopok = sor.split(/\t|;|\||\s{2,}/).map((o) => o.trim()).filter(Boolean);
   const szamok = [];
   if (oszlopok.length >= 2) {
-    for (let i = oszlopok.length - 1; i > 0; i--) {
+    let i = oszlopok.length - 1;
+    for (; i > 0; i--) {
       const o = oszlopok[i];
       if (/^(db|fm|m|pár|kör|ft)\.?$/i.test(o)) continue;
-      const n = parseSzam(o.replace(/\s*(db|fm|m|pár)\.?$/i, ''));
-      if (Number.isNaN(n)) break;
-      szamok.unshift(n);
+      // Egy cellába csúszott több "Ft"-os összeg: "12 990 Ft 12 990 Ft".
+      const reszek = o.replace(/\s*(db|fm|m|pár)\.?$/i, '').split(/(?<=ft\.?)\s+(?=\d)/i);
+      const n = reszek.map(parseSzam);
+      if (n.some(Number.isNaN)) break;
+      szamok.unshift(...n);
     }
-    return { szamok, szoveg: oszlopok.slice(0, oszlopok.length - szamok.length).join(' ') };
+    return { szamok, szoveg: oszlopok.slice(0, i + 1).join(' ') };
   }
   const m = sor.match(/((?:[\s/:–-]+\d[\d .]*(?:,\d+)?\s*(?:ft|db|fm)?\.?)+)\s*$/i);
   if (!m) return { szamok: [], szoveg: sor };
@@ -74,21 +77,29 @@ function illeszt(szoveg, sorok) {
   return pont[0] >= 0.7 && jobb(pont, masodik) > 0 ? legjobb : null;
 }
 
-// Bolti és kedvezményes egységár a sor végi számokból. A mennyiséget és a
-// soronkénti összeget (ár × mennyiség) kihagyja; a nagyobb a bolti ár.
-function arakSzamokbol(szamok, mennyiseg) {
+// Egységár(ak) a sor végi számokból. A mennyiséget és a soronkénti összeget
+// (ár × mennyiség) kihagyja.
+// mezo nélkül: két ár esetén a nagyobb a bolti, a kisebb a kedvezményes.
+// mezo = 'bolti' / 'kedvezmenyes': a PDF csak ezt az árat tartalmazza; ha mégis
+// két ár van a sorban, a bolti a nagyobb, a kedvezményes a kisebb.
+function arakSzamokbol(szamok, mennyiseg, mezo = null) {
   let n = [...szamok];
-  if (n.length >= 3 && n[0] === mennyiseg) n = n.slice(1);
+  if (n.length >= 2 && n[0] === mennyiseg) n = n.slice(1);
   const arak = n.filter((x, i) => !n.slice(0, i).some((a) => Math.abs(a * mennyiseg - x) < 1 && mennyiseg !== 1));
   if (arak.length === 0) return null;
+  if (mezo) {
+    const [a, b = a] = arak;
+    return { [mezo]: mezo === 'kedvezmenyes' ? Math.min(a, b) : Math.max(a, b) };
+  }
   if (arak.length === 1) return { bolti: arak[0], kedvezmenyes: null };
   const [a, b] = arak;
   return { bolti: Math.max(a, b), kedvezmenyes: Math.min(a, b) };
 }
 
 // text: a bolt válasza (szövegként, akár PDF-ből kimásolva).
-// Eredmény: { arak: Map(kulcs -> {bolti, kedvezmenyes}), nemIllesztett: [sor] }.
-export function boltValaszBeolvasas(text, sorok) {
+// mezo: null (mindkét ár a szövegben), 'bolti' vagy 'kedvezmenyes' (külön PDF).
+// Eredmény: { arak: Map(kulcs -> {bolti?, kedvezmenyes?}), nemIllesztett: [sor] }.
+export function boltValaszBeolvasas(text, sorok, mezo = null) {
   const arak = new Map();
   const nemIllesztett = [];
   for (const nyers of text.split(/\r?\n/)) {
@@ -97,7 +108,7 @@ export function boltValaszBeolvasas(text, sorok) {
     const { szamok, szoveg } = sorVegiSzamok(sor);
     if (szamok.length === 0) continue;
     const tetel = illeszt(szoveg, sorok);
-    const ar = tetel && arakSzamokbol(szamok, tetel.mennyiseg);
+    const ar = tetel && arakSzamokbol(szamok, tetel.mennyiseg, mezo);
     if (!tetel || !ar) {
       nemIllesztett.push(sor);
       continue;

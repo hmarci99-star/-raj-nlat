@@ -83,3 +83,30 @@ test('a bolt a saját (számozott) listánkra válaszol árakkal', () => {
   assert.deepEqual(ar(e, 1), { bolti: 2100, kedvezmenyes: 1600 });
   assert.deepEqual(ar(e, 3), { bolti: 420, kedvezmenyes: 310 });
 });
+
+test('külön PDF: csak bolti ár, mennyiség és összeg oszloppal', () => {
+  const v = [
+    'Rehau PX 20-16-20 T-idom\t4 db\t2 450\t9 800',
+    'Rehau PX 20 T-idom\t2\t2 100',
+    'Grohe Rapid SL WC-tartály (nyomólap nélkül)\t1 db\t48 900\t48 900',
+  ].join('\n');
+  const e = boltValaszBeolvasas(v, sorok, 'bolti');
+  assert.deepEqual(ar(e, 0), { bolti: 2450 });
+  assert.deepEqual(ar(e, 1), { bolti: 2100 });
+  assert.deepEqual(ar(e, 4), { bolti: 48900 });
+});
+
+test('külön PDF: kedvezményes ár; ha két ár van a sorban, a kisebbet veszi', () => {
+  const v = [
+    'Rehau PX 20-16-20 T-idom\t4 db\t1 890\t7 560',
+    'Rehau PX 20 T-idom\t2 db\t2 100\t1 600\t3 200',
+  ].join('\n');
+  const e = boltValaszBeolvasas(v, sorok, 'kedvezmenyes');
+  assert.deepEqual(ar(e, 0), { kedvezmenyes: 1890 });
+  assert.deepEqual(ar(e, 1), { kedvezmenyes: 1600 });
+});
+
+test('egy cellába csúszott két Ft-os összeg', () => {
+  const e = boltValaszBeolvasas('Rehau PX 20 T-idom\t2 db\t2 100 Ft 4 200 Ft', sorok, 'bolti');
+  assert.deepEqual(ar(e, 1), { bolti: 2100 });
+});

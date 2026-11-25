@@ -181,19 +181,47 @@ function megjelenitArTabla(kenyszer = false) {
     </table>`;
 }
 
-function beolvas() {
-  const { arak, nemIllesztett } = boltValaszBeolvasas($('bolt-valasz').value, allapot.anyag.sorok);
+const MEZO_NEV = { bolti: 'bolti', kedvezmenyes: 'kedvezményes' };
+
+// Beolvasott árak beírása. mezo: null (mindkét ár a szövegben) vagy 'bolti' / 'kedvezmenyes'.
+function arakAtvetele(szoveg, mezo) {
+  const { arak, nemIllesztett } = boltValaszBeolvasas(szoveg, allapot.anyag.sorok, mezo);
   for (const [k, ar] of arak) {
-    allapot.arak[k] = { ...allapot.arak[k], bolti: ar.bolti, ...(ar.kedvezmenyes !== null && { kedvezmenyes: ar.kedvezmenyes }) };
+    const uj = { ...allapot.arak[k] };
+    for (const [m, v] of Object.entries(ar)) if (v !== null) uj[m] = v;
+    allapot.arak[k] = uj;
   }
   ment(ARAK_KULCS, allapot.arak);
-  const hianyzik = allapot.anyag.sorok.filter((s) => !Number.isFinite(allapot.arak[tetelKulcs(s)]?.bolti)).length;
-  $('beolvasas-eredmeny').innerHTML = `
-    <p>${arak.size} tétel ára beolvasva.${hianyzik ? ` ${hianyzik} tételnek még nincs bolti ára, ezeket írd be kézzel.` : ''}</p>
-    ${nemIllesztett.length ? `<p class="muted">Ezeket a sorokat nem tudtam tételhez kötni:</p>
-      <ul class="nem-illesztett">${nemIllesztett.map((s) => `<li>${escape(s)}</li>`).join('')}</ul>` : ''}`;
   megjelenitArTabla(true);
   megjelenitKimenetek();
+  const hianyzik = (m) => allapot.anyag.sorok.filter((s) => !Number.isFinite(allapot.arak[tetelKulcs(s)]?.[m])).length;
+  const hianyok = (mezo ? [mezo] : ['bolti', 'kedvezmenyes'])
+    .map((m) => [m, hianyzik(m)]).filter(([, n]) => n > 0)
+    .map(([m, n]) => `${n} tételnek még nincs ${MEZO_NEV[m]} ára.`).join(' ');
+  return `
+    <p><strong>${arak.size} / ${allapot.anyag.sorok.length} tétel</strong> ára beolvasva.${hianyok ? ` ${hianyok}` : ''}</p>
+    ${nemIllesztett.length ? `<p class="muted">Nem tudtam tételhez kötni:</p>
+      <ul class="nem-illesztett">${nemIllesztett.map((s) => `<li>${escape(s)}</li>`).join('')}</ul>` : ''}`;
+}
+
+function beolvas() {
+  $('beolvasas-eredmeny').innerHTML = arakAtvetele($('bolt-valasz').value, null);
+}
+
+async function pdfFeltoltes(mezo, fajl) {
+  const el = $(`eredmeny-${mezo}`);
+  el.innerHTML = `<p class="muted">${escape(fajl.name)} beolvasása…</p>`;
+  try {
+    const szoveg = await pdfSzoveg(fajl);
+    if (!szoveg.trim()) {
+      el.innerHTML = '<p class="warn">Ebben a PDF-ben nincs kiolvasható szöveg (valószínűleg szkennelt kép). Írd be az árakat kézzel.</p>';
+      return;
+    }
+    el.innerHTML = `<p class="muted">${escape(fajl.name)}</p>${arakAtvetele(szoveg, mezo)}
+      <details><summary>Kiolvasott szöveg</summary><pre>${escape(szoveg)}</pre></details>`;
+  } catch (err) {
+    el.innerHTML = `<p class="error">A PDF nem olvasható be: ${escape(err.message)}</p>`;
+  }
 }
 
 // ---- Kimenetek ----
@@ -339,25 +367,13 @@ async function indit() {
     }
   });
   $('beolvas').addEventListener('click', beolvas);
-  $('bolt-pdf').addEventListener('change', async (ev) => {
-    const fajl = ev.target.files?.[0];
-    ev.target.value = '';
-    if (!fajl) return;
-    const allapotEl = $('pdf-allapot');
-    allapotEl.textContent = `${fajl.name} beolvasása…`;
-    try {
-      const szoveg = await pdfSzoveg(fajl);
-      if (!szoveg.trim()) {
-        allapotEl.textContent = 'Ebben a PDF-ben nincs kiolvasható szöveg (valószínűleg szkennelt kép). Írd be az árakat kézzel.';
-        return;
-      }
-      $('bolt-valasz').value = szoveg;
-      allapotEl.textContent = `${fajl.name} betöltve. A kiolvasott szöveg lent látható.`;
-      beolvas();
-    } catch (err) {
-      allapotEl.textContent = `A PDF nem olvasható be: ${err.message}`;
-    }
-  });
+  for (const mezo of ['bolti', 'kedvezmenyes']) {
+    $(`pdf-${mezo}`).addEventListener('change', (ev) => {
+      const fajl = ev.target.files?.[0];
+      ev.target.value = '';
+      if (fajl) pdfFeltoltes(mezo, fajl);
+    });
+  }
   $('ar-tabla').addEventListener('input', (ev) => {
     const el = ev.target;
     if (!el.dataset.kulcs) return;
@@ -374,7 +390,7 @@ async function indit() {
     if (!confirm('Törlöd az összes beírt árat?')) return;
     allapot.arak = {};
     ment(ARAK_KULCS, allapot.arak);
-    $('beolvasas-eredmeny').innerHTML = '';
+    for (const id of ['beolvasas-eredmeny', 'eredmeny-bolti', 'eredmeny-kedvezmenyes']) $(id).innerHTML = '';
     megjelenitArTabla(true);
     megjelenitKimenetek();
   });

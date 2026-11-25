@@ -62,7 +62,16 @@
     .button { background: transparent; color: var(--accent); }
     h3 { font-size: .95rem; margin: 16px 0 4px; }
     label.block { display: block; margin-bottom: 6px; }
-    .feltoltes { margin: 0 0 14px; }
+    .feltoltesek { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin-bottom: 14px; }
+    .feltoltes { display: flex; flex-direction: column; gap: 8px; min-width: 0; padding: 12px;
+      border: 1px dashed var(--line); border-radius: 8px; }
+    .feltoltes .fajl-gomb { text-align: center; }
+    .feltoltes-eredmeny p { margin: 0 0 4px; font-size: .92rem; }
+    .feltoltes-eredmeny details { font-size: .85rem; }
+    .feltoltes-eredmeny pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 240px; overflow: auto;
+      font-size: 12px; background: var(--bg); padding: 8px; border-radius: 6px; }
+    .bemasolas { margin-bottom: 12px; }
+    .bemasolas summary { cursor: pointer; color: var(--accent); margin-bottom: 8px; }
     .fajl-gomb { display: inline-block; }
     .rejtett-fajl { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
     .feltoltes:has(.rejtett-fajl:focus-visible) .fajl-gomb { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -198,20 +207,28 @@
 
   <section id="ar-szakasz">
     <h2>Árak a boltból</h2>
-    <div class="actions feltoltes">
-      <label class="button fajl-gomb" for="bolt-pdf">PDF feltöltése</label>
-      <input type="file" id="bolt-pdf" accept="application/pdf,.pdf" class="rejtett-fajl">
-      <span id="pdf-allapot" class="muted" aria-live="polite"></span>
+    <div class="feltoltesek">
+      <div class="feltoltes">
+        <label class="button fajl-gomb" for="pdf-bolti">Bolti árak PDF</label>
+        <input type="file" id="pdf-bolti" accept="application/pdf,.pdf" class="rejtett-fajl">
+        <div id="eredmeny-bolti" class="feltoltes-eredmeny" aria-live="polite"></div>
+      </div>
+      <div class="feltoltes">
+        <label class="button fajl-gomb" for="pdf-kedvezmenyes">Kedvezményes árak PDF</label>
+        <input type="file" id="pdf-kedvezmenyes" accept="application/pdf,.pdf" class="rejtett-fajl">
+        <div id="eredmeny-kedvezmenyes" class="feltoltes-eredmeny" aria-live="polite"></div>
+      </div>
     </div>
-    <label class="block" for="bolt-valasz">Vagy másold ide a bolt válaszát (az e-mail szövegét vagy a PDF-ből kimásolt táblázatot):</label>
-    <textarea id="bolt-valasz" rows="6" placeholder="Rehau PX 20-16-20 T-idom	4	2 450	1 890"></textarea>
-    <div class="actions">
-      <button type="button" id="beolvas">Beolvasás</button>
-      <button type="button" id="arak-torlese" class="button">Árak törlése</button>
-    </div>
-    <div id="beolvasas-eredmeny" aria-live="polite"></div>
+    <details class="bemasolas">
+      <summary>Vagy másold be a bolt válaszát szövegként</summary>
+      <label class="block" for="bolt-valasz">Az e-mail szövege vagy a kimásolt táblázat. Ha egy sorban két ár áll, a nagyobbat bolti, a kisebbet kedvezményes árnak veszi.</label>
+      <textarea id="bolt-valasz" rows="6" placeholder="Rehau PX 20-16-20 T-idom	4	2 450	1 890"></textarea>
+      <div class="actions"><button type="button" id="beolvas">Beolvasás</button></div>
+      <div id="beolvasas-eredmeny" aria-live="polite"></div>
+    </details>
     <p class="muted">Bruttó (ÁFÁ-s) egységárak, ahogy a bolt küldi, forintban. Ami nem olvasható be, azt írd be vagy javítsd kézzel.</p>
     <div id="ar-tabla"></div>
+    <div class="actions"><button type="button" id="arak-torlese" class="button">Árak törlése</button></div>
   </section>
 
   <section>
