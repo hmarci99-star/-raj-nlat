@@ -616,12 +616,25 @@ function pluszEsemenyek() {
 
 // ---- Kimenetek ----
 
+// Ha már van bolti árajánlat (PDF vagy bemásolt szöveg), az az irányadó: a lista azon
+// tételei, amiknek nincs bolti áruk (nem szerepelnek a bolt válaszában), kimaradnak az
+// ajánlatból. Ha kézzel árat kapnak, visszakerülnek.
+const boltiArVan = (s) => Number.isFinite(allapot.arak[tetelKulcs(s)]?.bolti);
+const boltValaszVan = () => Boolean(allapot.feltoltesek.bolti || allapot.feltoltesek.szoveg);
+function ajanlatSorok() {
+  return boltValaszVan() ? allapot.anyag.sorok.filter(boltiArVan) : allapot.anyag.sorok;
+}
+
 function megjelenitKimenetek() {
   if (!allapot.munkadij) return;
-  const a = ajanlat(allapot.munkadij, allapot.anyag.sorok, allapot.arak);
-  const n = a.anyag.length;
-  // A fülön: hány tételnek van már bolti ára.
-  kiir('jelveny-arak', n ? `${n - a.hianyzoBolti}/${n}` : '');
+  const a = ajanlat(allapot.munkadij, ajanlatSorok(), allapot.arak);
+  // A fülön: hány tételnek van már bolti ára (a teljes listából).
+  const n = allapot.anyag.sorok.length;
+  kiir('jelveny-arak', n ? `${allapot.anyag.sorok.filter(boltiArVan).length}/${n}` : '');
+  const kimaradt = boltValaszVan() ? allapot.anyag.sorok.filter((s) => !boltiArVan(s)) : [];
+  const kimaradtHtml = kimaradt.length ? `<details class="reszlet kimaradt"><summary>${kimaradt.length} listatétel nincs a bolt
+    árajánlatában, ezért kimaradt</summary><p class="muted">Ha mégis kell, írd be az árát az Árak lépésnél, és visszakerül.</p>
+    <ul class="nem-illesztett">${kimaradt.map((s) => `<li>${escape(s.cikk)} – ${ft.format(s.mennyiseg)} ${escape(s.egyseg)}</li>`).join('')}</ul></details>` : '';
   kiir('sum-anyag', a.anyagBolti ? penz(a.anyagBolti) : '–');
   kiir('sum-vegosszeg', a.vegosszeg ? penz(a.vegosszeg) : '–');
 
@@ -634,6 +647,7 @@ function megjelenitKimenetek() {
     </tr>`).join('');
   $('ugyfel').innerHTML = `
     ${a.hianyzoBolti ? `<p class="warn">${a.hianyzoBolti} anyagtételnek nincs bolti ára, az összeg hiányos.</p>` : ''}
+    ${kimaradtHtml}
     <h3>Munkadíj</h3>
     ${munkadijHtml(a.munkadij)}
     ${a.anyag.length ? `<h3>Anyag</h3>
@@ -697,7 +711,7 @@ function kitoltAdatok(adatok) {
 const eredetiCim = document.title;
 function nyomtat(tipus) {
   if (!allapot.munkadij) return;
-  const a = ajanlat(allapot.munkadij, allapot.anyag.sorok, allapot.arak);
+  const a = ajanlat(allapot.munkadij, ajanlatSorok(), allapot.arak);
   const adatok = olvasAdatok();
   $('nyomtat').innerHTML = tipus === 'belso' ? belsoOsszesitoHtml(a, adatok) : ugyfelAjanlatHtml(a, adatok);
   document.title = fajlnev(tipus === 'belso' ? 'Belso_osszesito' : 'Arajanlat', adatok);
@@ -875,7 +889,7 @@ async function indit() {
     },
     osszegek: () => {
       if (!allapot.munkadij) return { munkadij: 0, anyag: 0, vegosszeg: 0 };
-      const a = ajanlat(allapot.munkadij, allapot.anyag.sorok, allapot.arak);
+      const a = ajanlat(allapot.munkadij, ajanlatSorok(), allapot.arak);
       return { munkadij: a.munkadij.osszesen, anyag: a.anyagBolti, vegosszeg: a.vegosszeg };
     },
     nezet: (nev) => nezetValtas(nev, false),

@@ -186,3 +186,49 @@ test('valódi tételek továbbra is felismerhetők', () => {
   assert.equal(nemTetelNev('Nettó összesen'), true);
   assert.equal(nemTetelNev('Sarokszelep 1/2 col'), false);
 });
+
+// Valódi bolti PDF sorai (Gravitáció Kft. ajánlat formátum, a programmal kiolvasva).
+const valodi = [
+  '1.\tFIS_79815 Fischer ED 18 beütőszeg 200 db/doboz\t200,000 db\t58\t11 684 Ft',
+  '3.\tKAI_4013299 Kaimann Kaiflex PE-DWS csőhéj, tekercses, 4x18mm (régi: KAI_4002664) (600m/karton)\t30,000 fm\t366\t10 973 Ft',
+  '19.\tREH_11600311001 Rehau PX 16 T-idom\t1,000 db\t3 557\t3 557 Ft',
+  '20.\tREH_11600011001 Rehau PX 16 toldóhüvely (100db/doboz)\t25,000 db\t485\t12 129 Ft',
+  '22.\tREH_11600811001 Rehau PX 20-16-16 T-idom\t2,000 db\t3 551\t7 102 Ft',
+  '23.\tREH_11600321001 Rehau PX 20 T-idom\t4,000 db\t4 684\t18 735 Ft',
+  '30.\tREH_13608451002 Rehau Rautitan Stabil PEXa/Al/PEHD ötrétegű cső, 20x2.9mm, 100m/tek\t20,000 fm\t2 369\t47 371 Ft',
+  '41.\tRTB_071534D Rothenberger Profi Plus 125x1x22 mm vágókorong (10 db)\t0,300 cs\t9 315\t2 795 Ft',
+];
+
+test('valódi PDF: az egységár a kerekített helyett az értékből (11 684 / 200 = 58,42)', () => {
+  const j = ujTetelJelolt(valodi[0], 'bolti');
+  assert.deepEqual([j.cikk, j.cikkszam, j.mennyiseg, j.egyseg, j.ar], ['Fischer ED 18 beütőszeg 200 db/doboz', 'FIS_79815', 200, 'db', { bolti: 58.42 }]);
+  const k = ujTetelJelolt(valodi[7], 'bolti');
+  assert.equal(k.mennyiseg, 0.3);
+  assert.equal(Math.round(k.mennyiseg * k.ar.bolti), 2795);
+});
+
+test('valódi PDF: méretek pontosan, a "20" nem "20-16-16", tizedespont = vessző', () => {
+  const lista = [
+    { cikk: 'Kaiflex csőhéj 4x18 mm', egyseg: 'fm', mennyiseg: 12, cikkszam: '' },
+    { cikk: 'Rehau PX 16 toldóhüvely', egyseg: 'db', mennyiseg: 19, cikkszam: '' },
+    { cikk: 'Rehau PX 20 T-idom', egyseg: 'db', mennyiseg: 8, cikkszam: '' },
+    { cikk: 'Rehau Rautitan Stabil cső 20x2,9 mm', egyseg: 'fm', mennyiseg: 4, cikkszam: '' },
+  ];
+  const e = boltValaszBeolvasas(valodi.join('\n'), lista, 'bolti');
+  const ertek = (i) => Math.round(e.mennyisegek.get(tetelKulcs(lista[i])) * e.arak.get(tetelKulcs(lista[i])).bolti);
+  assert.equal(ertek(0), 10973);
+  assert.equal(ertek(1), 12129); // a "PX 16 T-idom" nem a toldóhüvely
+  assert.equal(ertek(2), 18735); // a "PX 20-16-16 T-idom" nem a "PX 20 T-idom"
+  assert.equal(ertek(3), 47371); // "20x2.9mm" = "20x2,9 mm"
+  const ossz = [...e.arak].reduce((t, [k, a]) => t + (e.mennyisegek.get(k) ?? lista.find((s) => tetelKulcs(s) === k).mennyiseg) * a.bolti, 0)
+    + e.jeloltek.reduce((t, j) => t + j.mennyiseg * j.ar.bolti, 0);
+  assert.equal(Math.round(ossz), 11684 + 10973 + 3557 + 12129 + 7102 + 18735 + 47371 + 2795);
+});
+
+test('ugyanaz a tétel két sorban: a mennyiségek összeadódnak', () => {
+  const lista = [{ cikk: 'Rehau PX 20 T-idom', egyseg: 'db', mennyiseg: 2, cikkszam: '' }];
+  const e = boltValaszBeolvasas('Rehau PX 20 T-idom\t2 db\t4 000\t8 000 Ft\nRehau PX 20 T-idom\t3 db\t5 000\t15 000 Ft', lista, 'bolti');
+  const k = tetelKulcs(lista[0]);
+  assert.equal(e.mennyisegek.get(k), 5);
+  assert.equal(Math.round(e.mennyisegek.get(k) * e.arak.get(k).bolti), 23000);
+});

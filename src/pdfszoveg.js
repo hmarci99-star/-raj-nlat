@@ -73,6 +73,11 @@ export function sorokbaRendez(items) {
   }
   sorok.sort((a, b) => b.y - a.y);
   for (const s of sorok) s.segs = szegmensek(s.darabok);
+  // Üres mezőfelirat külön sorban (pl. a tétel alatti "Hivatkozás:"): nem tartozik a tételhez.
+  for (let i = sorok.length - 1; i >= 0; i--) {
+    const s = sorok[i];
+    if (s.segs.length === 1 && /^[^\d]{2,40}:$/.test(s.segs[0].szoveg)) sorok.splice(i, 1);
+  }
 
   // A tördelt (nem teljes) sorokat a legközelebbi táblázatsorhoz kötjük,
   // ha legfeljebb kb. másfél sornyira van tőle.

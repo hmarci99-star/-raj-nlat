@@ -4,6 +4,9 @@
 
 export const tetelKulcs = (s) => `${s.cikk}|${s.egyseg}`;
 
+// Mértékegységek a bolti listákban (a hosszabbak előre, hogy a "csomag" ne "cs" legyen).
+const EGYSEGEK = 'csomag|tekercs|doboz|szett|karton|zsák|pár|db|fm|kg|cs|m|l';
+
 // Magyar formátumú szám: "12 345", "12.345", "12 345,50", "1234 Ft".
 export function parseSzam(s) {
   let t = String(s).replace(/ft\.?/gi, '').replace(/[\s ]/g, '');
@@ -13,12 +16,14 @@ export function parseSzam(s) {
   return /^\d+(\.\d+)?$/.test(t) ? Number(t) : NaN;
 }
 
+// Kisbetű, zárójelek nélkül, a tizedespont és -vessző egységesen vessző ("20x2.9" = "20x2,9").
 function normal(s) {
-  return s.toLowerCase().normalize('NFC').replace(/[()"„”]/g, ' ');
+  return s.toLowerCase().normalize('NFC').replace(/[()"„”]/g, ' ').replace(/(\d)[.,](\d)/g, '$1,$2');
 }
 
+// Szavak; a számok közti vessző (tizedesvessző) nem választ el.
 function szavak(s) {
-  return normal(s).split(/[\s,;/]+/).filter((w) => w.length > 1);
+  return normal(s).split(/[\s;/]+|,(?!\d)/).filter((w) => w.length > 1);
 }
 
 // Egy sor végén álló számoszlopok: tabulátor, pontosvessző, | vagy legalább két
@@ -30,9 +35,9 @@ function sorVegiSzamok(sor) {
     let i = oszlopok.length - 1;
     for (; i > 0; i--) {
       const o = oszlopok[i];
-      if (/^(db|fm|m|pár|kör|ft)\.?$/i.test(o)) continue;
+      if (new RegExp(`^(${EGYSEGEK}|kör|ft)\\.?$`, 'i').test(o)) continue;
       // Egy cellába csúszott több "Ft"-os összeg: "12 990 Ft 12 990 Ft".
-      const reszek = o.replace(/\s*(db|fm|m|pár)\.?$/i, '').split(/(?<=ft\.?)\s+(?=\d)/i);
+      const reszek = o.replace(new RegExp(`\\s*(${EGYSEGEK})\\.?$`, 'i'), '').split(/(?<=ft\.?)\s+(?=\d)/i);
       const n = reszek.map(parseSzam);
       if (n.some(Number.isNaN)) break;
       szamok.unshift(...n);
@@ -60,8 +65,9 @@ function illeszt(szoveg, sorok) {
   let pont = [0, 0];
   let masodik = [0, 0];
   // A számot tartalmazó szavaknak (méret, átmérő) pontosan egyezniük kell:
-  // a PX 25 T-idom nem lehet a PX 20 T-idom. "4x18" egyezik "4x18mm"-rel, de "20" nem "200"-zal.
-  const szamosSzoMegvan = (x) => sorSzavaiLista.some((t) => t === x || (t.startsWith(x) && !/\d/.test(t[x.length])));
+  // a PX 25 T-idom nem lehet a PX 20 T-idom. "4x18" egyezik "4x18mm"-rel (utána csak betű, pl.
+  // mértékegység jöhet), de "20" nem "200"-zal és nem "20-16-16"-tal.
+  const szamosSzoMegvan = (x) => sorSzavaiLista.some((t) => t === x || (t.startsWith(x) && /\p{L}/u.test(t[x.length])));
   for (const s of sorok) {
     const w = szavak(s.cikk);
     if (w.length === 0) continue;
@@ -79,7 +85,7 @@ function illeszt(szoveg, sorok) {
       masodik = p;
     }
   }
-  return pont[0] >= 0.7 && jobb(pont, masodik) > 0 ? legjobb : null;
+  return pont[0] >= 0.8 && jobb(pont, masodik) > 0 ? legjobb : null;
 }
 
 // Egységár(ak) a sor végi számokból. A mennyiséget és a soronkénti összeget
@@ -90,7 +96,23 @@ function illeszt(szoveg, sorok) {
 function arakSzamokbol(szamok, mennyiseg, mezo = null) {
   let n = [...szamok];
   if (n.length >= 2 && n[0] === mennyiseg) n = n.slice(1);
-  const arak = n.filter((x, i) => !n.slice(0, i).some((a) => Math.abs(a * mennyiseg - x) < 1 && mennyiseg !== 1));
+  // Soronkénti összeg (érték) felismerése: ár × mennyiség. A boltok az egységárat
+  // gyakran kerekítve írják ki (pl. 58 Ft, valójában 58,42), ezért a tűrés a kerekítés
+  // mértékéig terjed; ilyenkor a pontos egységár az összegből számolódik (11 684 / 200).
+  if (mennyiseg !== 1 && mennyiseg > 0) {
+    const arak = [];
+    for (let i = 0; i < n.length; i++) {
+      const x = n[i];
+      const j = arak.findIndex((a) => Math.abs(a.ertek * mennyiseg - x) <= mennyiseg * 0.5 + 1 && !a.osszeg);
+      if (j >= 0) {
+        arak[j] = { ertek: Math.round((x / mennyiseg) * 100) / 100, osszeg: true };
+      } else {
+        arak.push({ ertek: x });
+      }
+    }
+    n = arak.map((a) => a.ertek);
+  }
+  const arak = n;
   if (arak.length === 0) return null;
   if (mezo) {
     const [a, b = a] = arak;
@@ -101,7 +123,6 @@ function arakSzamokbol(szamok, mennyiseg, mezo = null) {
   return { bolti: Math.max(a, b), kedvezmenyes: Math.min(a, b) };
 }
 
-const EGYSEGEK = 'db|fm|m|pár|kg|cs|csomag|szett|tekercs|doboz|zsák|l';
 const egysegNormal = (e) => ({ m: 'fm' }[e.toLowerCase()] ?? e.toLowerCase());
 
 // A sorban szereplő mennyiség ("6 db", "12 fm"): az utolsó szám+egység, ami nem a
@@ -131,16 +152,22 @@ export function ujTetelJelolt(sor, mezo = null) {
   const menny = mennyisegASorban(sor, szoveg);
   // "Nettó: 107 811 Ft" – kettősponttal záródó felirat, mennyiség nélkül: összesítő sor.
   if (!menny && (/:\s*$/.test(szoveg.trim()) || /:[\s\t]*[\d][\d\s.,]*(ft)?\.?[\s\t\d.,ft]*$/i.test(sor))) return null;
+  // Mennyiség (egységgel) nélkül legalább két szám kell (pl. mennyiség és ár);
+  // egyetlen szám a sor végén inkább cím vagy dátum ("Batthyány utca 20").
+  if (!menny && szamok.length < 2) return null;
   const mennyiseg = menny?.mennyiseg ?? 1;
   const egyseg = menny?.egyseg ?? 'db';
   const ar = arakSzamokbol(szamok, mennyiseg, mezo);
   if (!ar || !Object.values(ar).some((v) => v >= 10)) return null;
 
-  let nev = szoveg;
+  let nev = szoveg.replace(/\s+/g, ' ').trim()
+    .replace(/^\d+[.)]\s+/, '') // tételsorszám: "12."
+    .replace(/^hivatkozás:\s*/i, '');
   let cikkszam = '';
-  const csz = nev.match(/^(\d{4,})\s+(.*)$/);
+  // Cikkszám a megnevezés elején: csupa szám ("38340001") vagy bolti kód ("FIS_79815", "UH-499811", "PIP_KAB32-45").
+  const csz = nev.match(/^(\d{4,}|(?=[A-Z0-9_./-]*\d)[A-Z][A-Z0-9]*[_-][A-Z0-9_./-]+)\s+(.*)$/);
   if (csz) [, cikkszam, nev] = csz;
-  nev = nev.replace(/^\d+[.)]\s+/, '').replace(/[\s–:-]+$/, '').replace(/\s+/g, ' ').trim();
+  nev = nev.replace(/[\s–:-]+$/, '').trim();
   if ((nev.match(/\p{L}/gu) ?? []).length < 3 || nemTetelNev(nev)) return null;
   return { cikk: nev, cikkszam, mennyiseg, egyseg, ar, sor };
 }
@@ -154,6 +181,7 @@ export function boltValaszBeolvasas(text, sorok, mezo = null) {
   const mennyisegek = new Map();
   const jeloltek = [];
   const nemIllesztett = [];
+  const osszesitett = new Map(); // tétel -> { q: PDF-mennyiség eddig, ar }
   for (const nyers of text.split(/\r?\n/)) {
     const sor = nyers.trim();
     if (!sor) continue;
@@ -166,8 +194,26 @@ export function boltValaszBeolvasas(text, sorok, mezo = null) {
     const pdfMenny = menny && menny.egyseg === egysegNormal(tetel.egyseg) ? menny.mennyiseg : null;
     const ar = tetel && arakSzamokbol(szamok, pdfMenny ?? tetel.mennyiseg, mezo);
     if (tetel && ar) {
-      arak.set(tetelKulcs(tetel), ar);
-      if (pdfMenny !== null && pdfMenny !== tetel.mennyiseg) mennyisegek.set(tetelKulcs(tetel), pdfMenny);
+      const k = tetelKulcs(tetel);
+      const q = pdfMenny ?? tetel.mennyiseg;
+      if (osszesitett.has(k)) {
+        // Ugyanaz a tétel több sorban: a mennyiség összeadódik, az ár súlyozott átlag (az érték nem vész el).
+        const elozo = osszesitett.get(k);
+        const ossz = elozo.q + q;
+        const uj = {};
+        for (const m of Object.keys({ ...elozo.ar, ...ar })) {
+          const a = elozo.ar[m];
+          const b = ar[m];
+          uj[m] = a == null ? b : b == null ? a : Math.round(((a * elozo.q + b * q) / ossz) * 100) / 100;
+        }
+        osszesitett.set(k, { q: ossz, ar: uj });
+        arak.set(k, uj);
+        if (ossz !== tetel.mennyiseg) mennyisegek.set(k, ossz); else mennyisegek.delete(k);
+      } else {
+        osszesitett.set(k, { q, ar });
+        arak.set(k, ar);
+        if (pdfMenny !== null && pdfMenny !== tetel.mennyiseg) mennyisegek.set(k, pdfMenny);
+      }
       continue;
     }
     const jelolt = ujTetelJelolt(sor, mezo);
