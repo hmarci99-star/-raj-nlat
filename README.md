@@ -39,7 +39,13 @@ npm start      # http://localhost:3000
 npm test
 ```
 
-A weboldal statikus fájlokból áll, így GitHub Pages-en is közzétehető. Közvetlenül fájlként (`file://`) megnyitva nem működik, mert a CSV-t be kell töltenie.
+### Telefonról
+
+Az alkalmazás GitHub Pages-en fut: https://hmarci99-star.github.io/-raj-nlat/
+
+Ha a böngésző menüjében a „Hozzáadás a kezdőképernyőhöz” lehetőséget választod, saját ikonnal indítható. A beírt adatok és árak csak az adott eszköz böngészőjében tárolódnak, a webre nem kerülnek fel.
+
+A weboldal statikus fájlokból áll. Közvetlenül fájlként (`file://`) megnyitva nem működik, mert a CSV-t be kell töltenie.
 
 ## Következő lépések
 
