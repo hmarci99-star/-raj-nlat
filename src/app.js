@@ -211,15 +211,16 @@ function arakAtvetele(szoveg, mezo) {
     .map(([m, n]) => `${n} tételnek még nincs ${MEZO_NEV[m]} ára.`).join(' ');
   const reszek = [];
   if (arak.size === 0 && jeloltek.length === 0) {
-    reszek.push(`<p class="warn">Egy tétel árát sem találtam. Nézd meg lent a kiolvasott szöveget. Ha abban látszanak a tételek és az árak,
+    reszek.push(`<p class="warn">Egy tétel árát sem találtam. Nézd meg a kiolvasott szöveget. Ha abban látszanak a tételek és az árak,
       küldd el a PDF-et, és hozzáigazítom a beolvasást.</p>`);
   } else {
     reszek.push(`<p><strong>${arak.size} / ${allapot.anyag.sorok.length} tétel</strong> ára beolvasva.${hianyok ? ` ${hianyok}` : ''}</p>`);
   }
-  if (jeloltek.length) reszek.push(`<p class="muted">Új tételek a bolt válaszában (nincsenek az anyaglistán):</p>
-    <ul class="jeloltek">${jeloltek.map((j, i) => jeloltHtml(j, forras, i)).join('')}</ul>`);
-  if (nemIllesztett.length) reszek.push(`<p class="muted">Nem tudtam tételhez kötni:</p>
-    <ul class="nem-illesztett">${nemIllesztett.map((s) => `<li>${escape(s)}</li>`).join('')}</ul>`);
+  // A részletek alapból csukva vannak, csak a darabszám látszik.
+  if (jeloltek.length) reszek.push(`<details class="reszlet"><summary>Új tételek (${jeloltek.length})</summary>
+    <ul class="jeloltek">${jeloltek.map((j, i) => jeloltHtml(j, forras, i)).join('')}</ul></details>`);
+  if (nemIllesztett.length) reszek.push(`<details class="reszlet"><summary>Nem értelmezett sorok (${nemIllesztett.length})</summary>
+    <ul class="nem-illesztett">${nemIllesztett.map((s) => `<li>${escape(s)}</li>`).join('')}</ul></details>`);
   return reszek.join('');
 }
 
@@ -256,8 +257,8 @@ async function pdfFeltoltes(mezo, fajl) {
       el.innerHTML = '<p class="warn">Ebben a PDF-ben nincs kiolvasható szöveg (valószínűleg szkennelt kép). Írd be az árakat kézzel.</p>';
       return;
     }
-    el.innerHTML = `<p class="muted">${escape(fajl.name)}</p>${arakAtvetele(szoveg, mezo)}
-      <details><summary>Kiolvasott szöveg</summary><pre>${escape(szoveg)}</pre></details>`;
+    el.innerHTML = `<p class="muted fajlnev">${escape(fajl.name)}</p>${arakAtvetele(szoveg, mezo)}
+      <details class="reszlet"><summary>Kiolvasott szöveg</summary><pre>${escape(szoveg)}</pre></details>`;
   } catch (err) {
     el.innerHTML = `<p class="error">A PDF nem olvasható be: ${escape(err.message)}</p>`;
   }
