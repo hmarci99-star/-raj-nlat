@@ -92,11 +92,19 @@ function munkadijHtml(e) {
 
 // ---- Anyaglista ----
 
+const levelSzoveg = (lista) => `Szia!
+
+A következő tételekről szeretnék kérni árajánlatot.
+Köszönöm szépen előre is.
+
+${lista}
+`;
+
 function megjelenitAnyag() {
   const e = allapot.anyag;
   const szoveg = anyaglistaSzoveg(e.sorok);
   $('email').href = `mailto:?subject=${encodeURIComponent('Árajánlatkérés – anyaglista')}`
-    + `&body=${encodeURIComponent(`Kérem az alábbi tételek bolti és kedvezményes árát:\n\n${szoveg}\n`)}`;
+    + `&body=${encodeURIComponent(levelSzoveg(szoveg))}`;
   $('anyag-gombok').hidden = e.sorok.length === 0;
   if (e.sorok.length === 0) {
     $('anyaglista').innerHTML = figyelmeztetesHtml(e.figyelmeztetesek)
@@ -295,7 +303,7 @@ async function indit() {
   form.addEventListener('input', frissit);
   $('masol').addEventListener('click', async () => {
     try {
-      await navigator.clipboard.writeText(anyaglistaSzoveg(allapot.anyag.sorok));
+      await navigator.clipboard.writeText(levelSzoveg(anyaglistaSzoveg(allapot.anyag.sorok)));
       $('masol-uzenet').textContent = 'Vágólapra másolva.';
     } catch {
       $('masol-uzenet').textContent = 'A másolás nem sikerült; használd az E-mail gombot.';
