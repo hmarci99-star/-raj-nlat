@@ -10,12 +10,14 @@ Telefonról is használható weboldal. A beírt adatokat és árakat a böngész
 2. **Anyaglista** a boltnak: vágólapra másolható, vagy előre kitöltött e-mailként küldhető.
 3. **Árak a boltból:** a bolt válaszát (e-mail szöveg vagy PDF-ből kimásolt táblázat) bemásolod, és a program tételenként kiolvassa a bolti és a kedvezményes egységárat. Amit nem tud tételhez kötni, kilistázza, és a hiányzó árat kézzel beírhatod.
 4. **Ügyfélajánlat:** munkadíj tételesen, anyag bolti áron, végösszeg. **Belső összesítő:** beszerzési ár és haszon tételenként, illetve összesen.
+5. **PDF:** mindkét kimenet külön sablonnal, A4-es lapra. A gomb a böngésző nyomtatási ablakát nyitja meg, ott a „Mentés PDF-ként” lehetőséget kell választani. A fájlnév javaslata például `Arajanlat_Kovács_Anna_2026-11-25`. A fejlécbe a vállalkozó adatai, a megrendelő, az ajánlat száma, a kelte és az érvényessége kerül. A saját adataidat a böngésző megjegyzi.
 
 - `data/munkadij.csv`: a munkadíj-táblázat. Árat itt kell módosítani. A `Kód` oszlopot ne írd át.
 - `data/kiallas-konyvtar.csv`: a kiállás-csomagok (kiállás, cikk, mennyiség, egység, cikkszám). A cikkszám oszlop még üres; ha kitöltöd, megjelenik a listában és az e-mailben.
 - `src/munkadij.js`: a munkadíj szabályai.
 - `src/anyaglista.js`: az anyaglista összegyűjtése, a gerinc és a hüvelyszabály.
 - `src/arak.js`: a bolt válaszának beolvasása és az ajánlat összesítése.
+- `src/sablonok.js`: az ügyfélajánlat és a belső összesítő nyomtatható sablonja.
 - `index.html`, `src/app.js`: a weboldal.
 
 ### Szabályok
@@ -41,6 +43,5 @@ A weboldal statikus fájlokból áll, így GitHub Pages-en is közzétehető. K�
 ## Következő lépések
 
 1. Az árbeolvasás finomítása valódi bolti válaszok alapján, PDF közvetlen beolvasása.
-2. Ügyfélajánlat és belső összesítő PDF-ben.
-3. Csomag-felülírás szerkesztése a felületen; a gerinc idomai és a 25-ös cső.
-4. Ajánlat-követés: állapot, következő lépés, határidő.
+2. Csomag-felülírás szerkesztése a felületen; a gerinc idomai és a 25-ös cső.
+3. Több ajánlat mentése és kezelése, ajánlat-követés: állapot, következő lépés, határidő.

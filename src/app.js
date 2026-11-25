@@ -2,9 +2,11 @@ import { parseMunkadijTabla } from './csv.js';
 import { KIALLAS_TIPUSOK, SZERELVENY_KODOK, szamolMunkadij, uresProjekt } from './munkadij.js';
 import { parseKonyvtar, gyujtAnyaglista, anyaglistaSzoveg } from './anyaglista.js';
 import { boltValaszBeolvasas, ajanlat, tetelKulcs, parseSzam } from './arak.js';
+import { ugyfelAjanlatHtml, belsoOsszesitoHtml, fajlnev } from './sablonok.js';
 
 const MENTES_KULCS = 'arajanlat.projekt';
 const ARAK_KULCS = 'arajanlat.arak';
+const ADATOK_KULCS = 'arajanlat.adatok';
 const ft = new Intl.NumberFormat('hu-HU', { useGrouping: 'always' });
 const $ = (id) => document.getElementById(id);
 const form = $('projekt');
@@ -16,6 +18,7 @@ const allapot = {
   anyag: { sorok: [], figyelmeztetesek: [] },
   arak: {},
   arTablaAlairas: '',
+  adatok: {},
 };
 
 function escape(s) {
@@ -204,6 +207,42 @@ function megjelenitKimenetek() {
     </dl>`;
 }
 
+// ---- Ajánlat adatai és PDF ----
+
+const adatokForm = $('adatok');
+const maISO = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
+function olvasAdatok() {
+  const adatok = { vallalkozo: {}, ugyfel: {}, ajanlat: {} };
+  for (const el of adatokForm.elements) {
+    if (!el.name) continue;
+    const [a, b] = el.name.split('.');
+    adatok[a][b] = el.type === 'number' ? Number(el.value || 0) : el.value.trim();
+  }
+  return adatok;
+}
+
+function kitoltAdatok(adatok) {
+  for (const el of adatokForm.elements) {
+    if (!el.name) continue;
+    const [a, b] = el.name.split('.');
+    const ertek = adatok?.[a]?.[b];
+    if (ertek !== undefined && ertek !== null) el.value = ertek;
+  }
+}
+
+const eredetiCim = document.title;
+function nyomtat(tipus) {
+  if (!allapot.munkadij) return;
+  const a = ajanlat(allapot.munkadij, allapot.anyag.sorok, allapot.arak);
+  const adatok = olvasAdatok();
+  $('nyomtat').innerHTML = tipus === 'belso' ? belsoOsszesitoHtml(a, adatok) : ugyfelAjanlatHtml(a, adatok);
+  document.title = fajlnev(tipus === 'belso' ? 'Belso_osszesito' : 'Arajanlat', adatok);
+}
+
 // ---- Frissítés ----
 
 function frissit() {
@@ -283,6 +322,19 @@ async function indit() {
     megjelenitArTabla(true);
     megjelenitKimenetek();
   });
+  const mentettAdatok = betoltMentett(ADATOK_KULCS) ?? {};
+  kitoltAdatok({ ...mentettAdatok, ajanlat: { datum: maISO(), ervenyesNap: 15, ...mentettAdatok.ajanlat } });
+  adatokForm.addEventListener('input', () => ment(ADATOK_KULCS, olvasAdatok()));
+  adatokForm.addEventListener('submit', (ev) => ev.preventDefault());
+
+  // A böngésző saját Nyomtatás menüjéből az ügyfélajánlat készül.
+  let gombbol = false;
+  const pdf = (tipus) => { gombbol = true; nyomtat(tipus); window.print(); };
+  $('pdf-ugyfel').addEventListener('click', () => pdf('ugyfel'));
+  $('pdf-belso').addEventListener('click', () => pdf('belso'));
+  window.addEventListener('beforeprint', () => { if (!gombbol) nyomtat('ugyfel'); });
+  window.addEventListener('afterprint', () => { gombbol = false; document.title = eredetiCim; });
+
   frissit();
 }
 

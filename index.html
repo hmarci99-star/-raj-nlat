@@ -60,6 +60,52 @@
     .osszesito { display: grid; grid-template-columns: 1fr auto; gap: 4px 16px; margin: 16px 0 0; }
     .osszesito dt { color: var(--muted); }
     .osszesito dd { margin: 0; text-align: right; font-weight: 600; }
+    .adatok .mezo { display: flex; flex-direction: column; align-items: stretch; gap: 4px; margin-bottom: 10px; }
+    .adatok .mezo span { font-size: .9rem; color: var(--muted); }
+    .adatok input, .adatok textarea { width: 100%; padding: 8px; font: inherit; text-align: left;
+      border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--text); }
+    .adatok .grid { gap: 0 16px; }
+    .adatok details { margin-top: 6px; }
+    .adatok summary { cursor: pointer; color: var(--accent); margin-bottom: 10px; }
+
+    /* ---- Nyomtatás / PDF ---- */
+    #nyomtat { display: none; }
+    @page { size: A4; margin: 14mm 14mm 16mm; }
+    @media print {
+      :root { color-scheme: light; }
+      body { background: #fff; color: #000; font-size: 10pt; }
+      body > main { display: none !important; }
+      #nyomtat { display: block; }
+      .ny-lap { font-size: 10pt; line-height: 1.35; }
+      .ny-fej { display: flex; justify-content: space-between; gap: 24px; padding-bottom: 10px;
+        border-bottom: 2px solid #000; margin-bottom: 14px; }
+      .ny-fej strong { font-size: 12pt; }
+      .ny-cim { text-align: right; }
+      .ny-cim h1 { font-size: 18pt; margin: 0 0 4px; letter-spacing: .02em; }
+      .ny-ugyfel { display: flex; gap: 48px; margin-bottom: 16px; }
+      .ny-cimke { font-size: 8.5pt; text-transform: uppercase; letter-spacing: .06em; color: #555; }
+      .ny-lap h2 { font-size: 11pt; margin: 16px 0 4px; }
+      .ny-lap table { width: 100%; border-collapse: collapse; }
+      .ny-lap th { font-size: 8.5pt; color: #444; text-align: left; border-bottom: 1px solid #000; padding: 4px; }
+      .ny-lap td { padding: 4px; border-bottom: 1px solid #ccc; vertical-align: top; }
+      .ny-lap tr { break-inside: avoid; }
+      .ny-lap thead { display: table-header-group; }
+      .ny-lap tfoot td { font-weight: 700; border-bottom: none; border-top: 1px solid #000; }
+      .ny-lap .num { text-align: right; white-space: nowrap; }
+      .ny-megj { font-size: 8.5pt; color: #555; }
+      .ny-osszesites { width: 60% !important; margin: 16px 0 0 auto; break-inside: avoid; }
+      .ny-osszesites td { border-bottom: none; }
+      .ny-vegosszeg td { font-size: 12pt; font-weight: 700; border-top: 2px solid #000 !important; padding-top: 6px; }
+      .ny-zaras { break-inside: avoid; }
+      .ny-afa { margin-top: 14px; font-weight: 600; }
+      .ny-szabad { margin-top: 10px; }
+      .ny-alairas { margin-top: 48px; display: flex; justify-content: flex-end; break-inside: avoid; }
+      .ny-alairas div { min-width: 200px; border-top: 1px solid #000; padding-top: 4px; text-align: center; }
+      .ny-bizalmas { border: 1px solid #000; padding: 4px 8px; font-weight: 600; display: inline-block; }
+      .ny-hiany { color: #a00; }
+      .ny-kpi { width: 70% !important; margin: 12px 0 0 0; }
+      .ny-suru { font-size: 8.5pt; }
+    }
     @media (max-width: 520px) { .hide-sm { display: none; } }
   </style>
 </head>
@@ -144,15 +190,44 @@
   </section>
 
   <section>
+    <h2>Ajánlat adatai</h2>
+    <form id="adatok" class="adatok">
+      <label class="mezo"><span>Megrendelő neve</span><input name="ugyfel.nev" autocomplete="off"></label>
+      <label class="mezo"><span>Megrendelő címe</span><input name="ugyfel.cim" autocomplete="off"></label>
+      <label class="mezo"><span>A munka helye (ha más)</span><input name="ugyfel.munkaHelye" autocomplete="off"></label>
+      <div class="grid">
+        <label class="mezo"><span>Ajánlat száma</span><input name="ajanlat.szam" autocomplete="off"></label>
+        <label class="mezo"><span>Kelt</span><input type="date" name="ajanlat.datum"></label>
+        <label class="mezo"><span>Érvényes (nap)</span><input type="number" min="0" name="ajanlat.ervenyesNap"></label>
+      </div>
+      <label class="mezo"><span>Megjegyzés az ajánlaton</span><textarea name="ajanlat.megjegyzes" rows="3"
+        placeholder="Pl. az ásás és a burkolás nem része az ajánlatnak."></textarea></label>
+      <details>
+        <summary>Saját adataim (vállalkozó)</summary>
+        <label class="mezo"><span>Név</span><input name="vallalkozo.nev" autocomplete="organization"></label>
+        <label class="mezo"><span>Cím</span><input name="vallalkozo.cim" autocomplete="street-address"></label>
+        <label class="mezo"><span>Adószám</span><input name="vallalkozo.adoszam" autocomplete="off"></label>
+        <label class="mezo"><span>Telefon</span><input name="vallalkozo.telefon" type="tel" autocomplete="tel"></label>
+        <label class="mezo"><span>E-mail</span><input name="vallalkozo.email" type="email" autocomplete="email"></label>
+      </details>
+    </form>
+  </section>
+
+  <section>
     <h2>Ügyfélajánlat</h2>
     <div id="ugyfel"></div>
+    <div class="actions"><button type="button" id="pdf-ugyfel">Ügyfélajánlat PDF</button></div>
   </section>
 
   <section class="belso">
     <h2>Belső összesítő <span class="muted">(csak neked)</span></h2>
     <div id="belso"></div>
+    <div class="actions"><button type="button" id="pdf-belso">Belső összesítő PDF</button></div>
   </section>
+  <p class="muted">A PDF gomb a nyomtatási ablakot nyitja meg: ott válaszd a „Mentés PDF-ként” lehetőséget
+    (telefonon: Megosztás → Nyomtatás, majd ismét Megosztás).</p>
 </main>
+<div id="nyomtat"></div>
 <script type="module" src="src/app.js"></script>
 </body>
 </html>
