@@ -144,3 +144,24 @@ test('a beolvasás az ismert és az új tételeket szétválasztja', () => {
   assert.deepEqual(e.jeloltek.map((j) => j.cikk), ['Golyóscsap 1/2 col']);
   assert.deepEqual(e.nemIllesztett, ['Összesen: 12 000 Ft']);
 });
+
+test('a PDF-ben más mennyiség: azt jelzi, és nem keveri össze az árral', () => {
+  // listán 4 db, a PDF-ben 6 db
+  const e = boltValaszBeolvasas('Rehau PX 20-16-20 T-idom\t6 db\t2 450\t1 890\t14 700', sorok);
+  assert.deepEqual(ar(e, 0), { bolti: 2450, kedvezmenyes: 1890 });
+  assert.equal(e.mennyisegek.get(tetelKulcs(sorok[0])), 6);
+  // azonos mennyiségnél nincs eltérés
+  const f = boltValaszBeolvasas('Rehau PX 20-16-20 T-idom\t4 db\t2 450\t1 890', sorok);
+  assert.equal(f.mennyisegek.size, 0);
+  // a megnevezésben lévő méret nem mennyiség
+  const g = boltValaszBeolvasas('Kaiflex csőhéj 4x18 mm\t420\t310', sorok);
+  assert.equal(g.mennyisegek.size, 0);
+  assert.deepEqual(ar(g, 3), { bolti: 420, kedvezmenyes: 310 });
+});
+
+test('új tétel: a megnevezésben lévő "0,5 m" nem mennyiség', () => {
+  const j = ujTetelJelolt('Pipelife KAEM lefolyócső 110/0,5 m\t1 200\t950');
+  assert.equal(j.cikk, 'Pipelife KAEM lefolyócső 110/0,5 m');
+  assert.equal(j.mennyiseg, 1);
+  assert.deepEqual(j.ar, { bolti: 1200, kedvezmenyes: 950 });
+});

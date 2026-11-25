@@ -12,6 +12,7 @@ const MENTES_KULCS = 'arajanlat.projekt';
 const ARAK_KULCS = 'arajanlat.arak';
 const ADATOK_KULCS = 'arajanlat.adatok';
 const PLUSZ_KULCS = 'arajanlat.plusz';
+const PDF_MENNY_KULCS = 'arajanlat.pdf-mennyiseg';
 const BOVITES_KULCS = 'arajanlat.konyvtar-bovites';
 const NEZET_KULCS = 'arajanlat.nezet';
 const ft = new Intl.NumberFormat('hu-HU', { useGrouping: 'always' });
@@ -24,7 +25,7 @@ const allapot = {
   konyvtar: null,
   bovitesek: [], // a könyvtárhoz a felületen hozzáadott sorok (az eszközön tárolva)
   plusz: [], // az ajánlathoz kézzel vagy a bolt PDF-jéből hozzáadott tételek
-  jeloltek: {}, // a bolt válaszában talált, listán nem szereplő tételek, forrásonként
+  pdfMennyiseg: {}, // tétel -> a bolt PDF-je szerinti mennyiség, ha eltér a listától (ez az irányadó)
   projekt: null,
   konyvtarbaNyitva: null,
   diktalt: [], // diktálással felismert, még fel nem vett tételek
@@ -187,8 +188,9 @@ function megjelenitAnyag() {
   const sorok = e.sorok.map((s) => `
     <tr>
       ${vanCikkszam ? `<td>${escape(s.cikkszam)}</td>` : ''}
-      <td>${escape(s.cikk)}${s.plusz ? ' <span class="cimke">plusz</span>' : ''}</td>
-      <td class="num">${ft.format(s.mennyiseg)} ${escape(s.egyseg)}</td>
+      <td>${escape(s.cikk)}${s.plusz ? ` <span class="cimke">${s.forras === 'pdf' ? 'bolt' : 'plusz'}</span>` : ''}</td>
+      <td class="num">${ft.format(s.mennyiseg)} ${escape(s.egyseg)}${s.listaMennyiseg !== undefined
+        ? `<div class="muted">PDF szerint; lista: ${ft.format(s.listaMennyiseg)}</div>` : ''}</td>
     </tr>`).join('');
   $('anyaglista').innerHTML = `${figyelmeztetesHtml(e.figyelmeztetesek)}
     <table>
@@ -217,7 +219,8 @@ function megjelenitArTabla(kenyszer = false) {
         const k = tetelKulcs(s);
         const ar = allapot.arak[k] ?? {};
         return `<tr>
-          <td>${escape(s.cikk)}<div class="muted">${ft.format(s.mennyiseg)} ${escape(s.egyseg)}</div></td>
+          <td>${escape(s.cikk)}<div class="muted">${ft.format(s.mennyiseg)} ${escape(s.egyseg)}${s.listaMennyiseg !== undefined
+            ? ` (PDF szerint; lista: ${ft.format(s.listaMennyiseg)})` : ''}</div></td>
           <td class="num">${arMezo(k, 'bolti', ar.bolti)}</td>
           <td class="num">${arMezo(k, 'kedvezmenyes', ar.kedvezmenyes)}</td>
         </tr>`;
@@ -232,13 +235,22 @@ function arakAtvetele(szoveg, mezo) {
   if (allapot.anyag.sorok.length === 0) {
     return '<p class="warn">Még nincs anyaglista. Előbb add meg a kiállásokat, utána töltsd fel az árakat.</p>';
   }
-  const { arak, jeloltek, nemIllesztett } = boltValaszBeolvasas(szoveg, allapot.anyag.sorok, mezo);
+  // A bolt válasza az irányadó: az árak mellett az eltérő mennyiségek és a
+  // listán nem szereplő tételek is bekerülnek az ajánlatba.
+  const { arak, mennyisegek, jeloltek, nemIllesztett } = boltValaszBeolvasas(szoveg, allapot.anyag.sorok, mezo);
+  const eltero = [...mennyisegek].map(([k, m]) => {
+    const s = allapot.anyag.sorok.find((x) => tetelKulcs(x) === k);
+    return { cikk: s.cikk, egyseg: s.egyseg, lista: s.listaMennyiseg ?? s.mennyiseg, pdf: m };
+  });
   for (const [k, ar] of arak) arBeiras(k, ar);
+  for (const [k, m] of mennyisegek) allapot.pdfMennyiseg[k] = m;
+  for (const j of jeloltek) pluszHozzaad({ ...j, forras: 'pdf' }, true);
   ment(ARAK_KULCS, allapot.arak);
+  ment(PDF_MENNY_KULCS, allapot.pdfMennyiseg);
+  frissit();
+  megjelenitPlusz();
   megjelenitArTabla(true);
   megjelenitKimenetek();
-  const forras = mezo ?? 'szoveg';
-  allapot.jeloltek[forras] = jeloltek;
 
   const hianyzik = (m) => allapot.anyag.sorok.filter((s) => !Number.isFinite(allapot.arak[tetelKulcs(s)]?.[m])).length;
   const hianyok = (mezo ? [mezo] : ['bolti', 'kedvezmenyes'])
@@ -249,11 +261,18 @@ function arakAtvetele(szoveg, mezo) {
     reszek.push(`<p class="warn">Egy tétel árát sem találtam. Nézd meg a kiolvasott szöveget. Ha abban látszanak a tételek és az árak,
       küldd el a PDF-et, és hozzáigazítom a beolvasást.</p>`);
   } else {
-    reszek.push(`<p><strong>${arak.size} / ${allapot.anyag.sorok.length} tétel</strong> ára beolvasva.${hianyok ? ` ${hianyok}` : ''}</p>`);
+    const tobbi = [
+      jeloltek.length ? `${jeloltek.length} új tétel felvéve az ajánlatba.` : '',
+      eltero.length ? `${eltero.length} tételnél a PDF szerinti mennyiséggel számolok.` : '',
+    ].filter(Boolean).join(' ');
+    reszek.push(`<p><strong>${arak.size + jeloltek.length} tétel</strong> ára beolvasva. ${tobbi}${hianyok ? ` ${hianyok}` : ''}</p>`);
   }
   // A részletek alapból csukva vannak, csak a darabszám látszik.
-  if (jeloltek.length) reszek.push(`<details class="reszlet"><summary>Új tételek (${jeloltek.length})</summary>
-    <ul class="jeloltek">${jeloltek.map((j, i) => jeloltHtml(j, forras, i)).join('')}</ul></details>`);
+  if (jeloltek.length) reszek.push(`<details class="reszlet"><summary>Új tételek, felvéve (${jeloltek.length})</summary>
+    <ul class="jeloltek">${jeloltek.map(jeloltHtml).join('')}</ul></details>`);
+  if (eltero.length) reszek.push(`<details class="reszlet"><summary>Eltérő mennyiség (${eltero.length})</summary>
+    <ul class="jeloltek">${eltero.map((e) => `<li><span><strong>${escape(e.cikk)}</strong><br>
+      <span class="muted">PDF: ${ft.format(e.pdf)} ${escape(e.egyseg)}, a lista szerint ${ft.format(e.lista)}</span></span></li>`).join('')}</ul></details>`);
   if (nemIllesztett.length) reszek.push(`<details class="reszlet"><summary>Nem értelmezett sorok (${nemIllesztett.length})</summary>
     <ul class="nem-illesztett">${nemIllesztett.map((s) => `<li>${escape(s)}</li>`).join('')}</ul></details>`);
   return reszek.join('');
@@ -265,14 +284,12 @@ function arBeiras(kulcs, ar) {
   allapot.arak[kulcs] = uj;
 }
 
-function jeloltHtml(j, forras, i) {
+function jeloltHtml(j) {
   const arak = Object.entries(j.ar).filter(([, v]) => v !== null)
     .map(([m, v]) => `${MEZO_NEV[m]} ${penz(v)}`).join(', ');
-  const mar = allapot.plusz.some((p) => tetelKulcs(p) === tetelKulcs(j));
   return `<li>
     <span><strong>${escape(j.cikk)}</strong>${j.cikkszam ? ` <span class="muted">(${escape(j.cikkszam)})</span>` : ''}<br>
       <span class="muted">${ft.format(j.mennyiseg)} ${escape(j.egyseg)} · ${arak}</span></span>
-    <button type="button" class="kicsi jelolt-hozzaad" data-forras="${forras}" data-i="${i}" ${mar ? 'disabled' : ''}>${mar ? 'Hozzáadva' : '+ Ajánlatba'}</button>
   </li>`;
 }
 
@@ -303,10 +320,15 @@ async function pdfFeltoltes(mezo, fajl) {
 
 const EGYSEG_VALASZTEK = ['db', 'fm', 'pár', 'csomag', 'szett', 'kg', 'tekercs'];
 
-function pluszHozzaad(t) {
+// mennyisegFrissit: ha már szerepel, a mennyiséget is átveszi (a bolt PDF-jéből újratöltéskor).
+function pluszHozzaad(t, mennyisegFrissit = false) {
   const k = tetelKulcs(t);
   const meglevo = allapot.plusz.find((p) => tetelKulcs(p) === k);
-  if (!meglevo) allapot.plusz.push({ cikk: t.cikk, egyseg: t.egyseg, mennyiseg: t.mennyiseg, cikkszam: t.cikkszam ?? '' });
+  if (!meglevo) {
+    allapot.plusz.push({ cikk: t.cikk, egyseg: t.egyseg, mennyiseg: t.mennyiseg, cikkszam: t.cikkszam ?? '', ...(t.forras && { forras: t.forras }) });
+  } else if (mennyisegFrissit) {
+    meglevo.mennyiseg = t.mennyiseg;
+  }
   if (t.ar) arBeiras(k, t.ar);
   ment(PLUSZ_KULCS, allapot.plusz);
   ment(ARAK_KULCS, allapot.arak);
@@ -328,7 +350,7 @@ function megjelenitPlusz() {
     const alapKiallas = KIALLAS_TIPUSOK.find((k) => kiallasDarab(k.nev) > 0)?.nev ?? KIALLAS_TIPUSOK[0].nev;
     return `<li class="plusz-sor">
       <div class="plusz-fej">
-        <span class="plusz-nev">${escape(t.cikk)}${t.cikkszam ? ` <span class="muted">(${escape(t.cikkszam)})</span>` : ''}</span>
+        <span class="plusz-nev">${escape(t.cikk)}${t.cikkszam ? ` <span class="muted">(${escape(t.cikkszam)})</span>` : ''}${t.forras === 'pdf' ? '<br><span class="muted">a bolt PDF-jéből</span>' : ''}</span>
         <span class="plusz-menny"><input type="number" min="0" step="any" class="plusz-mennyiseg" data-i="${i}"
           value="${t.mennyiseg}" aria-label="Mennyiség: ${escape(t.cikk)}"> ${escape(t.egyseg)}</span>
       </div>
@@ -531,29 +553,6 @@ function pluszEsemenyek() {
     }
   });
 
-  // A bolt válaszában talált új tétel felvétele az ajánlatba.
-  $('ar-szakasz').addEventListener('click', (ev) => {
-    const b = ev.target.closest('.jelolt-hozzaad');
-    if (!b) return;
-    const j = allapot.jeloltek[b.dataset.forras]?.[Number(b.dataset.i)];
-    if (!j) return;
-    pluszHozzaad(j);
-    frissit();
-    megjelenitPlusz();
-    megjelenitArTabla(true);
-    // Ugyanaz a tétel a másik PDF listájában is "Hozzáadva" lesz, és ott a másik árat hozzáadja.
-    for (const gomb of document.querySelectorAll('.jelolt-hozzaad')) {
-      const masik = allapot.jeloltek[gomb.dataset.forras]?.[Number(gomb.dataset.i)];
-      if (masik && tetelKulcs(masik) === tetelKulcs(j)) {
-        if (masik !== j) arBeiras(tetelKulcs(masik), masik.ar);
-        gomb.disabled = true;
-        gomb.textContent = 'Hozzáadva';
-      }
-    }
-    ment(ARAK_KULCS, allapot.arak);
-    megjelenitArTabla(true);
-    megjelenitKimenetek();
-  });
 }
 
 // ---- Kimenetek ----
@@ -669,6 +668,14 @@ function frissit() {
       if (meglevo) meglevo.mennyiseg = Math.round((meglevo.mennyiseg + t.mennyiseg) * 100) / 100;
       else allapot.anyag.sorok.push({ ...t, plusz: true });
     }
+    // A bolt PDF-je szerinti mennyiség az irányadó, ha eltér a listától.
+    for (const s of allapot.anyag.sorok) {
+      const m = allapot.pdfMennyiseg[tetelKulcs(s)];
+      if (m !== undefined && !s.plusz && m !== s.mennyiseg) {
+        s.listaMennyiseg = s.mennyiseg;
+        s.mennyiseg = m;
+      }
+    }
     megjelenitAnyag();
   } catch (err) {
     allapot.anyag = { sorok: [], figyelmeztetesek: [] };
@@ -704,6 +711,7 @@ async function indit() {
   if (mentett) kitolt(mentett);
   allapot.arak = betoltMentett(ARAK_KULCS) ?? {};
   allapot.plusz = (betoltMentett(PLUSZ_KULCS) ?? []).filter((t) => t?.cikk && t?.egyseg);
+  allapot.pdfMennyiseg = betoltMentett(PDF_MENNY_KULCS) ?? {};
   allapot.bovitesek = (betoltMentett(BOVITES_KULCS) ?? []).filter((b) => b?.kiallas && b?.cikk && b?.egyseg && b.mennyiseg > 0);
   allapot.konyvtar = bovitettKonyvtar(allapot.alapKonyvtar, allapot.bovitesek);
   pluszEsemenyek();
@@ -738,9 +746,12 @@ async function indit() {
     megjelenitKimenetek();
   });
   $('arak-torlese').addEventListener('click', () => {
-    if (!confirm('Törlöd az összes beírt árat?')) return;
+    if (!confirm('Törlöd az összes beírt árat és a PDF szerinti mennyiségeket? A PDF-ből felvett plusz tételek megmaradnak, azokat a Plusz tételeknél törölheted.')) return;
     allapot.arak = {};
+    allapot.pdfMennyiseg = {};
     ment(ARAK_KULCS, allapot.arak);
+    ment(PDF_MENNY_KULCS, allapot.pdfMennyiseg);
+    frissit();
     for (const id of ['beolvasas-eredmeny', 'eredmeny-bolti', 'eredmeny-kedvezmenyes']) $(id).innerHTML = '';
     megjelenitArTabla(true);
     megjelenitKimenetek();

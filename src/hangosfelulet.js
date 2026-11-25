@@ -68,7 +68,9 @@ export function hangosModInit(api) {
   fab.type = 'button';
   fab.id = 'hangos-inditas';
   fab.className = 'hangos-fab';
-  fab.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg><span>Hangos árajánlat</span>`;
+  fab.setAttribute('aria-label', 'Hangos árajánlat');
+  fab.title = 'Hangos árajánlat';
+  fab.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>`;
   document.body.append(fab);
 
   const panel = document.createElement('div');

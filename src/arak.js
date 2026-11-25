@@ -102,6 +102,17 @@ function arakSzamokbol(szamok, mennyiseg, mezo = null) {
 }
 
 const EGYSEGEK = 'db|fm|m|pár|kg|cs|csomag|szett|tekercs|doboz|zsák|l';
+const egysegNormal = (e) => ({ m: 'fm' }[e.toLowerCase()] ?? e.toLowerCase());
+
+// A sorban szereplő mennyiség ("6 db", "12 fm"): az utolsó szám+egység, ami nem a
+// megnevezés része (pl. "lefolyócső 110/0,5 m" nem mennyiség). Ha nincs, null.
+function mennyisegASorban(sor, szoveg) {
+  const talalatok = [...sor.matchAll(new RegExp(`(?:^|[\\s\\t])(\\d+(?:[.,]\\d+)?)\\s*(${EGYSEGEK})\\.?(?=[\\s\\t;|]|$)`, 'gi'))]
+    .filter((m) => !szoveg.includes(m[0].trim()));
+  const m = talalatok.at(-1);
+  return m ? { mennyiseg: parseSzam(m[1]), egyseg: egysegNormal(m[2]), nyers: m[0].trim() } : null;
+}
+
 const NEM_TETEL = /összesen|végösszeg|fizetendő|részösszeg|árajánlat|kelt|dátum|oldal|érvényes|bankszámla|adószám|telefon/i;
 
 // Egy tételhez nem köthető sorból új tétel javaslata: megnevezés, mennyiség,
@@ -109,17 +120,13 @@ const NEM_TETEL = /összesen|végösszeg|fizetendő|részösszeg|árajánlat|kel
 export function ujTetelJelolt(sor, mezo = null) {
   const { szamok, szoveg } = sorVegiSzamok(sor);
   if (szamok.length === 0) return null;
-  // Mennyiség és egység: az utolsó "szám egység" a sorban (a megnevezésben is
-  // lehet ilyen, pl. "lefolyócső 110/0,5 m", de a mennyiség oszlop utána jön).
-  const talalatok = [...sor.matchAll(new RegExp(`(?:^|[\\s\\t])(\\d+(?:[.,]\\d+)?)\\s*(${EGYSEGEK})\\.?(?=[\\s\\t;|]|$)`, 'gi'))];
-  const utolso = talalatok.at(-1);
-  const mennyiseg = utolso ? parseSzam(utolso[1]) : 1;
-  const egyseg = utolso ? utolso[2].toLowerCase() : 'db';
+  const menny = mennyisegASorban(sor, szoveg);
+  const mennyiseg = menny?.mennyiseg ?? 1;
+  const egyseg = menny?.egyseg ?? 'db';
   const ar = arakSzamokbol(szamok, mennyiseg, mezo);
   if (!ar || !Object.values(ar).some((v) => v >= 10)) return null;
 
   let nev = szoveg;
-  if (utolso && nev.endsWith(utolso[0].trim())) nev = nev.slice(0, -utolso[0].trim().length);
   let cikkszam = '';
   const csz = nev.match(/^(\d{4,})\s+(.*)$/);
   if (csz) [, cikkszam, nev] = csz;
@@ -130,9 +137,11 @@ export function ujTetelJelolt(sor, mezo = null) {
 
 // text: a bolt válasza (szövegként, akár PDF-ből kimásolva).
 // mezo: null (mindkét ár a szövegben), 'bolti' vagy 'kedvezmenyes' (külön PDF).
-// Eredmény: { arak: Map(kulcs -> {bolti?, kedvezmenyes?}), jeloltek: [új tétel], nemIllesztett: [sor] }.
+// Eredmény: { arak: Map(kulcs -> {bolti?, kedvezmenyes?}), mennyisegek: Map(kulcs -> PDF szerinti mennyiség,
+// ha eltér a listától), jeloltek: [új tétel], nemIllesztett: [sor] }.
 export function boltValaszBeolvasas(text, sorok, mezo = null) {
   const arak = new Map();
+  const mennyisegek = new Map();
   const jeloltek = [];
   const nemIllesztett = [];
   for (const nyers of text.split(/\r?\n/)) {
@@ -141,16 +150,21 @@ export function boltValaszBeolvasas(text, sorok, mezo = null) {
     const { szamok, szoveg } = sorVegiSzamok(sor);
     if (szamok.length === 0) continue;
     const tetel = illeszt(szoveg, sorok);
-    const ar = tetel && arakSzamokbol(szamok, tetel.mennyiseg, mezo);
+    // A PDF-ben szereplő mennyiség (ha azonos egységben van); ez alapján hagyja ki
+    // a mennyiség- és az összegoszlopot az árak közül.
+    const menny = tetel && mennyisegASorban(sor, szoveg);
+    const pdfMenny = menny && menny.egyseg === egysegNormal(tetel.egyseg) ? menny.mennyiseg : null;
+    const ar = tetel && arakSzamokbol(szamok, pdfMenny ?? tetel.mennyiseg, mezo);
     if (tetel && ar) {
       arak.set(tetelKulcs(tetel), ar);
+      if (pdfMenny !== null && pdfMenny !== tetel.mennyiseg) mennyisegek.set(tetelKulcs(tetel), pdfMenny);
       continue;
     }
     const jelolt = ujTetelJelolt(sor, mezo);
     if (jelolt) jeloltek.push(jelolt);
     else nemIllesztett.push(sor);
   }
-  return { arak, jeloltek, nemIllesztett };
+  return { arak, mennyisegek, jeloltek, nemIllesztett };
 }
 
 // Ügyfélajánlat és belső összesítő adatai.
