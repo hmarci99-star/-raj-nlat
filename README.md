@@ -8,7 +8,7 @@ Telefonról is használható weboldal. A beírt adatokat és árakat a böngész
 
 1. **Munkadíj** a projekt adataiból.
 2. **Anyaglista** a boltnak: vágólapra másolható, vagy előre kitöltött e-mailként küldhető.
-3. **Árak a boltból:** a bolt válaszát (e-mail szöveg vagy PDF-ből kimásolt táblázat) bemásolod, és a program tételenként kiolvassa a bolti és a kedvezményes egységárat. Amit nem tud tételhez kötni, kilistázza, és a hiányzó árat kézzel beírhatod.
+3. **Árak a boltból:** a bolt PDF-jét feltöltöd a „PDF feltöltése” gombbal, vagy bemásolod a válasz szövegét, és a program tételenként kiolvassa a bolti és a kedvezményes egységárat. Amit nem tud tételhez kötni, kilistázza, és a hiányzó árat kézzel beírhatod.
 4. **Ügyfélajánlat:** munkadíj tételesen, anyag bolti áron, végösszeg. **Belső összesítő:** beszerzési ár és haszon tételenként, illetve összesen.
 5. **PDF:** mindkét kimenet külön sablonnal, A4-es lapra. A gomb a böngésző nyomtatási ablakát nyitja meg, ott a „Mentés PDF-ként” lehetőséget kell választani. A fájlnév javaslata például `Arajanlat_Kovács_Anna_2026-11-25`. A fejlécbe a vállalkozó adatai, a megrendelő, az ajánlat száma, a kelte és az érvényessége kerül. A saját adataidat a böngésző megjegyzi.
 
@@ -18,6 +18,8 @@ Telefonról is használható weboldal. A beírt adatokat és árakat a böngész
 - `src/anyaglista.js`: az anyaglista összegyűjtése, a gerinc és a hüvelyszabály.
 - `src/arak.js`: a bolt válaszának beolvasása és az ajánlat összesítése.
 - `src/sablonok.js`: az ügyfélajánlat és a belső összesítő nyomtatható sablonja.
+- `src/pdfszoveg.js`: a bolt PDF-jének szövegét soronként kinyeri, és a cellán belül tördelt megnevezéseket visszailleszti a sorukba.
+- `vendor/pdfjs-4.10.38/`: a Mozilla pdf.js PDF-olvasója (Apache 2.0 licenc). Csak PDF feltöltésekor töltődik be. A PDF a telefonon dolgozódik fel, nem kerül fel sehova.
 - `index.html`, `src/app.js`: a weboldal.
 
 ### Szabályok
@@ -49,6 +51,6 @@ A weboldal statikus fájlokból áll. Közvetlenül fájlként (`file://`) megny
 
 ## Következő lépések
 
-1. Az árbeolvasás finomítása valódi bolti válaszok alapján, PDF közvetlen beolvasása.
+1. Az árbeolvasás finomítása valódi bolti válaszok alapján. A szkennelt (képként mentett) PDF-ből nem lehet szöveget kiolvasni.
 2. Csomag-felülírás szerkesztése a felületen; a gerinc idomai és a 25-ös cső.
 3. Több ajánlat mentése és kezelése, ajánlat-követés: állapot, következő lépés, határidő.

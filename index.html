@@ -52,9 +52,15 @@
     .button { background: transparent; color: var(--accent); }
     h3 { font-size: .95rem; margin: 16px 0 4px; }
     label.block { display: block; margin-bottom: 6px; }
+    .feltoltes { margin: 0 0 14px; }
+    .fajl-gomb { display: inline-block; }
+    .rejtett-fajl { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+    .feltoltes:has(.rejtett-fajl:focus-visible) .fajl-gomb { outline: 2px solid var(--accent); outline-offset: 2px; }
     textarea { width: 100%; font: 14px/1.4 ui-monospace, monospace; padding: 8px; border-radius: 6px;
       border: 1px solid var(--line); background: var(--bg); color: var(--text); }
-    input.ar { width: 90px; padding: 6px 8px; font: inherit; text-align: right;
+    #ar-tabla { overflow-x: auto; }
+    .ar-tabla td:first-child { overflow-wrap: anywhere; }
+    input.ar { width: 84px; padding: 6px 8px; font: inherit; text-align: right;
       border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--text); }
     input.ar.hibas { border-color: #d1242f; }
     .nem-illesztett { font: 13px/1.4 ui-monospace, monospace; color: var(--muted); padding-left: 18px; }
@@ -182,7 +188,12 @@
 
   <section id="ar-szakasz">
     <h2>Árak a boltból</h2>
-    <label class="block" for="bolt-valasz">Másold ide a bolt válaszát (e-mail szövege vagy a PDF-ből kimásolt táblázat):</label>
+    <div class="actions feltoltes">
+      <label class="button fajl-gomb" for="bolt-pdf">PDF feltöltése</label>
+      <input type="file" id="bolt-pdf" accept="application/pdf,.pdf" class="rejtett-fajl">
+      <span id="pdf-allapot" class="muted" aria-live="polite"></span>
+    </div>
+    <label class="block" for="bolt-valasz">Vagy másold ide a bolt válaszát (az e-mail szövegét vagy a PDF-ből kimásolt táblázatot):</label>
     <textarea id="bolt-valasz" rows="6" placeholder="Rehau PX 20-16-20 T-idom	4	2 450	1 890"></textarea>
     <div class="actions">
       <button type="button" id="beolvas">Beolvasás</button>

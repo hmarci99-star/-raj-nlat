@@ -3,6 +3,7 @@ import { KIALLAS_TIPUSOK, SZERELVENY_KODOK, szamolMunkadij, uresProjekt } from '
 import { parseKonyvtar, gyujtAnyaglista, anyaglistaSzoveg } from './anyaglista.js';
 import { boltValaszBeolvasas, ajanlat, tetelKulcs, parseSzam } from './arak.js';
 import { ugyfelAjanlatHtml, belsoOsszesitoHtml, fajlnev } from './sablonok.js';
+import { pdfSzoveg } from './pdfszoveg.js';
 
 const MENTES_KULCS = 'arajanlat.projekt';
 const ARAK_KULCS = 'arajanlat.arak';
@@ -138,8 +139,8 @@ function megjelenitArTabla(kenyszer = false) {
   allapot.arTablaAlairas = alairas;
   $('ar-szakasz').hidden = sorok.length === 0;
   $('ar-tabla').innerHTML = `
-    <table>
-      <thead><tr><th>Cikk</th><th class="num">Bolti bruttó egységár</th><th class="num">Kedv. bruttó egységár</th></tr></thead>
+    <table class="ar-tabla">
+      <thead><tr><th>Cikk</th><th class="num">Bolti ár<br>(bruttó)</th><th class="num">Kedv. ár<br>(bruttó)</th></tr></thead>
       <tbody>${sorok.map((s) => {
         const k = tetelKulcs(s);
         const ar = allapot.arak[k] ?? {};
@@ -310,6 +311,25 @@ async function indit() {
     }
   });
   $('beolvas').addEventListener('click', beolvas);
+  $('bolt-pdf').addEventListener('change', async (ev) => {
+    const fajl = ev.target.files?.[0];
+    ev.target.value = '';
+    if (!fajl) return;
+    const allapotEl = $('pdf-allapot');
+    allapotEl.textContent = `${fajl.name} beolvasása…`;
+    try {
+      const szoveg = await pdfSzoveg(fajl);
+      if (!szoveg.trim()) {
+        allapotEl.textContent = 'Ebben a PDF-ben nincs kiolvasható szöveg (valószínűleg szkennelt kép). Írd be az árakat kézzel.';
+        return;
+      }
+      $('bolt-valasz').value = szoveg;
+      allapotEl.textContent = `${fajl.name} betöltve. A kiolvasott szöveg lent látható.`;
+      beolvas();
+    } catch (err) {
+      allapotEl.textContent = `A PDF nem olvasható be: ${err.message}`;
+    }
+  });
   $('ar-tabla').addEventListener('input', (ev) => {
     const el = ev.target;
     if (!el.dataset.kulcs) return;
