@@ -43,6 +43,18 @@ Telefonról is használható weboldal. A beírt adatokat és árakat a böngész
 
 Négy lépés, telefonon alul fülekkel: **Projekt**, **Anyag**, **Árak**, **Ajánlat**. Felül mindig látszik a munkadíj, az anyag és a végösszeg. A füleken kis szám mutatja az anyaglista tételeinek számát, és hogy hány tételnek van már bolti ára.
 
+## Hangos árajánlat
+
+A jobb alsó „Hangos árajánlat” gombbal az alkalmazás végigkérdez a négy lépésen: felolvassa a kérdést, meghallgatja a választ, és beírja a mezőbe, ahogy kézzel is kitöltenéd.
+
+- Csak a releváns kérdéseket teszi fel. Kád nélkül nem kérdez kádtípust. A szerelvényeknél a kiállásokból javasol, pl. „Hány WC-t szerelünk fel? Ha 2 darabot, mondd: jó.”
+- Egy mondatban több adat is bemondható („két WC, egy mosógép, hat radiátor”). Amit így megkapott, azt nem kérdezi újra.
+- Parancsok: vissza, kihagyás, ismételd, mennyi a végösszeg, befejezés.
+- Az Anyag lépésnél plusz tételek mondhatók be, az Ajánlat lépésnél a megrendelő neve és címe. A végén felolvassa az összegeket.
+- PDF-feltöltéshez és e-mail küldéséhez a telefon érintést kér, ezeknél csak szól, melyik gombot kell megnyomni.
+- A válasz be is gépelhető. Ha a böngésző nem ismeri fel a beszédet, így is végig lehet menni.
+- A logika (kérdések, válaszok értelmezése) a `src/hangos.js`-ben van, a panel és a beszéd a `src/hangosfelulet.js`-ben.
+
 ## Futtatás
 
 ```

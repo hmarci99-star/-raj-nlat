@@ -161,6 +161,44 @@
     .diktalas #diktal-allapot { flex: 1 1 180px; min-width: 0; overflow-wrap: anywhere; }
     @keyframes hallgat { 50% { opacity: .65; } }
     @media (prefers-reduced-motion: reduce) { .diktalas button.fut { animation: none; } }
+    /* ---- Hangos árajánlat ---- */
+    .hangos-fab { position: fixed; z-index: 25; right: max(16px, env(safe-area-inset-right, 0px));
+      bottom: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px) + 14px);
+      display: inline-flex; align-items: center; gap: 8px; border-radius: 999px; padding: 12px 18px;
+      box-shadow: 0 6px 18px rgba(16, 40, 80, .25); }
+    .hangos-fab svg, .hangos-mic svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+    .hangos { position: fixed; z-index: 30; left: 0; right: 0; margin: 0 auto; max-width: 760px;
+      bottom: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px)); max-height: 58vh; overflow: auto;
+      background: var(--card); border: 1px solid var(--line); border-bottom: 0; border-radius: 16px 16px 0 0;
+      box-shadow: 0 -8px 24px rgba(16, 40, 80, .18);
+      padding: 12px max(16px, env(safe-area-inset-right, 0px)) 14px max(16px, env(safe-area-inset-left, 0px)); }
+    .hangos-fej { display: flex; align-items: center; gap: 8px; }
+    .hangos-lepes { flex: 1; font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; color: var(--accent); font-weight: 700; }
+    .hangos-bezar { width: 36px; height: 36px; padding: 0; border-radius: 50%; background: transparent; color: var(--muted);
+      border: 1px solid var(--line); font-size: 1.3rem; line-height: 1; }
+    .hangos-kerdes { font-size: 1.15rem; font-weight: 600; margin: 10px 0 6px; text-wrap: balance; }
+    .hangos-hallott { margin: 0; color: var(--muted); min-height: 1.4em; overflow-wrap: anywhere; }
+    .hangos-visszajelzes { margin: 6px 0 0; font-size: .88rem; color: var(--ok); min-height: 1.2em; overflow-wrap: anywhere; }
+    .hangos-also { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 10px 0; }
+    .hangos-mic { width: 64px; height: 64px; padding: 0; border-radius: 50%; display: grid; place-items: center; flex: none; }
+    .hangos-mic svg { width: 28px; height: 28px; }
+    .hangos-mic.hallgat { animation: hallgatMic 1.4s ease-out infinite; }
+    @keyframes hallgatMic { 0% { box-shadow: 0 0 0 0 rgba(31, 95, 191, .45); } 100% { box-shadow: 0 0 0 16px rgba(31, 95, 191, 0); } }
+    .hangos-irott { display: flex; gap: 8px; }
+    .hangos-irott input { flex: 1; min-width: 0; }
+    .hangos-tipp { margin: 8px 0 0; font-size: .78rem; color: var(--muted); }
+    .hangos-kesz-gombok { display: none; gap: 10px; justify-content: flex-end; margin-top: 12px; }
+    .hangos.kesz .hangos-kesz-gombok { display: flex; }
+    .hangos.kesz .hangos-also, .hangos.kesz .hangos-irott, .hangos.kesz .hangos-tipp { display: none; }
+    body.hangos-nyitva { padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px) + 60vh); }
+    .hangos-kiemelt { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 6px; background: var(--accent-soft); }
+    @media (prefers-reduced-motion: reduce) { .hangos-mic.hallgat { animation: none; outline: 3px solid var(--accent); } }
+    @media (min-width: 761px) {
+      .hangos-fab { bottom: calc(env(safe-area-inset-bottom, 0px) + 20px); }
+      .hangos { bottom: 0; border-radius: 16px 16px 0 0; }
+      body.hangos-nyitva { padding-bottom: 60vh; }
+    }
+
     .diktalt { padding: 10px; border-radius: 10px; background: var(--accent-soft); margin-bottom: 10px; }
     .diktalt .jeloltek li { background: var(--card); flex-wrap: wrap; }
     .diktalt .jeloltek li > span:first-child { flex: 1 1 100%; }
@@ -211,7 +249,7 @@
     @media print {
       :root { color-scheme: light; }
       body { background: #fff; color: #000; font-size: 10pt; }
-      body > main, body > .felso, body > .fulek { display: none !important; }
+      body > main, body > .felso, body > .fulek, .hangos-fab, .hangos { display: none !important; }
       body { padding: 0 !important; }
       #nyomtat { display: block; }
       .ny-lap { font-size: 10pt; line-height: 1.35; }
@@ -427,6 +465,6 @@
   </div>
 </main>
 <div id="nyomtat"></div>
-<script type="module" src="dist/app.js?v=04641ae830"></script>
+<script type="module" src="dist/app.js?v=ce64f283b7"></script>
 </body>
 </html>

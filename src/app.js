@@ -6,6 +6,7 @@ import { bovitettKonyvtar, bennVanAzAlapban, konyvtarCsv } from './konyvtar.js';
 import { ugyfelAjanlatHtml, belsoOsszesitoHtml, fajlnev } from './sablonok.js';
 import { pdfSzoveg } from './pdfszoveg.js';
 import { diktaltTetelek, vanDiktalas, diktalas } from './diktalas.js';
+import { hangosModInit } from './hangosfelulet.js';
 
 const MENTES_KULCS = 'arajanlat.projekt';
 const ARAK_KULCS = 'arajanlat.arak';
@@ -759,6 +760,34 @@ async function indit() {
 
   frissit();
   megjelenitPlusz();
+
+  // Hangos árajánlat: végigkérdez, és a válaszokat ugyanúgy írja be, mintha kézzel töltenéd ki.
+  const mezoBeallit = (urlap, nev, ertek) => {
+    const el = urlap.elements[nev];
+    if (!el) return;
+    if (el.type === 'checkbox') el.checked = Boolean(ertek);
+    else if (el.type === 'number') el.value = ertek ? String(ertek) : '';
+    else el.value = ertek ?? '';
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  };
+  hangosModInit({
+    projekt: () => olvas(),
+    mezoBeallit: (nev, ertek) => mezoBeallit(form, nev, ertek),
+    adatBeallit: (nev, ertek) => mezoBeallit(adatokForm, nev, ertek),
+    pluszFelvesz: (tetelek) => {
+      for (const t of tetelek) pluszHozzaad(t);
+      frissit();
+      megjelenitPlusz();
+      megjelenitArTabla(true);
+    },
+    osszegek: () => {
+      if (!allapot.munkadij) return { munkadij: 0, anyag: 0, vegosszeg: 0 };
+      const a = ajanlat(allapot.munkadij, allapot.anyag.sorok, allapot.arak);
+      return { munkadij: a.munkadij.osszesen, anyag: a.anyagBolti, vegosszeg: a.vegosszeg };
+    },
+    nezet: (nev) => nezetValtas(nev, false),
+    mezoElem: (nev) => form.elements[nev] ?? adatokForm.elements[nev] ?? null,
+  });
 }
 
 indit();
