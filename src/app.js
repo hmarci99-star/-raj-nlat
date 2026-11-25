@@ -1,5 +1,6 @@
 import { parseMunkadijTabla } from './csv.js';
 import { KIALLAS_TIPUSOK, SZERELVENY_KODOK, szamolMunkadij, uresProjekt } from './munkadij.js';
+import { parseKonyvtar, gyujtAnyaglista, anyaglistaSzoveg } from './anyaglista.js';
 
 const MENTES_KULCS = 'arajanlat.projekt';
 const ft = new Intl.NumberFormat('hu-HU');
@@ -67,7 +68,35 @@ function megjelenit(e) {
     </table>`;
 }
 
-function frissit(tabla) {
+const anyagEl = document.getElementById('anyaglista');
+let anyagSzoveg = '';
+
+function megjelenitAnyag(e) {
+  const figy = e.figyelmeztetesek.map((f) => `<p class="warn">${escape(f)}</p>`).join('');
+  anyagSzoveg = anyaglistaSzoveg(e.sorok);
+  const email = document.getElementById('email');
+  email.href = `mailto:?subject=${encodeURIComponent('Árajánlatkérés – anyaglista')}`
+    + `&body=${encodeURIComponent(`Kérem az alábbi tételek bolti és kedvezményes árát:\n\n${anyagSzoveg}\n`)}`;
+  document.querySelector('#anyaglista + .actions').hidden = e.sorok.length === 0;
+  if (e.sorok.length === 0) {
+    anyagEl.innerHTML = figy + '<p class="muted">Adj meg kiállást vagy gerincet.</p>';
+    return;
+  }
+  const vanCikkszam = e.sorok.some((s) => s.cikkszam);
+  const sorok = e.sorok.map((s) => `
+    <tr>
+      ${vanCikkszam ? `<td>${escape(s.cikkszam)}</td>` : ''}
+      <td>${escape(s.cikk)}</td>
+      <td class="num">${ft.format(s.mennyiseg)} ${escape(s.egyseg)}</td>
+    </tr>`).join('');
+  anyagEl.innerHTML = `${figy}
+    <table>
+      <thead><tr>${vanCikkszam ? '<th>Cikkszám</th>' : ''}<th>Cikk</th><th class="num">Mennyiség</th></tr></thead>
+      <tbody>${sorok}</tbody>
+    </table>`;
+}
+
+function frissit(tabla, konyvtar) {
   const p = olvas();
   document.getElementById('puffer-sor').hidden = p.hotermelo !== 'vegyes';
   document.getElementById('felar-hsz-sor').hidden = p.hotermelo !== 'hoszivattyu';
@@ -77,21 +106,45 @@ function frissit(tabla) {
   } catch (err) {
     eredmenyEl.innerHTML = `<p class="error">${escape(err.message)}</p>`;
   }
+  try {
+    megjelenitAnyag(gyujtAnyaglista(p, konyvtar));
+  } catch (err) {
+    anyagEl.innerHTML = `<p class="error">${escape(err.message)}</p>`;
+  }
+}
+
+async function betolt(utvonal, nev) {
+  const valasz = await fetch(utvonal);
+  if (!valasz.ok) throw new Error(`A(z) ${nev} nem tölthető be (${valasz.status}).`);
+  return valasz.text();
 }
 
 async function indit() {
   try {
-    const valasz = await fetch('data/munkadij.csv');
-    if (!valasz.ok) throw new Error(`A munkadíj-táblázat nem tölthető be (${valasz.status}).`);
-    const tabla = parseMunkadijTabla(await valasz.text());
+    const [tablaCsv, konyvtarCsv] = await Promise.all([
+      betolt('data/munkadij.csv', 'munkadíj-táblázat'),
+      betolt('data/kiallas-konyvtar.csv', 'kiállás-könyvtár'),
+    ]);
+    const tabla = parseMunkadijTabla(tablaCsv);
+    const konyvtar = parseKonyvtar(konyvtarCsv);
     felepit(tabla);
     let mentett = null;
     try { mentett = JSON.parse(localStorage.getItem(MENTES_KULCS)); } catch { /* nincs mentés */ }
     if (mentett) kitolt(mentett);
-    form.addEventListener('input', () => frissit(tabla));
-    frissit(tabla);
+    form.addEventListener('input', () => frissit(tabla, konyvtar));
+    document.getElementById('masol').addEventListener('click', async () => {
+      const uzenet = document.getElementById('masol-uzenet');
+      try {
+        await navigator.clipboard.writeText(anyagSzoveg);
+        uzenet.textContent = 'Vágólapra másolva.';
+      } catch {
+        uzenet.textContent = 'A másolás nem sikerült; használd az E-mail gombot.';
+      }
+    });
+    frissit(tabla, konyvtar);
   } catch (err) {
     eredmenyEl.innerHTML = `<p class="error">${escape(err.message)}</p>`;
+    anyagEl.innerHTML = '';
   }
 }
 

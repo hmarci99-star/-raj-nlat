@@ -42,6 +42,10 @@
     .warn { background: var(--warn-bg); color: var(--warn); padding: 8px 12px;
       border-radius: 6px; margin: 0 0 8px; }
     .error { color: #d1242f; }
+    .actions { display: flex; gap: 10px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
+    button, .button { font: inherit; padding: 8px 16px; border-radius: 6px; border: 1px solid var(--accent);
+      background: var(--accent); color: #fff; text-decoration: none; cursor: pointer; }
+    .button { background: transparent; color: var(--accent); }
     @media (max-width: 520px) { .hide-sm { display: none; } }
   </style>
 </head>
@@ -75,6 +79,15 @@
     </section>
 
     <section>
+      <h2>Gerinc</h2>
+      <div class="grid">
+        <label><span>16-os cső (fm)</span><input type="number" min="0" step="0.5" name="gerinc.16"></label>
+        <label><span>20-as cső (fm)</span><input type="number" min="0" step="0.5" name="gerinc.20"></label>
+      </div>
+      <p class="muted">Csak cső és csőhéj; a gerinc idomai még nincsenek szabályba öntve.</p>
+    </section>
+
+    <section>
       <h2>Külső szerelés (ásás nélkül)</h2>
       <div class="grid">
         <label><span>Külső vízbekötés (fm)</span><input type="number" min="0" step="0.5" name="kulsoVizFm"></label>
@@ -92,6 +105,16 @@
     <h2>Munkadíj</h2>
     <div id="eredmeny"><p class="muted">Betöltés…</p></div>
     <p class="muted">Alanyi adómentes, ÁFA nélkül.</p>
+  </section>
+
+  <section>
+    <h2>Anyaglista a boltnak</h2>
+    <div id="anyaglista"><p class="muted">Betöltés…</p></div>
+    <div class="actions">
+      <button type="button" id="masol">Másolás</button>
+      <a id="email" class="button" href="#">E-mail</a>
+      <span id="masol-uzenet" class="muted" aria-live="polite"></span>
+    </div>
   </section>
 </main>
 <script type="module" src="src/app.js"></script>

@@ -12,7 +12,7 @@
 
 export const KIALLAS_TIPUSOK = [
   { kod: 'wc_tartaly', nev: 'WC-tartály' },
-  { kod: 'kad', nev: 'Kád' },
+  { kod: 'kad', nev: 'Fürdőkád' },
   { kod: 'zuhanyzo', nev: 'Zuhanyzó' },
   { kod: 'bojler', nev: 'Bojler' },
   { kod: 'mosogep', nev: 'Mosógép' },
@@ -54,6 +54,7 @@ export function uresProjekt() {
     padlofutesKor: 0,
     kulsoVizFm: 0,
     kulsoSzennyvizFm: 0,
+    gerinc: { 16: 0, 20: 0 },
     hotermelo: 'nincs',
     puffer: false,
     felarHoszivattyunal: false,
