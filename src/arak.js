@@ -113,7 +113,15 @@ function mennyisegASorban(sor, szoveg) {
   return m ? { mennyiseg: parseSzam(m[1]), egyseg: egysegNormal(m[2]), nyers: m[0].trim() } : null;
 }
 
-const NEM_TETEL = /összesen|végösszeg|fizetendő|részösszeg|árajánlat|kelt|dátum|oldal|érvényes|bankszámla|adószám|telefon/i;
+// Összesítő és fejléc/lábléc sorok szavai: ezek nem tételek (nettó/bruttó végösszeg, ÁFA, kedvezmény…).
+const NEM_TETEL = new RegExp('(^|[\\s(/:-])(' + [
+  'össze(sen|g)', 'végösszeg', 'fizetendő', 'részösszeg', 'nettó', 'netto', 'bruttó', 'brutto', 'áfa', 'afa', 'adó(alap|tartalom)?',
+  'kedvezmény', 'engedmény', 'kerekítés', 'egyenleg', 'előleg', 'total', 'subtotal', 'sum', 'árajánlat', 'ajánlat',
+  'kelt', 'dátum', 'oldal', 'érvényes', 'bankszámla', 'adószám', 'telefon', 'e-?mail', 'fizetési', 'határidő',
+].join('|') + ')', 'i');
+
+// Igaz, ha a megnevezés összesítő vagy egyéb nem-tétel sornak látszik.
+export const nemTetelNev = (nev) => NEM_TETEL.test(` ${nev}`) || nev.includes('%');
 
 // Egy tételhez nem köthető sorból új tétel javaslata: megnevezés, mennyiség,
 // egység, cikkszám és ár(ak). Ha a sor nem tételnek látszik, null.
@@ -121,6 +129,8 @@ export function ujTetelJelolt(sor, mezo = null) {
   const { szamok, szoveg } = sorVegiSzamok(sor);
   if (szamok.length === 0) return null;
   const menny = mennyisegASorban(sor, szoveg);
+  // "Nettó: 107 811 Ft" – kettősponttal záródó felirat, mennyiség nélkül: összesítő sor.
+  if (!menny && (/:\s*$/.test(szoveg.trim()) || /:[\s\t]*[\d][\d\s.,]*(ft)?\.?[\s\t\d.,ft]*$/i.test(sor))) return null;
   const mennyiseg = menny?.mennyiseg ?? 1;
   const egyseg = menny?.egyseg ?? 'db';
   const ar = arakSzamokbol(szamok, mennyiseg, mezo);
@@ -131,7 +141,7 @@ export function ujTetelJelolt(sor, mezo = null) {
   const csz = nev.match(/^(\d{4,})\s+(.*)$/);
   if (csz) [, cikkszam, nev] = csz;
   nev = nev.replace(/^\d+[.)]\s+/, '').replace(/[\s–:-]+$/, '').replace(/\s+/g, ' ').trim();
-  if ((nev.match(/\p{L}/gu) ?? []).length < 3 || NEM_TETEL.test(nev)) return null;
+  if ((nev.match(/\p{L}/gu) ?? []).length < 3 || nemTetelNev(nev)) return null;
   return { cikk: nev, cikkszam, mennyiseg, egyseg, ar, sor };
 }
 

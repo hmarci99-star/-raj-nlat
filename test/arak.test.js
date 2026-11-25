@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseSzam, boltValaszBeolvasas, ajanlat, tetelKulcs, ujTetelJelolt } from '../src/arak.js';
+import { parseSzam, boltValaszBeolvasas, ajanlat, tetelKulcs, ujTetelJelolt, nemTetelNev } from '../src/arak.js';
 
 const sorok = [
   { cikk: 'Rehau PX 20-16-20 T-idom', egyseg: 'db', mennyiseg: 4, cikkszam: '' },
@@ -164,4 +164,25 @@ test('új tétel: a megnevezésben lévő "0,5 m" nem mennyiség', () => {
   assert.equal(j.cikk, 'Pipelife KAEM lefolyócső 110/0,5 m');
   assert.equal(j.mennyiseg, 1);
   assert.deepEqual(j.ar, { bolti: 1200, kedvezmenyes: 950 });
+});
+
+test('összesítő sorok (nettó, bruttó, ÁFA, kedvezmény) nem lesznek tételek', () => {
+  const osszesitok = [
+    'Nettó összesen: 107 811 Ft', 'Bruttó végösszeg: 136 920 Ft', 'ÁFA 27%: 29 109 Ft', 'Nettó érték\t107 811',
+    'Bruttó\t136 920', 'Összesen nettó / bruttó 107 811 136 920', 'Kedvezmény (10%) 12 000', 'Kerekítés\t2',
+    'Fizetendő: 136 920 Ft', 'Áfa alap\t107 811', 'Nettó:\t107 811', 'Brutto osszesen 136 920', 'Végösszeg (bruttó) 136 920 Ft',
+    'Szállítás: 5 000 Ft', 'Részösszeg 98 000',
+  ];
+  for (const l of osszesitok) assert.equal(ujTetelJelolt(l), null, l);
+  const e = boltValaszBeolvasas(osszesitok.join('\n'), sorok);
+  assert.equal(e.jeloltek.length, 0);
+  assert.equal(e.arak.size, 0);
+});
+
+test('valódi tételek továbbra is felismerhetők', () => {
+  for (const l of ['Szállítási díj\t1 db\t5 000', 'Golyóscsap 1/2 col\t2 db\t2 100\t1 600', 'Geberit Sigma01 nyomólap, fehér\t1 db\t12 500']) {
+    assert.ok(ujTetelJelolt(l), l);
+  }
+  assert.equal(nemTetelNev('Nettó összesen'), true);
+  assert.equal(nemTetelNev('Sarokszelep 1/2 col'), false);
 });

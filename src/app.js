@@ -1,7 +1,7 @@
 import { parseMunkadijTabla } from './csv.js';
 import { KIALLAS_TIPUSOK, SZERELVENY_KODOK, szamolMunkadij, uresProjekt } from './munkadij.js';
 import { parseKonyvtar, gyujtAnyaglista, anyaglistaSzoveg } from './anyaglista.js';
-import { boltValaszBeolvasas, ajanlat, tetelKulcs, parseSzam } from './arak.js';
+import { boltValaszBeolvasas, ajanlat, tetelKulcs, parseSzam, nemTetelNev } from './arak.js';
 import { bovitettKonyvtar, bennVanAzAlapban, konyvtarCsv } from './konyvtar.js';
 import { ugyfelAjanlatHtml, belsoOsszesitoHtml, fajlnev } from './sablonok.js';
 import { pdfSzoveg } from './pdfszoveg.js';
@@ -710,7 +710,11 @@ async function indit() {
   const mentett = betoltMentett(MENTES_KULCS);
   if (mentett) kitolt(mentett);
   allapot.arak = betoltMentett(ARAK_KULCS) ?? {};
-  allapot.plusz = (betoltMentett(PLUSZ_KULCS) ?? []).filter((t) => t?.cikk && t?.egyseg);
+  // A PDF-ből korábban tévesen felvett összesítő sorok (nettó/bruttó végösszeg, ÁFA…) törlése.
+  allapot.plusz = (betoltMentett(PLUSZ_KULCS) ?? [])
+    .filter((t) => t?.cikk && t?.egyseg)
+    .filter((t) => !(t.forras === 'pdf' && nemTetelNev(t.cikk)));
+  ment(PLUSZ_KULCS, allapot.plusz);
   allapot.pdfMennyiseg = betoltMentett(PDF_MENNY_KULCS) ?? {};
   allapot.bovitesek = (betoltMentett(BOVITES_KULCS) ?? []).filter((b) => b?.kiallas && b?.cikk && b?.egyseg && b.mennyiseg > 0);
   allapot.konyvtar = bovitettKonyvtar(allapot.alapKonyvtar, allapot.bovitesek);
