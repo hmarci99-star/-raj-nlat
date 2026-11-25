@@ -2,19 +2,28 @@ import { parseMunkadijTabla } from './csv.js';
 import { KIALLAS_TIPUSOK, SZERELVENY_KODOK, szamolMunkadij, uresProjekt } from './munkadij.js';
 import { parseKonyvtar, gyujtAnyaglista, anyaglistaSzoveg } from './anyaglista.js';
 import { boltValaszBeolvasas, ajanlat, tetelKulcs, parseSzam } from './arak.js';
+import { bovitettKonyvtar, bennVanAzAlapban, konyvtarCsv } from './konyvtar.js';
 import { ugyfelAjanlatHtml, belsoOsszesitoHtml, fajlnev } from './sablonok.js';
 import { pdfSzoveg } from './pdfszoveg.js';
 
 const MENTES_KULCS = 'arajanlat.projekt';
 const ARAK_KULCS = 'arajanlat.arak';
 const ADATOK_KULCS = 'arajanlat.adatok';
+const PLUSZ_KULCS = 'arajanlat.plusz';
+const BOVITES_KULCS = 'arajanlat.konyvtar-bovites';
 const ft = new Intl.NumberFormat('hu-HU', { useGrouping: 'always' });
 const $ = (id) => document.getElementById(id);
 const form = $('projekt');
 
 const allapot = {
   tabla: null,
+  alapKonyvtar: null,
   konyvtar: null,
+  bovitesek: [], // a könyvtárhoz a felületen hozzáadott sorok (az eszközön tárolva)
+  plusz: [], // az ajánlathoz kézzel vagy a bolt PDF-jéből hozzáadott tételek
+  jeloltek: {}, // a bolt válaszában talált, listán nem szereplő tételek, forrásonként
+  projekt: null,
+  konyvtarbaNyitva: null,
   munkadij: null,
   anyag: { sorok: [], figyelmeztetesek: [] },
   arak: {},
@@ -144,7 +153,7 @@ function megjelenitAnyag() {
   const sorok = e.sorok.map((s) => `
     <tr>
       ${vanCikkszam ? `<td>${escape(s.cikkszam)}</td>` : ''}
-      <td>${escape(s.cikk)}</td>
+      <td>${escape(s.cikk)}${s.plusz ? ' <span class="cimke">plusz</span>' : ''}</td>
       <td class="num">${ft.format(s.mennyiseg)} ${escape(s.egyseg)}</td>
     </tr>`).join('');
   $('anyaglista').innerHTML = `${figyelmeztetesHtml(e.figyelmeztetesek)}
@@ -185,30 +194,50 @@ const MEZO_NEV = { bolti: 'bolti', kedvezmenyes: 'kedvezményes' };
 
 // Beolvasott árak beírása. mezo: null (mindkét ár a szövegben) vagy 'bolti' / 'kedvezmenyes'.
 function arakAtvetele(szoveg, mezo) {
-  const { arak, nemIllesztett } = boltValaszBeolvasas(szoveg, allapot.anyag.sorok, mezo);
-  for (const [k, ar] of arak) {
-    const uj = { ...allapot.arak[k] };
-    for (const [m, v] of Object.entries(ar)) if (v !== null) uj[m] = v;
-    allapot.arak[k] = uj;
+  if (allapot.anyag.sorok.length === 0) {
+    return '<p class="warn">Még nincs anyaglista. Előbb add meg a kiállásokat, utána töltsd fel az árakat.</p>';
   }
+  const { arak, jeloltek, nemIllesztett } = boltValaszBeolvasas(szoveg, allapot.anyag.sorok, mezo);
+  for (const [k, ar] of arak) arBeiras(k, ar);
   ment(ARAK_KULCS, allapot.arak);
   megjelenitArTabla(true);
   megjelenitKimenetek();
+  const forras = mezo ?? 'szoveg';
+  allapot.jeloltek[forras] = jeloltek;
+
   const hianyzik = (m) => allapot.anyag.sorok.filter((s) => !Number.isFinite(allapot.arak[tetelKulcs(s)]?.[m])).length;
   const hianyok = (mezo ? [mezo] : ['bolti', 'kedvezmenyes'])
     .map((m) => [m, hianyzik(m)]).filter(([, n]) => n > 0)
     .map(([m, n]) => `${n} tételnek még nincs ${MEZO_NEV[m]} ára.`).join(' ');
-  if (allapot.anyag.sorok.length === 0) {
-    return '<p class="warn">Még nincs anyaglista. Előbb add meg a kiállásokat, utána töltsd fel az árakat.</p>';
+  const reszek = [];
+  if (arak.size === 0 && jeloltek.length === 0) {
+    reszek.push(`<p class="warn">Egy tétel árát sem találtam. Nézd meg lent a kiolvasott szöveget. Ha abban látszanak a tételek és az árak,
+      küldd el a PDF-et, és hozzáigazítom a beolvasást.</p>`);
+  } else {
+    reszek.push(`<p><strong>${arak.size} / ${allapot.anyag.sorok.length} tétel</strong> ára beolvasva.${hianyok ? ` ${hianyok}` : ''}</p>`);
   }
-  if (arak.size === 0) {
-    return `<p class="warn">Egy tétel árát sem találtam. Nézd meg lent a kiolvasott szöveget. Ha abban látszanak a tételek és az árak,
-      küldd el a PDF-et, és hozzáigazítom a beolvasást.</p>`;
-  }
-  return `
-    <p><strong>${arak.size} / ${allapot.anyag.sorok.length} tétel</strong> ára beolvasva.${hianyok ? ` ${hianyok}` : ''}</p>
-    ${nemIllesztett.length ? `<p class="muted">Nem tudtam tételhez kötni:</p>
-      <ul class="nem-illesztett">${nemIllesztett.map((s) => `<li>${escape(s)}</li>`).join('')}</ul>` : ''}`;
+  if (jeloltek.length) reszek.push(`<p class="muted">Új tételek a bolt válaszában (nincsenek az anyaglistán):</p>
+    <ul class="jeloltek">${jeloltek.map((j, i) => jeloltHtml(j, forras, i)).join('')}</ul>`);
+  if (nemIllesztett.length) reszek.push(`<p class="muted">Nem tudtam tételhez kötni:</p>
+    <ul class="nem-illesztett">${nemIllesztett.map((s) => `<li>${escape(s)}</li>`).join('')}</ul>`);
+  return reszek.join('');
+}
+
+function arBeiras(kulcs, ar) {
+  const uj = { ...allapot.arak[kulcs] };
+  for (const [m, v] of Object.entries(ar)) if (v !== null && v !== undefined) uj[m] = v;
+  allapot.arak[kulcs] = uj;
+}
+
+function jeloltHtml(j, forras, i) {
+  const arak = Object.entries(j.ar).filter(([, v]) => v !== null)
+    .map(([m, v]) => `${MEZO_NEV[m]} ${penz(v)}`).join(', ');
+  const mar = allapot.plusz.some((p) => tetelKulcs(p) === tetelKulcs(j));
+  return `<li>
+    <span><strong>${escape(j.cikk)}</strong>${j.cikkszam ? ` <span class="muted">(${escape(j.cikkszam)})</span>` : ''}<br>
+      <span class="muted">${ft.format(j.mennyiseg)} ${escape(j.egyseg)} · ${arak}</span></span>
+    <button type="button" class="kicsi jelolt-hozzaad" data-forras="${forras}" data-i="${i}" ${mar ? 'disabled' : ''}>${mar ? 'Hozzáadva' : '+ Ajánlatba'}</button>
+  </li>`;
 }
 
 function beolvas() {
@@ -232,6 +261,186 @@ async function pdfFeltoltes(mezo, fajl) {
   } catch (err) {
     el.innerHTML = `<p class="error">A PDF nem olvasható be: ${escape(err.message)}</p>`;
   }
+}
+
+// ---- Plusz tételek és a könyvtár bővítése ----
+
+const EGYSEG_VALASZTEK = ['db', 'fm', 'pár', 'csomag', 'szett', 'kg', 'tekercs'];
+
+function pluszHozzaad(t) {
+  const k = tetelKulcs(t);
+  const meglevo = allapot.plusz.find((p) => tetelKulcs(p) === k);
+  if (!meglevo) allapot.plusz.push({ cikk: t.cikk, egyseg: t.egyseg, mennyiseg: t.mennyiseg, cikkszam: t.cikkszam ?? '' });
+  if (t.ar) arBeiras(k, t.ar);
+  ment(PLUSZ_KULCS, allapot.plusz);
+  ment(ARAK_KULCS, allapot.arak);
+}
+
+function kiallasDarab(nev) {
+  const kod = KIALLAS_TIPUSOK.find((t) => t.nev === nev)?.kod;
+  return Number(allapot.projekt?.kiallasok?.[kod]) || 0;
+}
+
+function javasoltMennyiseg(t, kiallas) {
+  const db = kiallasDarab(kiallas);
+  return db > 0 ? Math.round((t.mennyiseg / db) * 100) / 100 : t.mennyiseg;
+}
+
+function megjelenitPlusz() {
+  const sorok = allapot.plusz.map((t, i) => {
+    const nyitva = allapot.konyvtarbaNyitva === i;
+    const alapKiallas = KIALLAS_TIPUSOK.find((k) => kiallasDarab(k.nev) > 0)?.nev ?? KIALLAS_TIPUSOK[0].nev;
+    return `<li class="plusz-sor">
+      <div class="plusz-fej">
+        <span class="plusz-nev">${escape(t.cikk)}${t.cikkszam ? ` <span class="muted">(${escape(t.cikkszam)})</span>` : ''}</span>
+        <span class="plusz-menny"><input type="number" min="0" step="any" class="plusz-mennyiseg" data-i="${i}"
+          value="${t.mennyiseg}" aria-label="Mennyiség: ${escape(t.cikk)}"> ${escape(t.egyseg)}</span>
+      </div>
+      <div class="actions kicsi-gombok">
+        <button type="button" class="kicsi button plusz-konyvtarba" data-i="${i}" aria-expanded="${nyitva}">Könyvtárba…</button>
+        <button type="button" class="kicsi button plusz-torles" data-i="${i}">Törlés</button>
+      </div>
+      ${nyitva ? `<div class="konyvtarba">
+        <label>Melyik kiálláshoz?
+          <select id="kb-kiallas">${KIALLAS_TIPUSOK.map((k) => `<option${k.nev === alapKiallas ? ' selected' : ''}>${escape(k.nev)}</option>`).join('')}</select></label>
+        <label>Mennyiség kiállásonként
+          <span class="nowrap"><input id="kb-mennyiseg" type="number" min="0" step="any" value="${javasoltMennyiseg(t, alapKiallas)}"> ${escape(t.egyseg)}</span></label>
+        <div class="actions">
+          <button type="button" class="kicsi" id="kb-mentes" data-i="${i}">Mentés a könyvtárba</button>
+          <button type="button" class="kicsi button" id="kb-megse">Mégse</button>
+        </div>
+      </div>` : ''}
+    </li>`;
+  }).join('');
+
+  const bovitesek = allapot.bovitesek.map((b, i) => `<li>
+      <span><strong>${escape(b.kiallas)}:</strong> ${escape(b.cikk)} – ${ft.format(b.mennyiseg)} ${escape(b.egyseg)}
+        ${bennVanAzAlapban(allapot.alapKonyvtar, b) ? ' <span class="muted">(már benne van az alapkönyvtárban, törölhető)</span>' : ''}</span>
+      <button type="button" class="kicsi button bovites-torles" data-i="${i}" aria-label="Törlés: ${escape(b.cikk)}">×</button>
+    </li>`).join('');
+
+  $('plusz').innerHTML = `
+    <h3>Plusz tételek ehhez az ajánlathoz</h3>
+    ${allapot.plusz.length ? `<ul class="plusz-lista">${sorok}</ul>`
+      : '<p class="muted">A bolt PDF-jében talált új tételek, vagy amit kézzel adsz hozzá. A „Könyvtárba…” gombbal egy kiállás csomagjába is elmenthető, így legközelebb magától benne lesz.</p>'}
+    <form id="plusz-uj" class="plusz-uj">
+      <input id="plusz-uj-cikk" placeholder="Új tétel megnevezése" aria-label="Új tétel megnevezése" required>
+      <input id="plusz-uj-menny" type="number" min="0" step="any" value="1" aria-label="Mennyiség">
+      <select id="plusz-uj-egyseg" aria-label="Egység">${EGYSEG_VALASZTEK.map((e) => `<option>${e}</option>`).join('')}</select>
+      <button type="submit" class="kicsi">Hozzáadás</button>
+    </form>
+    <details class="bovitesek"${allapot.bovitesek.length ? '' : ' hidden'}>
+      <summary>A könyvtárhoz hozzáadott tételek (${allapot.bovitesek.length})</summary>
+      <p class="muted">Ezek csak ezen az eszközön vannak meg. Töltsd le a teljes könyvtárat, és küldd el, hogy bekerüljön az alkalmazásba, és minden eszközön meglegyen.</p>
+      <ul class="bovites-lista">${bovitesek}</ul>
+      <button type="button" class="kicsi" id="konyvtar-letoltes">Könyvtár letöltése (CSV)</button>
+    </details>
+    <p id="plusz-uzenet" class="muted" aria-live="polite"></p>`;
+}
+
+function konyvtarFrissites() {
+  allapot.konyvtar = bovitettKonyvtar(allapot.alapKonyvtar, allapot.bovitesek);
+  ment(BOVITES_KULCS, allapot.bovitesek);
+}
+
+function pluszEsemenyek() {
+  const doboz = $('plusz');
+  doboz.addEventListener('input', (ev) => {
+    if (!ev.target.classList.contains('plusz-mennyiseg')) return;
+    const t = allapot.plusz[Number(ev.target.dataset.i)];
+    t.mennyiseg = Math.max(0, Number(ev.target.value) || 0);
+    ment(PLUSZ_KULCS, allapot.plusz);
+    frissit();
+  });
+  doboz.addEventListener('change', (ev) => {
+    if (ev.target.id !== 'kb-kiallas') return;
+    const t = allapot.plusz[allapot.konyvtarbaNyitva];
+    if (t) $('kb-mennyiseg').value = javasoltMennyiseg(t, ev.target.value);
+  });
+  doboz.addEventListener('submit', (ev) => {
+    if (ev.target.id !== 'plusz-uj') return;
+    ev.preventDefault();
+    const cikk = $('plusz-uj-cikk').value.trim().replace(/\s+/g, ' ');
+    if (!cikk) return;
+    pluszHozzaad({ cikk, mennyiseg: Math.max(0, Number($('plusz-uj-menny').value) || 1), egyseg: $('plusz-uj-egyseg').value });
+    frissit();
+    megjelenitPlusz();
+    megjelenitArTabla(true);
+  });
+  doboz.addEventListener('click', (ev) => {
+    const b = ev.target.closest('button');
+    if (!b) return;
+    const i = Number(b.dataset.i);
+    if (b.classList.contains('plusz-torles')) {
+      allapot.plusz.splice(i, 1);
+      allapot.konyvtarbaNyitva = null;
+      ment(PLUSZ_KULCS, allapot.plusz);
+      frissit();
+      megjelenitPlusz();
+    } else if (b.classList.contains('plusz-konyvtarba')) {
+      allapot.konyvtarbaNyitva = allapot.konyvtarbaNyitva === i ? null : i;
+      megjelenitPlusz();
+    } else if (b.id === 'kb-megse') {
+      allapot.konyvtarbaNyitva = null;
+      megjelenitPlusz();
+    } else if (b.id === 'kb-mentes') {
+      const t = allapot.plusz[i];
+      const kiallas = $('kb-kiallas').value;
+      const mennyiseg = Number($('kb-mennyiseg').value);
+      if (!(mennyiseg > 0)) { $('kb-mennyiseg').focus(); return; }
+      allapot.bovitesek.push({ kiallas, cikk: t.cikk, mennyiseg, egyseg: t.egyseg, cikkszam: t.cikkszam ?? '' });
+      konyvtarFrissites();
+      // Ha a projektben van ilyen kiállás, a tételt mostantól a csomag adja, plusz tételként már nem kell.
+      const db = kiallasDarab(kiallas);
+      if (db > 0) allapot.plusz.splice(i, 1);
+      ment(PLUSZ_KULCS, allapot.plusz);
+      allapot.konyvtarbaNyitva = null;
+      frissit();
+      megjelenitPlusz();
+      $('plusz-uzenet').textContent = db > 0
+        ? `Elmentve: ${kiallas} – ${t.cikk}. Az anyaglistán mostantól a csomag adja (${db} kiállás × ${ft.format(mennyiseg)} ${t.egyseg}).`
+        : `Elmentve: ${kiallas} – ${t.cikk}. Ebben az ajánlatban plusz tételként marad, mert nincs ${kiallas} kiállás.`;
+    } else if (b.classList.contains('bovites-torles')) {
+      allapot.bovitesek.splice(i, 1);
+      konyvtarFrissites();
+      frissit();
+      megjelenitPlusz();
+      $('plusz').querySelector('details.bovitesek')?.setAttribute('open', '');
+    } else if (b.id === 'konyvtar-letoltes') {
+      const blob = new Blob(['\uFEFF', konyvtarCsv(allapot.konyvtar)], { type: 'text/csv;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'kiallas-konyvtar.csv';
+      document.body.append(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+    }
+  });
+
+  // A bolt válaszában talált új tétel felvétele az ajánlatba.
+  $('ar-szakasz').addEventListener('click', (ev) => {
+    const b = ev.target.closest('.jelolt-hozzaad');
+    if (!b) return;
+    const j = allapot.jeloltek[b.dataset.forras]?.[Number(b.dataset.i)];
+    if (!j) return;
+    pluszHozzaad(j);
+    frissit();
+    megjelenitPlusz();
+    megjelenitArTabla(true);
+    // Ugyanaz a tétel a másik PDF listájában is "Hozzáadva" lesz, és ott a másik árat hozzáadja.
+    for (const gomb of document.querySelectorAll('.jelolt-hozzaad')) {
+      const masik = allapot.jeloltek[gomb.dataset.forras]?.[Number(gomb.dataset.i)];
+      if (masik && tetelKulcs(masik) === tetelKulcs(j)) {
+        if (masik !== j) arBeiras(tetelKulcs(masik), masik.ar);
+        gomb.disabled = true;
+        gomb.textContent = 'Hozzáadva';
+      }
+    }
+    ment(ARAK_KULCS, allapot.arak);
+    megjelenitArTabla(true);
+    megjelenitKimenetek();
+  });
 }
 
 // ---- Kimenetek ----
@@ -332,8 +541,15 @@ function frissit() {
     allapot.munkadij = null;
     $('eredmeny').innerHTML = `<p class="error">${escape(err.message)}</p>`;
   }
+  allapot.projekt = p;
   try {
     allapot.anyag = gyujtAnyaglista(p, allapot.konyvtar);
+    for (const t of allapot.plusz) {
+      if (!(t.mennyiseg > 0)) continue;
+      const meglevo = allapot.anyag.sorok.find((s) => tetelKulcs(s) === tetelKulcs(t));
+      if (meglevo) meglevo.mennyiseg = Math.round((meglevo.mennyiseg + t.mennyiseg) * 100) / 100;
+      else allapot.anyag.sorok.push({ ...t, plusz: true });
+    }
     megjelenitAnyag();
   } catch (err) {
     allapot.anyag = { sorok: [], figyelmeztetesek: [] };
@@ -356,7 +572,7 @@ async function indit() {
       betolt('data/kiallas-konyvtar.csv', 'kiállás-könyvtár'),
     ]);
     allapot.tabla = parseMunkadijTabla(tablaCsv);
-    allapot.konyvtar = parseKonyvtar(konyvtarCsv);
+    allapot.alapKonyvtar = parseKonyvtar(konyvtarCsv);
   } catch (err) {
     $('eredmeny').innerHTML = `<p class="error">${escape(err.message)}</p>`;
     $('anyaglista').innerHTML = '';
@@ -366,6 +582,10 @@ async function indit() {
   const mentett = betoltMentett(MENTES_KULCS);
   if (mentett) kitolt(mentett);
   allapot.arak = betoltMentett(ARAK_KULCS) ?? {};
+  allapot.plusz = (betoltMentett(PLUSZ_KULCS) ?? []).filter((t) => t?.cikk && t?.egyseg);
+  allapot.bovitesek = (betoltMentett(BOVITES_KULCS) ?? []).filter((b) => b?.kiallas && b?.cikk && b?.egyseg && b.mennyiseg > 0);
+  allapot.konyvtar = bovitettKonyvtar(allapot.alapKonyvtar, allapot.bovitesek);
+  pluszEsemenyek();
 
   form.addEventListener('input', frissit);
   $('masol').addEventListener('click', async () => {
@@ -418,6 +638,7 @@ async function indit() {
   window.addEventListener('afterprint', () => { gombbol = false; document.title = eredetiCim; });
 
   frissit();
+  megjelenitPlusz();
 }
 
 indit();
