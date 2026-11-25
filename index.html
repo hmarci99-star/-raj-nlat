@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Árajánlat – munkadíj</title>
+  <title>Árajánlat</title>
   <style>
     :root {
       --bg: #f6f7f9; --card: #fff; --text: #1b1f24; --muted: #5f6b7a;
@@ -46,12 +46,26 @@
     button, .button { font: inherit; padding: 8px 16px; border-radius: 6px; border: 1px solid var(--accent);
       background: var(--accent); color: #fff; text-decoration: none; cursor: pointer; }
     .button { background: transparent; color: var(--accent); }
+    h3 { font-size: .95rem; margin: 16px 0 4px; }
+    label.block { display: block; margin-bottom: 6px; }
+    textarea { width: 100%; font: 14px/1.4 ui-monospace, monospace; padding: 8px; border-radius: 6px;
+      border: 1px solid var(--line); background: var(--bg); color: var(--text); }
+    input.ar { width: 90px; padding: 6px 8px; font: inherit; text-align: right;
+      border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--text); }
+    input.ar.hibas { border-color: #d1242f; }
+    .nem-illesztett { font: 13px/1.4 ui-monospace, monospace; color: var(--muted); padding-left: 18px; }
+    .vegosszeg { display: flex; justify-content: space-between; font-size: 1.15rem; font-weight: 700;
+      border-top: 2px solid var(--text); padding-top: 8px; margin-top: 16px; }
+    section.belso { border-style: dashed; }
+    .osszesito { display: grid; grid-template-columns: 1fr auto; gap: 4px 16px; margin: 16px 0 0; }
+    .osszesito dt { color: var(--muted); }
+    .osszesito dd { margin: 0; text-align: right; font-weight: 600; }
     @media (max-width: 520px) { .hide-sm { display: none; } }
   </style>
 </head>
 <body>
 <main>
-  <h1>Árajánlat: munkadíj</h1>
+  <h1>Árajánlat</h1>
   <form id="projekt">
     <section>
       <h2>Vízszerelési kiállások</h2>
@@ -104,17 +118,39 @@
   <section>
     <h2>Munkadíj</h2>
     <div id="eredmeny"><p class="muted">Betöltés…</p></div>
-    <p class="muted">Alanyi adómentes, ÁFA nélkül.</p>
   </section>
 
   <section>
     <h2>Anyaglista a boltnak</h2>
     <div id="anyaglista"><p class="muted">Betöltés…</p></div>
-    <div class="actions">
+    <div class="actions" id="anyag-gombok">
       <button type="button" id="masol">Másolás</button>
       <a id="email" class="button" href="#">E-mail</a>
       <span id="masol-uzenet" class="muted" aria-live="polite"></span>
     </div>
+  </section>
+
+  <section id="ar-szakasz">
+    <h2>Árak a boltból</h2>
+    <label class="block" for="bolt-valasz">Másold ide a bolt válaszát (e-mail szövege vagy a PDF-ből kimásolt táblázat):</label>
+    <textarea id="bolt-valasz" rows="6" placeholder="Rehau PX 20-16-20 T-idom	4	2 450	1 890"></textarea>
+    <div class="actions">
+      <button type="button" id="beolvas">Beolvasás</button>
+      <button type="button" id="arak-torlese" class="button">Árak törlése</button>
+    </div>
+    <div id="beolvasas-eredmeny" aria-live="polite"></div>
+    <p class="muted">Egységárak, forintban. Ami nem olvasható be, azt írd be vagy javítsd kézzel.</p>
+    <div id="ar-tabla"></div>
+  </section>
+
+  <section>
+    <h2>Ügyfélajánlat</h2>
+    <div id="ugyfel"></div>
+  </section>
+
+  <section class="belso">
+    <h2>Belső összesítő <span class="muted">(csak neked)</span></h2>
+    <div id="belso"></div>
   </section>
 </main>
 <script type="module" src="src/app.js"></script>

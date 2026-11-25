@@ -1,25 +1,46 @@
 import { parseMunkadijTabla } from './csv.js';
 import { KIALLAS_TIPUSOK, SZERELVENY_KODOK, szamolMunkadij, uresProjekt } from './munkadij.js';
 import { parseKonyvtar, gyujtAnyaglista, anyaglistaSzoveg } from './anyaglista.js';
+import { boltValaszBeolvasas, ajanlat, tetelKulcs, parseSzam } from './arak.js';
 
 const MENTES_KULCS = 'arajanlat.projekt';
-const ft = new Intl.NumberFormat('hu-HU');
-const form = document.getElementById('projekt');
-const eredmenyEl = document.getElementById('eredmeny');
+const ARAK_KULCS = 'arajanlat.arak';
+const ft = new Intl.NumberFormat('hu-HU', { useGrouping: 'always' });
+const $ = (id) => document.getElementById(id);
+const form = $('projekt');
+
+const allapot = {
+  tabla: null,
+  konyvtar: null,
+  munkadij: null,
+  anyag: { sorok: [], figyelmeztetesek: [] },
+  arak: {},
+  arTablaAlairas: '',
+};
 
 function escape(s) {
   return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 }
+const penz = (x) => (x === null || x === undefined ? '–' : `${ft.format(x)} Ft`);
+const figyelmeztetesHtml = (lista) => lista.map((f) => `<p class="warn">${escape(f)}</p>`).join('');
+
+function ment(kulcs, ertek) {
+  try { localStorage.setItem(kulcs, JSON.stringify(ertek)); } catch { /* nem kötelező */ }
+}
+function betoltMentett(kulcs) {
+  try { return JSON.parse(localStorage.getItem(kulcs)); } catch { return null; }
+}
+
+// ---- Projekt űrlap ----
 
 function szamMezo(nev, cimke) {
   return `<label><span>${escape(cimke)}</span><input type="number" min="0" name="${nev}"></label>`;
 }
 
-function felepit(tabla) {
-  document.getElementById('kiallasok').innerHTML = KIALLAS_TIPUSOK
-    .map((t) => szamMezo(`kiallasok.${t.kod}`, t.nev)).join('');
-  document.getElementById('szerelvenyek').innerHTML = SZERELVENY_KODOK
-    .map((kod) => szamMezo(`szerelvenyek.${kod}`, tabla.get(kod).tetel)).join('');
+function felepit() {
+  $('kiallasok').innerHTML = KIALLAS_TIPUSOK.map((t) => szamMezo(`kiallasok.${t.kod}`, t.nev)).join('');
+  $('szerelvenyek').innerHTML = SZERELVENY_KODOK
+    .map((kod) => szamMezo(`szerelvenyek.${kod}`, allapot.tabla.get(kod).tetel)).join('');
 }
 
 function olvas() {
@@ -47,39 +68,36 @@ function kitolt(p) {
   }
 }
 
-function megjelenit(e) {
-  const figy = e.figyelmeztetesek.map((f) => `<p class="warn">${escape(f)}</p>`).join('');
-  if (e.sorok.length === 0) {
-    eredmenyEl.innerHTML = figy + '<p class="muted">Adj meg legalább egy tételt.</p>';
-    return;
-  }
+// ---- Munkadíj ----
+
+function munkadijHtml(e) {
+  if (e.sorok.length === 0) return '<p class="muted">Adj meg legalább egy tételt.</p>';
   const sorok = e.sorok.map((s) => `
     <tr>
       <td>${escape(s.tetel)}${s.megjegyzes ? `<div class="muted">${escape(s.megjegyzes)}</div>` : ''}</td>
       <td class="num">${ft.format(s.mennyiseg)} ${escape(s.egyseg)}</td>
       <td class="num hide-sm">${ft.format(s.egysegar)}</td>
-      <td class="num">${ft.format(s.osszeg)} Ft</td>
+      <td class="num">${penz(s.osszeg)}</td>
     </tr>`).join('');
-  eredmenyEl.innerHTML = `${figy}
+  return `
     <table>
       <thead><tr><th>Tétel</th><th class="num">Menny.</th><th class="num hide-sm">Egységár</th><th class="num">Összeg</th></tr></thead>
       <tbody>${sorok}</tbody>
-      <tfoot><tr><td colspan="2">Összesen</td><td class="hide-sm"></td><td class="num">${ft.format(e.osszesen)} Ft</td></tr></tfoot>
+      <tfoot><tr><td colspan="2">Munkadíj összesen</td><td class="hide-sm"></td><td class="num">${penz(e.osszesen)}</td></tr></tfoot>
     </table>`;
 }
 
-const anyagEl = document.getElementById('anyaglista');
-let anyagSzoveg = '';
+// ---- Anyaglista ----
 
-function megjelenitAnyag(e) {
-  const figy = e.figyelmeztetesek.map((f) => `<p class="warn">${escape(f)}</p>`).join('');
-  anyagSzoveg = anyaglistaSzoveg(e.sorok);
-  const email = document.getElementById('email');
-  email.href = `mailto:?subject=${encodeURIComponent('Árajánlatkérés – anyaglista')}`
-    + `&body=${encodeURIComponent(`Kérem az alábbi tételek bolti és kedvezményes árát:\n\n${anyagSzoveg}\n`)}`;
-  document.querySelector('#anyaglista + .actions').hidden = e.sorok.length === 0;
+function megjelenitAnyag() {
+  const e = allapot.anyag;
+  const szoveg = anyaglistaSzoveg(e.sorok);
+  $('email').href = `mailto:?subject=${encodeURIComponent('Árajánlatkérés – anyaglista')}`
+    + `&body=${encodeURIComponent(`Kérem az alábbi tételek bolti és kedvezményes árát:\n\n${szoveg}\n`)}`;
+  $('anyag-gombok').hidden = e.sorok.length === 0;
   if (e.sorok.length === 0) {
-    anyagEl.innerHTML = figy + '<p class="muted">Adj meg kiállást vagy gerincet.</p>';
+    $('anyaglista').innerHTML = figyelmeztetesHtml(e.figyelmeztetesek)
+      + '<p class="muted">Adj meg kiállást vagy gerincet.</p>';
     return;
   }
   const vanCikkszam = e.sorok.some((s) => s.cikkszam);
@@ -89,28 +107,126 @@ function megjelenitAnyag(e) {
       <td>${escape(s.cikk)}</td>
       <td class="num">${ft.format(s.mennyiseg)} ${escape(s.egyseg)}</td>
     </tr>`).join('');
-  anyagEl.innerHTML = `${figy}
+  $('anyaglista').innerHTML = `${figyelmeztetesHtml(e.figyelmeztetesek)}
     <table>
       <thead><tr>${vanCikkszam ? '<th>Cikkszám</th>' : ''}<th>Cikk</th><th class="num">Mennyiség</th></tr></thead>
       <tbody>${sorok}</tbody>
     </table>`;
 }
 
-function frissit(tabla, konyvtar) {
+// ---- Árak ----
+
+const arMezo = (kulcs, mezo, ertek) => `<input type="text" inputmode="decimal" class="ar"
+  data-kulcs="${escape(kulcs)}" data-mezo="${mezo}" value="${ertek ?? ''}" aria-label="${mezo === 'bolti' ? 'Bolti ár' : 'Kedvezményes ár'}">`;
+
+// Csak akkor rajzolja újra, ha a tételek változtak, hogy gépelés közben ne vesszen el a fókusz.
+function megjelenitArTabla(kenyszer = false) {
+  const sorok = allapot.anyag.sorok;
+  const alairas = sorok.map((s) => `${tetelKulcs(s)}=${s.mennyiseg}`).join('\n');
+  if (!kenyszer && alairas === allapot.arTablaAlairas) return;
+  allapot.arTablaAlairas = alairas;
+  $('ar-szakasz').hidden = sorok.length === 0;
+  $('ar-tabla').innerHTML = `
+    <table>
+      <thead><tr><th>Cikk</th><th class="num">Bolti egységár</th><th class="num">Kedv. egységár</th></tr></thead>
+      <tbody>${sorok.map((s) => {
+        const k = tetelKulcs(s);
+        const ar = allapot.arak[k] ?? {};
+        return `<tr>
+          <td>${escape(s.cikk)}<div class="muted">${ft.format(s.mennyiseg)} ${escape(s.egyseg)}</div></td>
+          <td class="num">${arMezo(k, 'bolti', ar.bolti)}</td>
+          <td class="num">${arMezo(k, 'kedvezmenyes', ar.kedvezmenyes)}</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>`;
+}
+
+function beolvas() {
+  const { arak, nemIllesztett } = boltValaszBeolvasas($('bolt-valasz').value, allapot.anyag.sorok);
+  for (const [k, ar] of arak) {
+    allapot.arak[k] = { ...allapot.arak[k], bolti: ar.bolti, ...(ar.kedvezmenyes !== null && { kedvezmenyes: ar.kedvezmenyes }) };
+  }
+  ment(ARAK_KULCS, allapot.arak);
+  const hianyzik = allapot.anyag.sorok.filter((s) => !Number.isFinite(allapot.arak[tetelKulcs(s)]?.bolti)).length;
+  $('beolvasas-eredmeny').innerHTML = `
+    <p>${arak.size} tétel ára beolvasva.${hianyzik ? ` ${hianyzik} tételnek még nincs bolti ára, ezeket írd be kézzel.` : ''}</p>
+    ${nemIllesztett.length ? `<p class="muted">Ezeket a sorokat nem tudtam tételhez kötni:</p>
+      <ul class="nem-illesztett">${nemIllesztett.map((s) => `<li>${escape(s)}</li>`).join('')}</ul>` : ''}`;
+  megjelenitArTabla(true);
+  megjelenitKimenetek();
+}
+
+// ---- Kimenetek ----
+
+function megjelenitKimenetek() {
+  if (!allapot.munkadij) return;
+  const a = ajanlat(allapot.munkadij, allapot.anyag.sorok, allapot.arak);
+
+  const anyagSorok = a.anyag.map((s) => `
+    <tr>
+      <td>${escape(s.cikk)}</td>
+      <td class="num">${ft.format(s.mennyiseg)} ${escape(s.egyseg)}</td>
+      <td class="num hide-sm">${penz(s.bolti)}</td>
+      <td class="num">${penz(s.boltiOsszeg)}</td>
+    </tr>`).join('');
+  $('ugyfel').innerHTML = `
+    ${a.hianyzoBolti ? `<p class="warn">${a.hianyzoBolti} anyagtételnek nincs bolti ára, az összeg hiányos.</p>` : ''}
+    <h3>Munkadíj</h3>
+    ${munkadijHtml(a.munkadij)}
+    ${a.anyag.length ? `<h3>Anyag</h3>
+    <table>
+      <thead><tr><th>Cikk</th><th class="num">Menny.</th><th class="num hide-sm">Egységár</th><th class="num">Összeg</th></tr></thead>
+      <tbody>${anyagSorok}</tbody>
+      <tfoot><tr><td colspan="2">Anyag összesen</td><td class="hide-sm"></td><td class="num">${penz(a.anyagBolti)}</td></tr></tfoot>
+    </table>` : ''}
+    <p class="vegosszeg"><span>Végösszeg</span><span>${penz(a.vegosszeg)}</span></p>
+    <p class="muted">Alanyi adómentes, ÁFA nélkül.</p>`;
+
+  const belsoSorok = a.anyag.map((s) => `
+    <tr>
+      <td>${escape(s.cikk)}<div class="muted">${ft.format(s.mennyiseg)} ${escape(s.egyseg)}</div></td>
+      <td class="num">${penz(s.kedvOsszeg)}</td>
+      <td class="num hide-sm">${penz(s.boltiOsszeg)}</td>
+      <td class="num">${penz(s.haszon)}</td>
+    </tr>`).join('');
+  $('belso').innerHTML = a.anyag.length === 0 ? '<p class="muted">Nincs anyagtétel.</p>' : `
+    ${a.hianyzoKedvezmenyes ? `<p class="warn">${a.hianyzoKedvezmenyes} tételnek nincs kedvezményes ára, a haszon hiányos.</p>` : ''}
+    <table>
+      <thead><tr><th>Cikk</th><th class="num">Beszerzés</th><th class="num hide-sm">Bolti</th><th class="num">Haszon</th></tr></thead>
+      <tbody>${belsoSorok}</tbody>
+      <tfoot><tr><td>Összesen</td><td class="num">${penz(a.anyagKedvezmenyes)}</td><td class="num hide-sm">${penz(a.anyagBolti)}</td><td class="num">${penz(a.haszon)}</td></tr></tfoot>
+    </table>
+    <dl class="osszesito">
+      <dt>Munkadíj</dt><dd>${penz(a.munkadij.osszesen)}</dd>
+      <dt>Haszon az anyagon</dt><dd>${penz(a.haszon)}</dd>
+      <dt>Ügyfél fizet</dt><dd>${penz(a.vegosszeg)}</dd>
+      <dt>Anyagbeszerzés</dt><dd>${penz(a.anyagKedvezmenyes)}</dd>
+    </dl>`;
+}
+
+// ---- Frissítés ----
+
+function frissit() {
   const p = olvas();
-  document.getElementById('puffer-sor').hidden = p.hotermelo !== 'vegyes';
-  document.getElementById('felar-hsz-sor').hidden = p.hotermelo !== 'hoszivattyu';
-  try { localStorage.setItem(MENTES_KULCS, JSON.stringify(p)); } catch { /* nem kötelező */ }
+  $('puffer-sor').hidden = p.hotermelo !== 'vegyes';
+  $('felar-hsz-sor').hidden = p.hotermelo !== 'hoszivattyu';
+  ment(MENTES_KULCS, p);
   try {
-    megjelenit(szamolMunkadij(p, tabla));
+    allapot.munkadij = szamolMunkadij(p, allapot.tabla);
+    $('eredmeny').innerHTML = figyelmeztetesHtml(allapot.munkadij.figyelmeztetesek) + munkadijHtml(allapot.munkadij);
   } catch (err) {
-    eredmenyEl.innerHTML = `<p class="error">${escape(err.message)}</p>`;
+    allapot.munkadij = null;
+    $('eredmeny').innerHTML = `<p class="error">${escape(err.message)}</p>`;
   }
   try {
-    megjelenitAnyag(gyujtAnyaglista(p, konyvtar));
+    allapot.anyag = gyujtAnyaglista(p, allapot.konyvtar);
+    megjelenitAnyag();
   } catch (err) {
-    anyagEl.innerHTML = `<p class="error">${escape(err.message)}</p>`;
+    allapot.anyag = { sorok: [], figyelmeztetesek: [] };
+    $('anyaglista').innerHTML = `<p class="error">${escape(err.message)}</p>`;
   }
+  megjelenitArTabla();
+  megjelenitKimenetek();
 }
 
 async function betolt(utvonal, nev) {
@@ -125,27 +241,49 @@ async function indit() {
       betolt('data/munkadij.csv', 'munkadíj-táblázat'),
       betolt('data/kiallas-konyvtar.csv', 'kiállás-könyvtár'),
     ]);
-    const tabla = parseMunkadijTabla(tablaCsv);
-    const konyvtar = parseKonyvtar(konyvtarCsv);
-    felepit(tabla);
-    let mentett = null;
-    try { mentett = JSON.parse(localStorage.getItem(MENTES_KULCS)); } catch { /* nincs mentés */ }
-    if (mentett) kitolt(mentett);
-    form.addEventListener('input', () => frissit(tabla, konyvtar));
-    document.getElementById('masol').addEventListener('click', async () => {
-      const uzenet = document.getElementById('masol-uzenet');
-      try {
-        await navigator.clipboard.writeText(anyagSzoveg);
-        uzenet.textContent = 'Vágólapra másolva.';
-      } catch {
-        uzenet.textContent = 'A másolás nem sikerült; használd az E-mail gombot.';
-      }
-    });
-    frissit(tabla, konyvtar);
+    allapot.tabla = parseMunkadijTabla(tablaCsv);
+    allapot.konyvtar = parseKonyvtar(konyvtarCsv);
   } catch (err) {
-    eredmenyEl.innerHTML = `<p class="error">${escape(err.message)}</p>`;
-    anyagEl.innerHTML = '';
+    $('eredmeny').innerHTML = `<p class="error">${escape(err.message)}</p>`;
+    $('anyaglista').innerHTML = '';
+    return;
   }
+  felepit();
+  const mentett = betoltMentett(MENTES_KULCS);
+  if (mentett) kitolt(mentett);
+  allapot.arak = betoltMentett(ARAK_KULCS) ?? {};
+
+  form.addEventListener('input', frissit);
+  $('masol').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(anyaglistaSzoveg(allapot.anyag.sorok));
+      $('masol-uzenet').textContent = 'Vágólapra másolva.';
+    } catch {
+      $('masol-uzenet').textContent = 'A másolás nem sikerült; használd az E-mail gombot.';
+    }
+  });
+  $('beolvas').addEventListener('click', beolvas);
+  $('ar-tabla').addEventListener('input', (ev) => {
+    const el = ev.target;
+    if (!el.dataset.kulcs) return;
+    const n = parseSzam(el.value);
+    const ar = { ...allapot.arak[el.dataset.kulcs] };
+    if (el.value.trim() === '' || Number.isNaN(n)) delete ar[el.dataset.mezo];
+    else ar[el.dataset.mezo] = n;
+    allapot.arak[el.dataset.kulcs] = ar;
+    el.classList.toggle('hibas', el.value.trim() !== '' && Number.isNaN(n));
+    ment(ARAK_KULCS, allapot.arak);
+    megjelenitKimenetek();
+  });
+  $('arak-torlese').addEventListener('click', () => {
+    if (!confirm('Törlöd az összes beírt árat?')) return;
+    allapot.arak = {};
+    ment(ARAK_KULCS, allapot.arak);
+    $('beolvasas-eredmeny').innerHTML = '';
+    megjelenitArTabla(true);
+    megjelenitKimenetek();
+  });
+  frissit();
 }
 
 indit();
