@@ -13,6 +13,7 @@ const ARAK_KULCS = 'arajanlat.arak';
 const ADATOK_KULCS = 'arajanlat.adatok';
 const PLUSZ_KULCS = 'arajanlat.plusz';
 const PDF_MENNY_KULCS = 'arajanlat.pdf-mennyiseg';
+const FELTOLTES_KULCS = 'arajanlat.feltoltesek';
 const BOVITES_KULCS = 'arajanlat.konyvtar-bovites';
 const NEZET_KULCS = 'arajanlat.nezet';
 const ft = new Intl.NumberFormat('hu-HU', { useGrouping: 'always' });
@@ -26,6 +27,9 @@ const allapot = {
   bovitesek: [], // a könyvtárhoz a felületen hozzáadott sorok (az eszközön tárolva)
   plusz: [], // az ajánlathoz kézzel vagy a bolt PDF-jéből hozzáadott tételek
   pdfMennyiseg: {}, // tétel -> a bolt PDF-je szerinti mennyiség, ha eltér a listától (ez az irányadó)
+  // Feltöltésenként (bolti / kedvezmenyes / szoveg) mit írt be, hogy vissza lehessen vonni:
+  // { fajl, mezok, arKulcsok, mennyisegek, pluszKulcsok, tetelek }
+  feltoltesek: {},
   projekt: null,
   konyvtarbaNyitva: null,
   diktalt: [], // diktálással felismert, még fel nem vett tételek
@@ -231,13 +235,28 @@ function megjelenitArTabla(kenyszer = false) {
 const MEZO_NEV = { bolti: 'bolti', kedvezmenyes: 'kedvezményes' };
 
 // Beolvasott árak beírása. mezo: null (mindkét ár a szövegben) vagy 'bolti' / 'kedvezmenyes'.
-function arakAtvetele(szoveg, mezo) {
+function arakAtvetele(szoveg, mezo, fajl = '') {
+  const forras = mezo ?? 'szoveg';
+  // Ugyanabba a helyre új feltöltés: az előző hatását előbb visszavonjuk.
+  if (allapot.feltoltesek[forras]) { visszavon(forras); frissit(); }
   if (allapot.anyag.sorok.length === 0) {
     return '<p class="warn">Még nincs anyaglista. Előbb add meg a kiállásokat, utána töltsd fel az árakat.</p>';
   }
   // A bolt válasza az irányadó: az árak mellett az eltérő mennyiségek és a
   // listán nem szereplő tételek is bekerülnek az ajánlatba.
-  const { arak, mennyisegek, jeloltek, nemIllesztett } = boltValaszBeolvasas(szoveg, allapot.anyag.sorok, mezo);
+  // A mennyiséget az eredeti listához hasonlítjuk (nem a másik PDF által már átírthoz),
+  // így mindkét PDF nyilvántartja a saját eltérő mennyiségeit.
+  const listaSorok = allapot.anyag.sorok.map((s) => (s.listaMennyiseg !== undefined ? { ...s, mennyiseg: s.listaMennyiseg } : s));
+  const { arak, mennyisegek, jeloltek, nemIllesztett } = boltValaszBeolvasas(szoveg, listaSorok, mezo);
+  allapot.feltoltesek[forras] = {
+    fajl,
+    mezok: mezo ? [mezo] : ['bolti', 'kedvezmenyes'],
+    arKulcsok: [...arak.keys(), ...jeloltek.map(tetelKulcs)], // minden tétel, ami ebben a PDF-ben szerepel
+    mennyisegek: Object.fromEntries(mennyisegek),
+    pluszKulcsok: jeloltek.map(tetelKulcs),
+    tetelek: arak.size + jeloltek.length,
+  };
+  ment(FELTOLTES_KULCS, allapot.feltoltesek);
   const eltero = [...mennyisegek].map(([k, m]) => {
     const s = allapot.anyag.sorok.find((x) => tetelKulcs(x) === k);
     return { cikk: s.cikk, egyseg: s.egyseg, lista: s.listaMennyiseg ?? s.mennyiseg, pdf: m };
@@ -275,7 +294,47 @@ function arakAtvetele(szoveg, mezo) {
       <span class="muted">PDF: ${ft.format(e.pdf)} ${escape(e.egyseg)}, a lista szerint ${ft.format(e.lista)}</span></span></li>`).join('')}</ul></details>`);
   if (nemIllesztett.length) reszek.push(`<details class="reszlet"><summary>Nem értelmezett sorok (${nemIllesztett.length})</summary>
     <ul class="nem-illesztett">${nemIllesztett.map((s) => `<li>${escape(s)}</li>`).join('')}</ul></details>`);
-  return reszek.join('');
+  return reszek.join('') + eltavolitGomb(forras);
+}
+
+const FORRAS_NEV = { bolti: 'bolti árak PDF', kedvezmenyes: 'kedvezményes árak PDF', szoveg: 'bemásolt szöveg' };
+const eltavolitGomb = (forras) => `<div class="actions kicsi-gombok"><button type="button" class="kicsi button feltoltes-torles"
+  data-forras="${forras}">${forras === 'szoveg' ? 'Beolvasás visszavonása' : 'PDF eltávolítása'}</button></div>`;
+
+// Egy feltöltés hatásának visszavonása: az általa beírt árak (csak a saját oszlopában),
+// mennyiségek és felvett tételek törlése. Amit a másik feltöltés is tartalmaz, megmarad.
+function visszavon(forras) {
+  const f = allapot.feltoltesek[forras];
+  if (!f) return;
+  delete allapot.feltoltesek[forras];
+  const masok = Object.values(allapot.feltoltesek);
+  for (const k of f.arKulcsok) {
+    const ar = allapot.arak[k];
+    if (!ar) continue;
+    for (const m of f.mezok) delete ar[m];
+    if (!Object.keys(ar).length) delete allapot.arak[k];
+  }
+  // A mennyiség: ha a másik PDF-ben is eltér, annak az értéke marad, különben vissza a listához.
+  for (const k of Object.keys(f.mennyisegek ?? {})) {
+    const masik = masok.find((o) => o.mennyisegek?.[k] !== undefined);
+    if (masik) allapot.pdfMennyiseg[k] = masik.mennyisegek[k];
+    else delete allapot.pdfMennyiseg[k];
+  }
+  // A felvett tétel csak akkor törlődik, ha a másik PDF-ben nem szerepel.
+  allapot.plusz = allapot.plusz.filter((t) => !(t.forras === 'pdf' && f.pluszKulcsok.includes(tetelKulcs(t))
+    && !masok.some((o) => o.arKulcsok.includes(tetelKulcs(t)))));
+  ment(ARAK_KULCS, allapot.arak);
+  ment(PDF_MENNY_KULCS, allapot.pdfMennyiseg);
+  ment(PLUSZ_KULCS, allapot.plusz);
+  ment(FELTOLTES_KULCS, allapot.feltoltesek);
+}
+
+// Újratöltés után a feltöltő helyén: melyik fájl van betöltve, és eltávolítható.
+function feltoltesAllapotHtml(forras) {
+  const f = allapot.feltoltesek[forras];
+  if (!f) return '';
+  return `${f.fajl ? `<p class="muted fajlnev">${escape(f.fajl)}</p>` : ''}
+    <p>Betöltve: <strong>${f.tetelek} tétel</strong> ára (${FORRAS_NEV[forras]}).</p>${eltavolitGomb(forras)}`;
 }
 
 function arBeiras(kulcs, ar) {
@@ -309,7 +368,7 @@ async function pdfFeltoltes(mezo, fajl) {
       el.innerHTML = '<p class="warn">Ebben a PDF-ben nincs kiolvasható szöveg (valószínűleg szkennelt kép). Írd be az árakat kézzel.</p>';
       return;
     }
-    el.innerHTML = `<p class="muted fajlnev">${escape(fajl.name)}</p>${arakAtvetele(szoveg, mezo)}
+    el.innerHTML = `<p class="muted fajlnev">${escape(fajl.name)}</p>${arakAtvetele(szoveg, mezo, fajl.name)}
       <details class="reszlet"><summary>Kiolvasott szöveg</summary><pre>${escape(szoveg)}</pre></details>`;
   } catch (err) {
     el.innerHTML = `<p class="error">A PDF nem olvasható be: ${escape(err.message)}</p>`;
@@ -716,6 +775,10 @@ async function indit() {
     .filter((t) => !(t.forras === 'pdf' && nemTetelNev(t.cikk)));
   ment(PLUSZ_KULCS, allapot.plusz);
   allapot.pdfMennyiseg = betoltMentett(PDF_MENNY_KULCS) ?? {};
+  allapot.feltoltesek = betoltMentett(FELTOLTES_KULCS) ?? {};
+  $('eredmeny-bolti').innerHTML = feltoltesAllapotHtml('bolti');
+  $('eredmeny-kedvezmenyes').innerHTML = feltoltesAllapotHtml('kedvezmenyes');
+  $('beolvasas-eredmeny').innerHTML = feltoltesAllapotHtml('szoveg');
   allapot.bovitesek = (betoltMentett(BOVITES_KULCS) ?? []).filter((b) => b?.kiallas && b?.cikk && b?.egyseg && b.mennyiseg > 0);
   allapot.konyvtar = bovitettKonyvtar(allapot.alapKonyvtar, allapot.bovitesek);
   pluszEsemenyek();
@@ -749,10 +812,25 @@ async function indit() {
     ment(ARAK_KULCS, allapot.arak);
     megjelenitKimenetek();
   });
+  $('ar-szakasz').addEventListener('click', (ev) => {
+    const b = ev.target.closest('.feltoltes-torles');
+    if (!b) return;
+    const forras = b.dataset.forras;
+    const nev = allapot.feltoltesek[forras]?.fajl || FORRAS_NEV[forras];
+    if (!confirm(`Eltávolítod: ${nev}? Az általa beírt árak, mennyiségek és felvett tételek törlődnek.`)) return;
+    visszavon(forras);
+    $(forras === 'szoveg' ? 'beolvasas-eredmeny' : `eredmeny-${forras}`).innerHTML = '<p class="muted">Eltávolítva.</p>';
+    frissit();
+    megjelenitPlusz();
+    megjelenitArTabla(true);
+    megjelenitKimenetek();
+  });
   $('arak-torlese').addEventListener('click', () => {
     if (!confirm('Törlöd az összes beírt árat és a PDF szerinti mennyiségeket? A PDF-ből felvett plusz tételek megmaradnak, azokat a Plusz tételeknél törölheted.')) return;
     allapot.arak = {};
     allapot.pdfMennyiseg = {};
+    allapot.feltoltesek = {};
+    ment(FELTOLTES_KULCS, allapot.feltoltesek);
     ment(ARAK_KULCS, allapot.arak);
     ment(PDF_MENNY_KULCS, allapot.pdfMennyiseg);
     frissit();
