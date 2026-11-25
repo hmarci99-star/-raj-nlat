@@ -69,3 +69,17 @@ test('ajánlat: végösszeg bolti áron, haszon a különbség', () => {
   assert.equal(a.hianyzoBolti, 3);
   assert.equal(a.hianyzoKedvezmenyes, 4);
 });
+
+test('a bolt a saját (számozott) listánkra válaszol árakkal', () => {
+  const v = [
+    '1. Rehau PX 20-16-20 T-idom – 4 db  2 450 Ft  1 890 Ft',
+    '',
+    '2. Rehau PX 20 T-idom – 2 db 2100 1600',
+    '',
+    '3. Kaiflex csőhéj 4x18 mm – 6 fm: 420 Ft / 310 Ft',
+  ].join('\n');
+  const e = boltValaszBeolvasas(v, sorok);
+  assert.deepEqual(ar(e, 0), { bolti: 2450, kedvezmenyes: 1890 });
+  assert.deepEqual(ar(e, 1), { bolti: 2100, kedvezmenyes: 1600 });
+  assert.deepEqual(ar(e, 3), { bolti: 420, kedvezmenyes: 310 });
+});

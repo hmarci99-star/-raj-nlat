@@ -35,7 +35,7 @@ function sorVegiSzamok(sor) {
     }
     return { szamok, szoveg: oszlopok.slice(0, oszlopok.length - szamok.length).join(' ') };
   }
-  const m = sor.match(/((?:\s+\d[\d .]*(?:,\d+)?\s*(?:ft|db|fm)?\.?)+)\s*$/i);
+  const m = sor.match(/((?:[\s/:–-]+\d[\d .]*(?:,\d+)?\s*(?:ft|db|fm)?\.?)+)\s*$/i);
   if (!m) return { szamok: [], szoveg: sor };
   for (const r of m[1].matchAll(/\d{1,3}(?:[ .]\d{3})+(?:,\d+)?|\d+(?:,\d+)?/g)) szamok.push(parseSzam(r[0]));
   return { szamok, szoveg: sor.slice(0, m.index) };

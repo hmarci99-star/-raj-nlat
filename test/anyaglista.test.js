@@ -77,6 +77,6 @@ test('e-mail szöveg', () => {
       { cikk: 'Cső', mennyiseg: 2.5, egyseg: 'fm', cikkszam: '' },
       { cikk: 'Idom', mennyiseg: 3, egyseg: 'db', cikkszam: '12345' },
     ]),
-    'Cső\t2,5 fm\n12345\tIdom\t3 db',
+    '1. Cső – 2,5 fm\n\n2. Idom – 3 db (cikkszám: 12345)',
   );
 });

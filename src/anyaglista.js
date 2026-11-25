@@ -111,8 +111,10 @@ export function gyujtAnyaglista(projekt, konyvtar) {
 }
 
 // E-mailbe másolható szöveg a boltnak.
+// Számozott sorok, köztük üres sorral, hogy levélben is jól olvasható legyen.
 export function anyaglistaSzoveg(sorok) {
   return sorok
-    .map((s) => `${s.cikkszam ? `${s.cikkszam}\t` : ''}${s.cikk}\t${String(s.mennyiseg).replace('.', ',')} ${s.egyseg}`)
-    .join('\n');
+    .map((s, i) => `${i + 1}. ${s.cikk} – ${String(s.mennyiseg).replace('.', ',')} ${s.egyseg}`
+      + (s.cikkszam ? ` (cikkszám: ${s.cikkszam})` : ''))
+    .join('\n\n');
 }
