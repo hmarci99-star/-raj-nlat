@@ -1,7 +1,8 @@
 // Szöveg kinyerése a bolt PDF-jéből, soronként, hogy az árbeolvasás
 // (arak.js) ugyanúgy feldolgozhassa, mint a bemásolt szöveget.
 
-const PDFJS = '../vendor/pdfjs-4.10.38/';
+// A régebbi böngészőkhöz (pl. iOS 17.4 előtti iPhone) is működő „legacy” változat.
+const PDFJS = '../vendor/pdfjs-4.10.38-legacy/';
 
 const SZAM = /^\d[\d\s .]*(,\d+)?(\s*ft\.?)?$/i;
 const szamszeru = (s) => SZAM.test(s.trim());

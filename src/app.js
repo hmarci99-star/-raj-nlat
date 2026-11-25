@@ -198,6 +198,13 @@ function arakAtvetele(szoveg, mezo) {
   const hianyok = (mezo ? [mezo] : ['bolti', 'kedvezmenyes'])
     .map((m) => [m, hianyzik(m)]).filter(([, n]) => n > 0)
     .map(([m, n]) => `${n} tételnek még nincs ${MEZO_NEV[m]} ára.`).join(' ');
+  if (allapot.anyag.sorok.length === 0) {
+    return '<p class="warn">Még nincs anyaglista. Előbb add meg a kiállásokat, utána töltsd fel az árakat.</p>';
+  }
+  if (arak.size === 0) {
+    return `<p class="warn">Egy tétel árát sem találtam. Nézd meg lent a kiolvasott szöveget. Ha abban látszanak a tételek és az árak,
+      küldd el a PDF-et, és hozzáigazítom a beolvasást.</p>`;
+  }
   return `
     <p><strong>${arak.size} / ${allapot.anyag.sorok.length} tétel</strong> ára beolvasva.${hianyok ? ` ${hianyok}` : ''}</p>
     ${nemIllesztett.length ? `<p class="muted">Nem tudtam tételhez kötni:</p>
@@ -212,7 +219,10 @@ async function pdfFeltoltes(mezo, fajl) {
   const el = $(`eredmeny-${mezo}`);
   el.innerHTML = `<p class="muted">${escape(fajl.name)} beolvasása…</p>`;
   try {
-    const szoveg = await pdfSzoveg(fajl);
+    const szoveg = await Promise.race([
+      pdfSzoveg(fajl),
+      new Promise((_, elutasit) => setTimeout(() => elutasit(new Error('40 másodperc alatt sem sikerült (lassú kapcsolat vagy túl nagy fájl).')), 40000)),
+    ]);
     if (!szoveg.trim()) {
       el.innerHTML = '<p class="warn">Ebben a PDF-ben nincs kiolvasható szöveg (valószínűleg szkennelt kép). Írd be az árakat kézzel.</p>';
       return;

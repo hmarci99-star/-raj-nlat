@@ -19,7 +19,7 @@ Telefonról is használható weboldal. A beírt adatokat és árakat a böngész
 - `src/arak.js`: a bolt válaszának beolvasása és az ajánlat összesítése.
 - `src/sablonok.js`: az ügyfélajánlat és a belső összesítő nyomtatható sablonja.
 - `src/pdfszoveg.js`: a bolt PDF-jének szövegét soronként kinyeri, és a cellán belül tördelt megnevezéseket visszailleszti a sorukba.
-- `vendor/pdfjs-4.10.38/`: a Mozilla pdf.js PDF-olvasója (Apache 2.0 licenc). Csak PDF feltöltésekor töltődik be. A PDF a telefonon dolgozódik fel, nem kerül fel sehova.
+- `vendor/pdfjs-4.10.38-legacy/`: a Mozilla pdf.js (régebbi telefonokon is működő változat) PDF-olvasója (Apache 2.0 licenc). Csak PDF feltöltésekor töltődik be. A PDF a telefonon dolgozódik fel, nem kerül fel sehova.
 - `index.html`, `src/app.js`: a weboldal.
 
 ### Szabályok
