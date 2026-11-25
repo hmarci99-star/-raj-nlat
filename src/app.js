@@ -47,32 +47,44 @@ function betoltMentett(kulcs) {
 
 // ---- Lenyitható szakaszok ----
 
-// Minden szakasz (section[data-szakasz]) tartalma egy <details>-be kerül; a fejlécben
-// csukott állapotban a legfontosabb adat látszik. A nyitott/csukott állapotot megjegyzi.
+// Minden szakasz (section[data-szakasz]) fejléce egy gomb, ami a tartalmat ki-be csukja.
+// Saját megoldás (nem <details>), hogy minden telefonos böngészőben ugyanúgy működjön.
+// Csukott állapotban a fejlécben a legfontosabb adat látszik. Az állapotot megjegyzi.
 function szakaszok() {
   const nyitott = betoltMentett(NYITOTT_KULCS) ?? {};
-  for (const sec of document.querySelectorAll('section[data-szakasz]')) {
-    const kulcs = sec.dataset.szakasz;
-    const h2 = sec.querySelector(':scope > h2');
-    const det = document.createElement('details');
-    det.className = 'szakasz';
-    det.open = nyitott[kulcs] ?? true;
-    const sum = document.createElement('summary');
-    const ossz = document.createElement('span');
-    ossz.className = 'osszegzes';
-    ossz.id = `osszegzes-${kulcs}`;
-    sum.append(h2, ossz);
-    det.append(sum, ...[...sec.childNodes]);
-    sec.append(det);
-    det.addEventListener('toggle', () => {
+  const allit = (sec, nyit, mentes = true) => {
+    sec.querySelector(':scope > .szakasz-fej > button').setAttribute('aria-expanded', String(nyit));
+    sec.querySelector(':scope > .szakasz-tartalom').hidden = !nyit;
+    sec.classList.toggle('csukva', !nyit);
+    if (mentes) {
       const allas = betoltMentett(NYITOTT_KULCS) ?? {};
-      allas[kulcs] = det.open;
+      allas[sec.dataset.szakasz] = nyit;
       ment(NYITOTT_KULCS, allas);
-    });
-  }
-  const mind = (nyit) => {
-    for (const d of document.querySelectorAll('details.szakasz')) d.open = nyit;
+    }
   };
+  const szakaszLista = [...document.querySelectorAll('section[data-szakasz]')];
+  for (const sec of szakaszLista) {
+    const kulcs = sec.dataset.szakasz;
+    const regiCim = sec.querySelector(':scope > h2');
+    const tartalom = document.createElement('div');
+    tartalom.className = 'szakasz-tartalom';
+    tartalom.id = `szakasz-${kulcs}`;
+    regiCim.remove();
+    tartalom.append(...[...sec.childNodes]);
+
+    const h2 = document.createElement('h2');
+    h2.className = 'szakasz-fej';
+    const gomb = document.createElement('button');
+    gomb.type = 'button';
+    gomb.setAttribute('aria-controls', tartalom.id);
+    gomb.innerHTML = `<span class="nyil" aria-hidden="true"></span><span class="cim">${regiCim.innerHTML}</span>`
+      + `<span class="osszegzes" id="osszegzes-${kulcs}"></span>`;
+    h2.append(gomb);
+    sec.append(h2, tartalom);
+    gomb.addEventListener('click', () => allit(sec, gomb.getAttribute('aria-expanded') !== 'true'));
+    allit(sec, nyitott[kulcs] ?? true, false);
+  }
+  const mind = (nyit) => szakaszLista.forEach((sec) => allit(sec, nyit));
   $('mind-ki').addEventListener('click', () => mind(true));
   $('mind-be').addEventListener('click', () => mind(false));
 }

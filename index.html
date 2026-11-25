@@ -120,19 +120,21 @@
     .fejlec { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin: 8px 0 16px; }
     .fejlec h1 { margin: 0; }
     .szakasz-gombok { display: flex; gap: 8px; }
-    details.szakasz > summary { list-style: none; display: flex; align-items: baseline; gap: 10px; cursor: pointer;
-      margin: -16px; padding: 16px; border-radius: 10px; }
-    details.szakasz > summary::-webkit-details-marker { display: none; }
-    details.szakasz > summary::before { content: ""; flex: none; width: 7px; height: 7px; align-self: center;
+    .szakasz-fej { margin: 0; font-size: 1.05rem; }
+    .szakasz-fej > button { display: flex; align-items: baseline; gap: 10px; width: calc(100% + 32px);
+      margin: -16px; padding: 16px; border: 0; border-radius: 10px; background: transparent; color: var(--text);
+      font: inherit; font-weight: 700; text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation; }
+    .szakasz-fej > button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+    .szakasz-fej .cim { flex: 1; min-width: 0; }
+    .szakasz-fej .nyil { flex: none; width: 7px; height: 7px; align-self: center; margin-right: 2px;
       border-right: 2px solid var(--accent); border-bottom: 2px solid var(--accent);
-      transform: rotate(-45deg); transition: transform .15s; margin-right: 2px; }
-    details.szakasz[open] > summary::before { transform: rotate(45deg); }
-    details.szakasz[open] > summary { margin-bottom: -4px; }
-    details.szakasz > summary h2 { margin: 0; flex: 1; min-width: 0; }
-    details.szakasz > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
-    .osszegzes { color: var(--muted); font-size: .9rem; text-align: right; font-variant-numeric: tabular-nums; }
-    details.szakasz[open] > summary .osszegzes { display: none; }
-    @media (prefers-reduced-motion: reduce) { details.szakasz > summary::before { transition: none; } }
+      transform: rotate(-45deg); transition: transform .15s; }
+    .szakasz-fej > button[aria-expanded="true"] .nyil { transform: rotate(45deg); }
+    .osszegzes { color: var(--muted); font-size: .9rem; font-weight: 400; text-align: right; font-variant-numeric: tabular-nums; }
+    .szakasz-fej > button[aria-expanded="true"] .osszegzes { display: none; }
+    .szakasz-tartalom { margin-top: 12px; }
+    @media (prefers-reduced-motion: reduce) { .szakasz-fej .nyil { transition: none; } }
     .osszesito { display: grid; grid-template-columns: 1fr auto; gap: 4px 16px; margin: 16px 0 0; }
     .osszesito dt { color: var(--muted); }
     .osszesito dd { margin: 0; text-align: right; font-weight: 600; }
