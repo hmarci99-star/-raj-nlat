@@ -78,6 +78,11 @@
     .nezet { display: grid; gap: 14px; }
     .nezet-cim { margin: 4px 2px 0; font-size: 1.35rem; }
     .nezet-leiras { margin: -8px 2px 0; color: var(--muted); font-size: .92rem; }
+    .nezet-fej { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .nezet-fej-szoveg { min-width: 0; display: grid; gap: 10px; }
+    .nezet-fej .nezet-leiras { margin: -6px 2px 0; overflow-wrap: anywhere; }
+    .nezet-fej .nezet-leiras:empty { display: none; }
+    .nezet-fej > button { flex: none; }
     .kartya { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; min-width: 0; }
     .kartya > h2 { font-size: 1rem; margin: 0 0 12px; display: flex; gap: 10px; align-items: center; }
     .kartya > h2 .muted { font-weight: 400; margin-left: auto; }
@@ -392,7 +397,13 @@
 <main>
   <!-- 1. Projekt -->
   <div class="nezet" id="nezet-projekt">
-    <h2 class="nezet-cim">Projekt</h2>
+    <div class="nezet-fej">
+      <div class="nezet-fej-szoveg">
+        <h2 class="nezet-cim">Projekt</h2>
+        <p class="nezet-leiras" id="projekt-ajanlat-nev"></p>
+      </div>
+      <button type="button" class="kicsi" data-ajanlat-muvelet="uj" data-ikon="plusz">Új ajánlat</button>
+    </div>
     <form id="projekt" class="nezet">
       <section class="kartya">
         <h2 data-ikon="csepp">Vízszerelési kiállások</h2>
@@ -569,6 +580,6 @@
   </div>
 </main>
 <div id="nyomtat"></div>
-<script type="module" src="dist/app.js?v=02cdfb7831"></script>
+<script type="module" src="dist/app.js?v=d822e8be12"></script>
 </body>
 </html>

@@ -907,6 +907,10 @@ const allapotCimke = (kod) => `<span class="allapot allapot-${allapotAdat(kod).c
 // Az Ajánlat lépés tetején: mentve van-e, milyen állapotban.
 function megjelenitAjanlatAllapot() {
   const r = allapot.ajanlatok.find((x) => x.id === allapot.aktualisId);
+  // A Projekt lépés tetején: melyik ajánlaton dolgozol.
+  $('projekt-ajanlat-nev').innerHTML = r
+    ? `${escape(r.ugyfel || 'Névtelen ajánlat')} · ${allapotCimke(r.allapot)}`
+    : 'Új, még nem mentett ajánlat';
   $('ajanlat-allapot').innerHTML = r ? `
     <div class="allapot-sor">
       <div><div class="muted">Mentett ajánlat · magától frissül</div><strong>${escape(r.ugyfel || 'Névtelen ajánlat')}</strong></div>
