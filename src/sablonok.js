@@ -140,3 +140,37 @@ export function fajlnev(tipus, adatok) {
   const nev = (adatok.ugyfel?.nev || '').trim().replace(/[\\/:*?"<>|]+/g, '').replace(/\s+/g, '_');
   return [tipus, nev, adatok.ajanlat?.datum].filter(Boolean).join('_');
 }
+
+// E-mail az ügyfélnek: tárgy és szöveg (a PDF-et a felhasználó csatolja).
+// a: az ajanlat() eredménye, adatok: { vallalkozo, ugyfel, ajanlat }
+export function ugyfelLevel(a, adatok) {
+  const { vallalkozo: v = {}, ugyfel: u = {}, ajanlat: aj = {} } = adatok;
+  const f = (x) => `${ft.format(Math.round(x ?? 0)).replace(/ /g, ' ')} Ft`;
+  const hely = u.munkaHelye || u.cim;
+  const ervenyes = hozzaadNap(aj.datum, aj.ervenyesNap);
+  const sorok = [
+    `Tisztelt ${u.nev || 'Megrendelő'}!`,
+    '',
+    `Köszönöm a megkeresést. Mellékelten küldöm az árajánlatot${hely ? ` (${hely})` : ''}.`,
+    '',
+    'Összesítve:',
+    `Munkadíj: ${f(a.munkadij.osszesen)}`,
+    ...(a.anyagBolti > 0 ? [`Anyag: ${f(a.anyagBolti)}`] : []),
+    `Fizetendő végösszeg: ${f(a.vegosszeg)}`,
+    'Alanyi adómentes, az árak ÁFA-t nem tartalmaznak.',
+    ...(ervenyes ? ['', `Az ajánlat ${datumToldalekkal(ervenyes, 'ig')} érvényes.`] : []),
+    '',
+    'Ha bármilyen kérdése van, keressen bizalommal.',
+    '',
+    'Üdvözlettel:',
+    ...[v.nev, v.telefon, v.email].filter(Boolean),
+  ];
+  return {
+    cimzett: (u.email ?? '').trim(),
+    targy: `Árajánlat${aj.szam ? ` – ${aj.szam}` : ''}${hely ? ` – ${hely}` : ''}`,
+    szoveg: sorok.join('\n'),
+  };
+}
+
+export const mailtoLink = ({ cimzett, targy, szoveg }) =>
+  `mailto:${encodeURIComponent(cimzett).replace(/%40/g, '@')}?subject=${encodeURIComponent(targy)}&body=${encodeURIComponent(szoveg)}`;

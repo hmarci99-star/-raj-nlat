@@ -3,7 +3,7 @@ import { KIALLAS_TIPUSOK, SZERELVENY_KODOK, szamolMunkadij, uresProjekt } from '
 import { parseKonyvtar, gyujtAnyaglista, anyaglistaSzoveg } from './anyaglista.js';
 import { boltValaszBeolvasas, ajanlat, tetelKulcs, parseSzam, nemTetelNev } from './arak.js';
 import { bovitettKonyvtar, bennVanAzAlapban, konyvtarCsv } from './konyvtar.js';
-import { ugyfelAjanlatHtml, belsoOsszesitoHtml, fajlnev } from './sablonok.js';
+import { ugyfelAjanlatHtml, belsoOsszesitoHtml, fajlnev, ugyfelLevel, mailtoLink } from './sablonok.js';
 import { pdfSzoveg } from './pdfszoveg.js';
 import { diktaltTetelek, vanDiktalas, diktalas } from './diktalas.js';
 import { hangosModInit } from './hangosfelulet.js';
@@ -694,9 +694,18 @@ function ajanlatSorok() {
   return boltValaszVan() ? allapot.anyag.sorok.filter(boltiArVan) : allapot.anyag.sorok;
 }
 
+// Az "E-mail az ügyfélnek" gomb címe: előre megírt levél az ügyfél címére.
+function ugyfelEmailFrissites() {
+  if (!allapot.munkadij) return;
+  const level = ugyfelLevel(ajanlat(allapot.munkadij, ajanlatSorok(), allapot.arak), olvasAdatok());
+  $('email-ugyfel').href = mailtoLink(level);
+  $('email-ugyfel').title = level.cimzett ? `Címzett: ${level.cimzett}` : 'Az ügyfél e-mail címét az Ajánlat adatainál adhatod meg';
+}
+
 function megjelenitKimenetek() {
   if (!allapot.munkadij) return;
   const a = ajanlat(allapot.munkadij, ajanlatSorok(), allapot.arak);
+  ugyfelEmailFrissites();
   // A fülön: hány tételnek van már bolti ára (a teljes listából).
   const n = allapot.anyag.sorok.length;
   kiir('jelveny-arak', n ? `${allapot.anyag.sorok.filter(boltiArVan).length}/${n}` : '');
@@ -854,7 +863,7 @@ function munkaBetoltes(adat, id) {
   allapot.feltoltesek = klon(adat?.feltoltesek ?? {});
   allapot.diktalt = [];
   const vallalkozo = olvasAdatok().vallalkozo;
-  const ugyfel = { nev: '', cim: '', munkaHelye: '', ...adat?.adatok?.ugyfel };
+  const ugyfel = { nev: '', cim: '', munkaHelye: '', email: '', ...adat?.adatok?.ugyfel };
   const ajanlatAdat = { szam: '', datum: maISO(), ervenyesNap: 15, megjegyzes: '', ...adat?.adatok?.ajanlat };
   kitoltAdatok({ vallalkozo, ugyfel, ajanlat: ajanlatAdat });
   $('bolt-valasz').value = '';
@@ -1213,7 +1222,19 @@ async function indit() {
   });
   const mentettAdatok = betoltMentett(ADATOK_KULCS) ?? {};
   kitoltAdatok({ ...mentettAdatok, ajanlat: { datum: maISO(), ervenyesNap: 15, ...mentettAdatok.ajanlat } });
-  adatokForm.addEventListener('input', () => ment(ADATOK_KULCS, olvasAdatok()));
+  adatokForm.addEventListener('input', () => { ment(ADATOK_KULCS, olvasAdatok()); ugyfelEmailFrissites(); });
+  // Az ügyfélnek küldött e-mail után a mentett ajánlat "Ajánlat elküldve" állapotba kerül (ha még folyamatban volt).
+  $('email-ugyfel').addEventListener('click', () => {
+    ugyfelEmailFrissites();
+    const r = allapot.ajanlatok.find((x) => x.id === allapot.aktualisId);
+    if (r && allapotAdat(r.allapot).csoport === 'folyamatban') {
+      r.allapot = 'elkuldve';
+      r.modositva = mostISO();
+      ajanlatokMentese();
+      megjelenitAjanlatAllapot();
+      megjelenitAjanlatok();
+    }
+  });
   adatokForm.addEventListener('submit', (ev) => ev.preventDefault());
 
   // A böngésző saját Nyomtatás menüjéből az ügyfélajánlat készül.

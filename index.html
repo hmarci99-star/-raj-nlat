@@ -509,6 +509,7 @@
       <form id="adatok" class="adatok">
         <label class="mezo"><span>Megrendelő neve</span><input name="ugyfel.nev" autocomplete="off"></label>
         <label class="mezo"><span>Megrendelő címe</span><input name="ugyfel.cim" autocomplete="off"></label>
+        <label class="mezo"><span>Megrendelő e-mail címe</span><input name="ugyfel.email" type="email" inputmode="email" autocomplete="off"></label>
         <label class="mezo"><span>A munka helye (ha más)</span><input name="ugyfel.munkaHelye" autocomplete="off"></label>
         <div class="harmas">
           <label class="mezo"><span>Ajánlat száma</span><input name="ajanlat.szam" autocomplete="off"></label>
@@ -531,7 +532,11 @@
     <section class="kartya">
       <h2 data-ikon="dokumentum">Ügyfélajánlat</h2>
       <div id="ugyfel"></div>
-      <div class="actions"><button type="button" id="pdf-ugyfel" data-ikon="letolt">Ügyfélajánlat PDF</button></div>
+      <div class="actions">
+        <button type="button" id="pdf-ugyfel" data-ikon="letolt">Ügyfélajánlat PDF</button>
+        <a id="email-ugyfel" class="button" href="#" data-ikon="level">E-mail az ügyfélnek</a>
+      </div>
+      <p class="megj" id="email-ugyfel-tipp">Az e-mailhez csatold a PDF-et: előbb mentsd el az „Ügyfélajánlat PDF” gombbal, aztán a levélben a csatolás (gemkapocs) gombbal add hozzá.</p>
     </section>
 
     <section class="kartya belso">
@@ -564,6 +569,6 @@
   </div>
 </main>
 <div id="nyomtat"></div>
-<script type="module" src="dist/app.js?v=61e155e340"></script>
+<script type="module" src="dist/app.js?v=02cdfb7831"></script>
 </body>
 </html>

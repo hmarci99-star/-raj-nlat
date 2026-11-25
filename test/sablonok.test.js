@@ -48,3 +48,24 @@ test('fájlnév', () => {
     'Arajanlat_Kovács_Anna_2026-11-25');
   assert.equal(fajlnev('Arajanlat', {}), 'Arajanlat');
 });
+
+test('e-mail az ügyfélnek: címzett, tárgy, összesítés, érvényesség, aláírás', async () => {
+  const { ugyfelLevel, mailtoLink } = await import('../src/sablonok.js');
+  const l = ugyfelLevel(a, {
+    ...adatok,
+    vallalkozo: { ...adatok.vallalkozo, telefon: '+36 30 123 4567' },
+    ugyfel: { nev: 'Kovács Anna', cim: 'Szeged', email: ' anna@example.com ' },
+  });
+  assert.equal(l.cimzett, 'anna@example.com');
+  assert.equal(l.targy, 'Árajánlat – 2026/012 – Szeged');
+  assert.match(l.szoveg, /^Tisztelt Kovács Anna!/);
+  assert.match(l.szoveg, /Munkadíj: 40 000 Ft/);
+  assert.match(l.szoveg, /Anyag: 4 200 Ft/);
+  assert.match(l.szoveg, /Fizetendő végösszeg: 44 200 Ft/);
+  assert.match(l.szoveg, /2026\. december 10-ig érvényes/);
+  assert.match(l.szoveg, /Üdvözlettel:\nMinta Szerelő\n\+36 30 123 4567$/);
+  const m = mailtoLink(l);
+  assert.ok(m.startsWith('mailto:anna@example.com?subject='));
+  assert.equal(decodeURIComponent(m.split('&body=')[1]), l.szoveg);
+  assert.match(ugyfelLevel(a, {}).szoveg, /^Tisztelt Megrendelő!/);
+});

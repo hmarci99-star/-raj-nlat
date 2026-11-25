@@ -15,6 +15,7 @@ Telefonról is használható weboldal. A beírt adatokat és árakat a böngész
 3c. **Kiállás-könyvtár bővítése:** egy plusz tétel a „Könyvtárba…” gombbal elmenthető egy kiállás csomagjába, így a következő ajánlatnál már magától benne van. A bővítés azon az eszközön tárolódik, ahol felvetted. A „Könyvtár letöltése (CSV)” gombbal a teljes könyvtár letölthető; ezt kell a `data/kiallas-konyvtar.csv` helyére tenni, hogy minden eszközön meglegyen. A már bekerült tételek nem duplázódnak.
 4. **Ügyfélajánlat:** munkadíj tételesen, anyag bolti áron, végösszeg. **Belső összesítő:** beszerzési ár és haszon tételenként, illetve összesen.
 5. **PDF:** mindkét kimenet külön sablonnal, A4-es lapra. A gomb a böngésző nyomtatási ablakát nyitja meg, ott a „Mentés PDF-ként” lehetőséget kell választani. A fájlnév javaslata például `Arajanlat_Kovács_Anna_2026-11-25`. A fejlécbe a vállalkozó adatai, a megrendelő, az ajánlat száma, a kelte és az érvényessége kerül. A saját adataidat a böngésző megjegyzi.
+6. **E-mail az ügyfélnek:** az ügyfélajánlat alatt; előre megírt levél az ügyfél e-mail címére (tárgy, összesítés, érvényesség, aláírás). A PDF-et kézzel kell csatolni (a böngésző nem tud fájlt csatolni). Mentett ajánlatnál az állapot „Ajánlat elküldve” lesz.
 
 - `data/munkadij.csv`: a munkadíj-táblázat. Árat itt kell módosítani. A `Kód` oszlopot ne írd át.
 - `data/kiallas-konyvtar.csv`: a kiállás-csomagok (kiállás, cikk, mennyiség, egység, cikkszám). A cikkszám oszlop még üres; ha kitöltöd, megjelenik a listában és az e-mailben.
