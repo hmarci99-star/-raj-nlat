@@ -10,6 +10,7 @@ Telefonról is használható weboldal. A beírt adatokat és árakat a böngész
 2. **Anyaglista** a boltnak: vágólapra másolható, vagy előre kitöltött e-mailként küldhető.
 3. **Árak a boltból:** a bolt két PDF-jét feltöltöd a „Bolti árak PDF” és a „Kedvezményes árak PDF” gombbal, mindegyik csak a saját oszlopát tölti ki. Ha mindkét ár egy levélben jön, a szövegét bemásolhatod, és a program tételenként kiolvassa a bolti és a kedvezményes egységárat. Amit nem tud tételhez kötni, kilistázza, és a hiányzó árat kézzel beírhatod.
 3b. **Új tételek a bolt válaszában:** ha a bolt a listán nem szereplő tételt is ír (más típust ajánl, vagy hozzátesz valamit), a program felajánlja, és a „+ Ajánlatba” gombbal a PDF-ben szereplő mennyiséggel és árral felkerül az ajánlatra. Plusz tételt kézzel is hozzá lehet adni.
+3b+. **Diktálás:** a plusz tételeknél a „Diktálás” gombbal bemondhatók a tételek, pl. „teflonszalag két darab, golyóscsap fél col három darab”. A program tételekre bontja (megnevezés, mennyiség, egység; a „fél col” 1/2 col lesz), és egy ellenőrző listába teszi, ahonnan egyenként vagy egyszerre vehetők fel, vagy javíthatók. A böngésző beszédfelismerőjét használja (Chrome-ban a Google, Safariban az Apple szolgáltatását), ezért internet kell hozzá.
 3c. **Kiállás-könyvtár bővítése:** egy plusz tétel a „Könyvtárba…” gombbal elmenthető egy kiállás csomagjába, így a következő ajánlatnál már magától benne van. A bővítés azon az eszközön tárolódik, ahol felvetted. A „Könyvtár letöltése (CSV)” gombbal a teljes könyvtár letölthető; ezt kell a `data/kiallas-konyvtar.csv` helyére tenni, hogy minden eszközön meglegyen. A már bekerült tételek nem duplázódnak.
 4. **Ügyfélajánlat:** munkadíj tételesen, anyag bolti áron, végösszeg. **Belső összesítő:** beszerzési ár és haszon tételenként, illetve összesen.
 5. **PDF:** mindkét kimenet külön sablonnal, A4-es lapra. A gomb a böngésző nyomtatási ablakát nyitja meg, ott a „Mentés PDF-ként” lehetőséget kell választani. A fájlnév javaslata például `Arajanlat_Kovács_Anna_2026-11-25`. A fejlécbe a vállalkozó adatai, a megrendelő, az ajánlat száma, a kelte és az érvényessége kerül. A saját adataidat a böngésző megjegyzi.
@@ -20,6 +21,7 @@ Telefonról is használható weboldal. A beírt adatokat és árakat a böngész
 - `src/anyaglista.js`: az anyaglista összegyűjtése, a gerinc és a hüvelyszabály.
 - `src/arak.js`: a bolt válaszának beolvasása és az ajánlat összesítése.
 - `src/sablonok.js`: az ügyfélajánlat és a belső összesítő nyomtatható sablonja.
+- `src/diktalas.js`: a diktált mondat tételekre bontása és a beszédfelismerés.
 - `src/konyvtar.js`: a kiállás-könyvtár bővítése és CSV-exportja.
 - `src/pdfszoveg.js`: a bolt PDF-jének szövegét soronként kinyeri, és a cellán belül tördelt megnevezéseket visszailleszti a sorukba.
 - `vendor/pdfjs-4.10.38-legacy/`: a Mozilla pdf.js (régebbi telefonokon is működő változat) PDF-olvasója (Apache 2.0 licenc). Csak PDF feltöltésekor töltődik be. A PDF a telefonon dolgozódik fel, nem kerül fel sehova.

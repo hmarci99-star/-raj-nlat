@@ -5,6 +5,7 @@ import { boltValaszBeolvasas, ajanlat, tetelKulcs, parseSzam } from './arak.js';
 import { bovitettKonyvtar, bennVanAzAlapban, konyvtarCsv } from './konyvtar.js';
 import { ugyfelAjanlatHtml, belsoOsszesitoHtml, fajlnev } from './sablonok.js';
 import { pdfSzoveg } from './pdfszoveg.js';
+import { diktaltTetelek, vanDiktalas, diktalas } from './diktalas.js';
 
 const MENTES_KULCS = 'arajanlat.projekt';
 const ARAK_KULCS = 'arajanlat.arak';
@@ -25,6 +26,9 @@ const allapot = {
   jeloltek: {}, // a bolt válaszában talált, listán nem szereplő tételek, forrásonként
   projekt: null,
   konyvtarbaNyitva: null,
+  diktalt: [], // diktálással felismert, még fel nem vett tételek
+  diktalasLeallit: null, // fut-e a diktálás (leállító függvény)
+  diktalasUzenet: '',
   munkadij: null,
   anyag: { sorok: [], figyelmeztetesek: [] },
   arak: {},
@@ -360,6 +364,7 @@ function megjelenitPlusz() {
       <select id="plusz-uj-egyseg" aria-label="Egység">${EGYSEG_VALASZTEK.map((e) => `<option>${e}</option>`).join('')}</select>
       <button type="submit" class="kicsi">Hozzáadás</button>
     </form>
+    ${diktalasHtml()}
     <details class="bovitesek"${allapot.bovitesek.length ? '' : ' hidden'}>
       <summary>A könyvtárhoz hozzáadott tételek (${allapot.bovitesek.length})</summary>
       <p class="muted">Ezek csak ezen az eszközön vannak meg. Töltsd le a teljes könyvtárat, és küldd el, hogy bekerüljön az alkalmazásba, és minden eszközön meglegyen.</p>
@@ -367,6 +372,61 @@ function megjelenitPlusz() {
       <button type="button" class="kicsi" id="konyvtar-letoltes">Könyvtár letöltése (CSV)</button>
     </details>
     <p id="plusz-uzenet" class="muted" aria-live="polite"></p>`;
+}
+
+const MIKROFON = `<svg viewBox="0 0 24 24" aria-hidden="true" class="ikon"><rect x="9" y="3" width="6" height="11" rx="3"/>
+  <path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>`;
+
+function diktalasHtml() {
+  const fut = Boolean(allapot.diktalasLeallit);
+  const gomb = vanDiktalas()
+    ? `<div class="diktalas">
+        <button type="button" id="diktal" class="kicsi${fut ? ' fut' : ' button'}" aria-pressed="${fut}">
+          ${MIKROFON}<span>${fut ? 'Leállítás' : 'Diktálás'}</span></button>
+        <span id="diktal-allapot" class="muted" aria-live="polite">${escape(fut ? 'Hallgatlak… mondd a tételeket, pl. „teflonszalag két darab, golyóscsap fél col három darab”.' : allapot.diktalasUzenet)}</span>
+      </div>`
+    : '<p class="megj">Tipp: a telefon billentyűzetének mikrofon gombjával is diktálhatod a megnevezést.</p>';
+  if (!allapot.diktalt.length) return gomb;
+  const sorok = allapot.diktalt.map((t, i) => `<li>
+      <span><strong>${escape(t.cikk)}</strong><br><span class="muted">${ft.format(t.mennyiseg)} ${escape(t.egyseg)}</span></span>
+      <span class="nowrap">
+        <button type="button" class="kicsi diktalt-hozzaad" data-i="${i}">+ Hozzáadás</button>
+        <button type="button" class="kicsi button diktalt-javit" data-i="${i}" aria-label="Javítás: ${escape(t.cikk)}">Javítás</button>
+      </span>
+    </li>`).join('');
+  return `${gomb}
+    <div class="diktalt">
+      <p class="muted">Felismert tételek. Nézd át, és vedd fel őket; a „Javítás” a fenti mezőkbe teszi, ott átírhatod.</p>
+      <ul class="jeloltek">${sorok}</ul>
+      <div class="actions kicsi-gombok">
+        <button type="button" class="kicsi" id="diktalt-mind">Mind hozzáadása</button>
+        <button type="button" class="kicsi button" id="diktalt-elvet">Elvetés</button>
+      </div>
+    </div>`;
+}
+
+function diktalasInditas() {
+  if (allapot.diktalasLeallit) {
+    allapot.diktalasLeallit();
+    return;
+  }
+  allapot.diktalasUzenet = '';
+  try {
+    allapot.diktalasLeallit = diktalas({
+      kozben: (szoveg) => { const el = $('diktal-allapot'); if (el) el.textContent = `„${szoveg}”`; },
+      kesz: (szoveg) => {
+        const uj = diktaltTetelek(szoveg);
+        allapot.diktalt.push(...uj);
+        allapot.diktalasUzenet = uj.length ? `Felismerve: „${szoveg}”` : `Nem találtam benne tételt: „${szoveg}”`;
+      },
+      hiba: (uzenet) => { allapot.diktalasUzenet = uzenet; },
+      vege: () => { allapot.diktalasLeallit = null; megjelenitPlusz(); },
+    });
+  } catch (err) {
+    allapot.diktalasLeallit = null;
+    allapot.diktalasUzenet = `A diktálás nem indult el: ${err.message}`;
+  }
+  megjelenitPlusz();
 }
 
 function konyvtarFrissites() {
@@ -437,6 +497,27 @@ function pluszEsemenyek() {
       frissit();
       megjelenitPlusz();
       $('plusz').querySelector('details.bovitesek')?.setAttribute('open', '');
+    } else if (b.id === 'diktal') {
+      diktalasInditas();
+    } else if (b.classList.contains('diktalt-hozzaad') || b.id === 'diktalt-mind') {
+      const felvenni = b.id === 'diktalt-mind' ? allapot.diktalt.splice(0) : allapot.diktalt.splice(i, 1);
+      for (const t of felvenni) pluszHozzaad(t);
+      allapot.diktalasUzenet = `${felvenni.length} tétel hozzáadva.`;
+      frissit();
+      megjelenitPlusz();
+      megjelenitArTabla(true);
+    } else if (b.classList.contains('diktalt-javit')) {
+      const [t] = allapot.diktalt.splice(i, 1);
+      megjelenitPlusz();
+      $('plusz-uj-cikk').value = t.cikk;
+      $('plusz-uj-menny').value = t.mennyiseg;
+      if (!EGYSEG_VALASZTEK.includes(t.egyseg)) $('plusz-uj-egyseg').append(new Option(t.egyseg));
+      $('plusz-uj-egyseg').value = t.egyseg;
+      $('plusz-uj-cikk').focus();
+    } else if (b.id === 'diktalt-elvet') {
+      allapot.diktalt = [];
+      allapot.diktalasUzenet = '';
+      megjelenitPlusz();
     } else if (b.id === 'konyvtar-letoltes') {
       const blob = new Blob(['\uFEFF', konyvtarCsv(allapot.konyvtar)], { type: 'text/csv;charset=utf-8' });
       const a = document.createElement('a');

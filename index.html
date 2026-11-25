@@ -154,6 +154,17 @@
     .plusz-uj #plusz-uj-cikk { flex: 1 1 200px; min-width: 0; }
     .plusz-uj #plusz-uj-menny { width: 70px; }
     #plusz h3:first-child { margin-top: 0; }
+    .diktalas { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 4px 0 10px; }
+    .diktalas button { display: inline-flex; align-items: center; gap: 6px; }
+    .diktalas .ikon { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+    .diktalas button.fut { animation: hallgat 1.2s ease-in-out infinite; }
+    .diktalas #diktal-allapot { flex: 1 1 180px; min-width: 0; overflow-wrap: anywhere; }
+    @keyframes hallgat { 50% { opacity: .65; } }
+    @media (prefers-reduced-motion: reduce) { .diktalas button.fut { animation: none; } }
+    .diktalt { padding: 10px; border-radius: 10px; background: var(--accent-soft); margin-bottom: 10px; }
+    .diktalt .jeloltek li { background: var(--card); flex-wrap: wrap; }
+    .diktalt .jeloltek li > span:first-child { flex: 1 1 100%; }
+    .diktalt .jeloltek li > span.nowrap { display: flex; gap: 8px; }
 
     /* ---- Árak ---- */
     .feltoltesek { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
@@ -416,6 +427,6 @@
   </div>
 </main>
 <div id="nyomtat"></div>
-<script type="module" src="dist/app.js?v=5fa63ad031"></script>
+<script type="module" src="dist/app.js?v=04641ae830"></script>
 </body>
 </html>
