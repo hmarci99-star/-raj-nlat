@@ -117,6 +117,22 @@
     .vegosszeg { display: flex; justify-content: space-between; font-size: 1.15rem; font-weight: 700;
       border-top: 2px solid var(--text); padding-top: 8px; margin-top: 16px; }
     section.belso { border-style: dashed; }
+    .fejlec { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin: 8px 0 16px; }
+    .fejlec h1 { margin: 0; }
+    .szakasz-gombok { display: flex; gap: 8px; }
+    details.szakasz > summary { list-style: none; display: flex; align-items: baseline; gap: 10px; cursor: pointer;
+      margin: -16px; padding: 16px; border-radius: 10px; }
+    details.szakasz > summary::-webkit-details-marker { display: none; }
+    details.szakasz > summary::before { content: ""; flex: none; width: 7px; height: 7px; align-self: center;
+      border-right: 2px solid var(--accent); border-bottom: 2px solid var(--accent);
+      transform: rotate(-45deg); transition: transform .15s; margin-right: 2px; }
+    details.szakasz[open] > summary::before { transform: rotate(45deg); }
+    details.szakasz[open] > summary { margin-bottom: -4px; }
+    details.szakasz > summary h2 { margin: 0; flex: 1; min-width: 0; }
+    details.szakasz > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+    .osszegzes { color: var(--muted); font-size: .9rem; text-align: right; font-variant-numeric: tabular-nums; }
+    details.szakasz[open] > summary .osszegzes { display: none; }
+    @media (prefers-reduced-motion: reduce) { details.szakasz > summary::before { transition: none; } }
     .osszesito { display: grid; grid-template-columns: 1fr auto; gap: 4px 16px; margin: 16px 0 0; }
     .osszesito dt { color: var(--muted); }
     .osszesito dd { margin: 0; text-align: right; font-weight: 600; }
@@ -171,15 +187,21 @@
 </head>
 <body>
 <main>
-  <h1>Árajánlat</h1>
+  <div class="fejlec">
+    <h1>Árajánlat</h1>
+    <div class="szakasz-gombok" aria-label="Szakaszok">
+      <button type="button" class="kicsi button" id="mind-ki">Mind ki</button>
+      <button type="button" class="kicsi button" id="mind-be">Mind be</button>
+    </div>
+  </div>
   <form id="projekt">
-    <section>
+    <section data-szakasz="kiallasok">
       <h2>Vízszerelési kiállások</h2>
       <div class="grid" id="kiallasok"></div>
       <p class="muted">Minden kiállás után vízszerelés alapszerelés jár.</p>
     </section>
 
-    <section>
+    <section data-szakasz="futes">
       <h2>Fűtés</h2>
       <div class="grid">
         <label><span>Radiátor kiállás</span><input type="number" min="0" name="radiatorKiallas"></label>
@@ -198,7 +220,7 @@
       <label class="check" id="felar-hsz-sor"><input type="checkbox" name="felarHoszivattyunal"><span>Vegyes kör felára hőszivattyúnál is</span></label>
     </section>
 
-    <section>
+    <section data-szakasz="gerinc">
       <h2>Gerinc</h2>
       <div class="grid">
         <label><span>16-os cső (fm)</span><input type="number" min="0" step="0.5" name="gerinc.16"></label>
@@ -207,7 +229,7 @@
       <p class="muted">Csak cső és csőhéj; a gerinc idomai még nincsenek szabályba öntve.</p>
     </section>
 
-    <section>
+    <section data-szakasz="kulso">
       <h2>Külső szerelés (ásás nélkül)</h2>
       <div class="grid">
         <label><span>Külső vízbekötés (fm)</span><input type="number" min="0" step="0.5" name="kulsoVizFm"></label>
@@ -215,18 +237,18 @@
       </div>
     </section>
 
-    <section>
+    <section data-szakasz="szerelvenyek">
       <h2>Szerelvények</h2>
       <div class="grid" id="szerelvenyek"></div>
     </section>
   </form>
 
-  <section>
+  <section data-szakasz="munkadij">
     <h2>Munkadíj</h2>
     <div id="eredmeny"><p class="muted">Betöltés…</p></div>
   </section>
 
-  <section>
+  <section data-szakasz="anyag">
     <h2>Anyaglista a boltnak</h2>
     <div id="anyaglista"><p class="muted">Betöltés…</p></div>
     <div class="actions" id="anyag-gombok">
@@ -237,7 +259,7 @@
     <div id="plusz" class="plusz"></div>
   </section>
 
-  <section id="ar-szakasz">
+  <section data-szakasz="arak" id="ar-szakasz">
     <h2>Árak a boltból</h2>
     <div class="feltoltesek">
       <div class="feltoltes">
@@ -263,7 +285,7 @@
     <div class="actions"><button type="button" id="arak-torlese" class="button">Árak törlése</button></div>
   </section>
 
-  <section>
+  <section data-szakasz="adatok">
     <h2>Ajánlat adatai</h2>
     <form id="adatok" class="adatok">
       <label class="mezo"><span>Megrendelő neve</span><input name="ugyfel.nev" autocomplete="off"></label>
@@ -287,13 +309,13 @@
     </form>
   </section>
 
-  <section>
+  <section data-szakasz="ugyfelajanlat">
     <h2>Ügyfélajánlat</h2>
     <div id="ugyfel"></div>
     <div class="actions"><button type="button" id="pdf-ugyfel">Ügyfélajánlat PDF</button></div>
   </section>
 
-  <section class="belso">
+  <section data-szakasz="belso" class="belso">
     <h2>Belső összesítő <span class="muted">(csak neked)</span></h2>
     <div id="belso"></div>
     <div class="actions"><button type="button" id="pdf-belso">Belső összesítő PDF</button></div>

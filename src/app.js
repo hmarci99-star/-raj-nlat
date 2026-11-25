@@ -11,6 +11,7 @@ const ARAK_KULCS = 'arajanlat.arak';
 const ADATOK_KULCS = 'arajanlat.adatok';
 const PLUSZ_KULCS = 'arajanlat.plusz';
 const BOVITES_KULCS = 'arajanlat.konyvtar-bovites';
+const NYITOTT_KULCS = 'arajanlat.nyitott-szakaszok';
 const ft = new Intl.NumberFormat('hu-HU', { useGrouping: 'always' });
 const $ = (id) => document.getElementById(id);
 const form = $('projekt');
@@ -42,6 +43,57 @@ function ment(kulcs, ertek) {
 }
 function betoltMentett(kulcs) {
   try { return JSON.parse(localStorage.getItem(kulcs)); } catch { return null; }
+}
+
+// ---- Lenyitható szakaszok ----
+
+// Minden szakasz (section[data-szakasz]) tartalma egy <details>-be kerül; a fejlécben
+// csukott állapotban a legfontosabb adat látszik. A nyitott/csukott állapotot megjegyzi.
+function szakaszok() {
+  const nyitott = betoltMentett(NYITOTT_KULCS) ?? {};
+  for (const sec of document.querySelectorAll('section[data-szakasz]')) {
+    const kulcs = sec.dataset.szakasz;
+    const h2 = sec.querySelector(':scope > h2');
+    const det = document.createElement('details');
+    det.className = 'szakasz';
+    det.open = nyitott[kulcs] ?? true;
+    const sum = document.createElement('summary');
+    const ossz = document.createElement('span');
+    ossz.className = 'osszegzes';
+    ossz.id = `osszegzes-${kulcs}`;
+    sum.append(h2, ossz);
+    det.append(sum, ...[...sec.childNodes]);
+    sec.append(det);
+    det.addEventListener('toggle', () => {
+      const allas = betoltMentett(NYITOTT_KULCS) ?? {};
+      allas[kulcs] = det.open;
+      ment(NYITOTT_KULCS, allas);
+    });
+  }
+  const mind = (nyit) => {
+    for (const d of document.querySelectorAll('details.szakasz')) d.open = nyit;
+  };
+  $('mind-ki').addEventListener('click', () => mind(true));
+  $('mind-be').addEventListener('click', () => mind(false));
+}
+
+function osszegzes(kulcs, szoveg) {
+  const el = $(`osszegzes-${kulcs}`);
+  if (el) el.textContent = szoveg || '';
+}
+
+function projektOsszegzesek(p) {
+  const osszeg = (o) => Object.values(o ?? {}).reduce((t, v) => t + (Number(v) || 0), 0);
+  const db = (n, mit) => (n ? `${ft.format(n)} ${mit}` : '');
+  osszegzes('kiallasok', db(osszeg(p.kiallasok), 'kiállás'));
+  const hotermelo = form.elements.hotermelo;
+  osszegzes('futes', [
+    db(p.radiatorKiallas, 'radiátor'), db(p.padlofutesKor, 'kör'),
+    p.hotermelo !== 'nincs' ? hotermelo.options[hotermelo.selectedIndex].text : '',
+  ].filter(Boolean).join(', '));
+  osszegzes('gerinc', db(osszeg(p.gerinc), 'fm'));
+  osszegzes('kulso', db((Number(p.kulsoVizFm) || 0) + (Number(p.kulsoSzennyvizFm) || 0), 'fm'));
+  osszegzes('szerelvenyek', db(osszeg(p.szerelvenyek), 'db'));
 }
 
 // ---- Projekt űrlap ----
@@ -140,6 +192,7 @@ ${lista}
 
 function megjelenitAnyag() {
   const e = allapot.anyag;
+  osszegzes('anyag', e.sorok.length ? `${e.sorok.length} tétel` : '');
   const szoveg = anyaglistaSzoveg(e.sorok);
   $('email').href = `mailto:?subject=${encodeURIComponent('Árajánlatkérés – anyaglista')}`
     + `&body=${encodeURIComponent(levelSzoveg(szoveg))}`;
@@ -449,6 +502,10 @@ function pluszEsemenyek() {
 function megjelenitKimenetek() {
   if (!allapot.munkadij) return;
   const a = ajanlat(allapot.munkadij, allapot.anyag.sorok, allapot.arak);
+  const n = a.anyag.length;
+  osszegzes('arak', n ? `bolti ${n - a.hianyzoBolti}/${n}, kedv. ${n - a.hianyzoKedvezmenyes}/${n}` : '');
+  osszegzes('ugyfelajanlat', a.vegosszeg ? penz(a.vegosszeg) : '');
+  osszegzes('belso', n ? `haszon ${penz(a.haszon)}` : '');
 
   const anyagSorok = a.anyag.map((s) => `
     <tr>
@@ -538,11 +595,13 @@ function frissit() {
   try {
     allapot.munkadij = szamolMunkadij(p, allapot.tabla);
     $('eredmeny').innerHTML = figyelmeztetesHtml(allapot.munkadij.figyelmeztetesek) + munkadijHtml(allapot.munkadij);
+    osszegzes('munkadij', allapot.munkadij.osszesen ? penz(allapot.munkadij.osszesen) : '');
   } catch (err) {
     allapot.munkadij = null;
     $('eredmeny').innerHTML = `<p class="error">${escape(err.message)}</p>`;
   }
   allapot.projekt = p;
+  projektOsszegzesek(p);
   try {
     allapot.anyag = gyujtAnyaglista(p, allapot.konyvtar);
     for (const t of allapot.plusz) {
@@ -567,6 +626,7 @@ async function betolt(utvonal, nev) {
 }
 
 async function indit() {
+  szakaszok();
   try {
     const [tablaCsv, konyvtarCsv] = await Promise.all([
       betolt('data/munkadij.csv', 'munkadíj-táblázat'),
@@ -627,7 +687,9 @@ async function indit() {
   });
   const mentettAdatok = betoltMentett(ADATOK_KULCS) ?? {};
   kitoltAdatok({ ...mentettAdatok, ajanlat: { datum: maISO(), ervenyesNap: 15, ...mentettAdatok.ajanlat } });
-  adatokForm.addEventListener('input', () => ment(ADATOK_KULCS, olvasAdatok()));
+  const adatokOsszegzes = () => osszegzes('adatok', olvasAdatok().ugyfel.nev);
+  adatokForm.addEventListener('input', () => { ment(ADATOK_KULCS, olvasAdatok()); adatokOsszegzes(); });
+  adatokOsszegzes();
   adatokForm.addEventListener('submit', (ev) => ev.preventDefault());
 
   // A böngésző saját Nyomtatás menüjéből az ügyfélajánlat készül.
