@@ -161,18 +161,38 @@ const MUNKA_EGYSEGEK = ['db', 'óra', 'fm', 'm²', 'kör', 'alkalom', 'kiállás
 const ANYAG_EGYSEGEK = ['db', 'fm', 'pár', 'csomag', 'szett', 'kg', 'tekercs', 'doboz'];
 
 // Az "Egyéb munkák" sorai a Projekt lépésben. ertekek: a megtartandó mennyiségek (alapból a mostaniak).
+// A saját tételek kártyánként: egyéb munkák, fűtés, szerelvények, gerinc és külső szerelés.
+const SAJAT_SZAKASZOK = {
+  egyeb: { lista: 'egyeb', uj: 'Új munka', szerk: 'Munka szerkesztése', pelda: 'Pl. Hőcserélő csere', ikon: 'kalapacs' },
+  futes: { lista: 'futes-lista', uj: 'Új fűtési tétel', szerk: 'Fűtési tétel szerkesztése', pelda: 'Pl. Termosztát bekötése', ikon: 'radiator' },
+  szerelvenyek: { lista: 'szerelvenyek', uj: 'Új szerelvény', szerk: 'Szerelvény szerkesztése', pelda: 'Pl. Bidé csaptelep', ikon: 'csavarkulcs' },
+  gerinc: { lista: 'gerinc-lista', uj: 'Új tétel', szerk: 'Tétel szerkesztése', pelda: 'Pl. Vízóraakna bekötés', ikon: 'cso' },
+};
+const munkaSzakasz = (m) => (SAJAT_SZAKASZOK[m?.szakasz] ? m.szakasz : 'egyeb');
+
+// A saját tételek sorai a kártyájuk végén (a beépített sorok után). ertekek: a megtartandó mennyiségek.
 function egyebFelepit(ertekek = olvas().egyeb) {
-  const sorok = allapot.sajatMunkak.map((m) => `
+  for (const [szakasz, sz] of Object.entries(SAJAT_SZAKASZOK)) {
+    const lista = $(sz.lista);
+    if (!lista) continue;
+    const voltCsukva = lista.classList.contains('csukva');
+    lista.querySelectorAll(':scope > label[data-munka], :scope > .egyeb-ures').forEach((el) => el.remove());
+    const sorok = allapot.sajatMunkak.filter((m) => munkaSzakasz(m) === szakasz).map((m) => `
     <label data-munka="${m.kod}"><span>${escape(m.tetel)}<small class="munka-ar">${ft.format(Number(m.egysegar) || 0)} Ft / ${escape(m.egyseg)}${
       m.anyag?.length ? ` · ${m.anyag.length} anyag` : ''}</small></span>
       <input type="number" min="0" step="any" name="egyeb.${m.kod}" value="${Number(ertekek?.[m.kod]) > 0 ? ertekek[m.kod] : ''}">
     </label>`).join('');
-  const voltCsukva = $('egyeb').classList.contains('csukva');
-  $('egyeb').innerHTML = sorok || '<p class="muted" style="margin:4px 0 0">Itt veheted fel a táblázatban nem szereplő munkákat (pl. hőcserélő csere) saját egységárral. Minden ajánlatnál használhatók.</p>';
+    if (sorok) lista.insertAdjacentHTML('beforeend', sorok);
+    else if (szakasz === 'egyeb') lista.insertAdjacentHTML('beforeend', '<p class="muted egyeb-ures" style="margin:4px 0 0">Itt veheted fel a táblázatban nem szereplő munkákat (pl. hőcserélő csere) saját egységárral. Minden ajánlatnál használhatók.</p>');
+    listaAllitas(sz.lista, voltCsukva);
+  }
   leptetok();
   ikonozas();
   kitoltesJelolese();
-  listaAllitas('egyeb', voltCsukva);
+  for (const sz of Object.values(SAJAT_SZAKASZOK)) {
+    const lista = $(sz.lista);
+    if (lista) listaAllitas(sz.lista, lista.classList.contains('csukva'));
+  }
 }
 
 function ujMunkaKod(nev) {
@@ -522,13 +542,14 @@ function kiallasSzerkeszto(nev) {
 }
 
 // Szerkesztőablak egy egyéb munkához (új vagy meglévő).
-function munkaSzerkeszto(kod = null) {
-  const m = allapot.sajatMunkak.find((x) => x.kod === kod) ?? { tetel: '', egyseg: 'db', egysegar: '', megjegyzes: '', anyag: [] };
+function munkaSzerkeszto(kod = null, ujSzakasz = 'egyeb') {
+  const m = allapot.sajatMunkak.find((x) => x.kod === kod) ?? { tetel: '', egyseg: 'db', egysegar: '', megjegyzes: '', anyag: [], szakasz: ujSzakasz };
+  const sz = SAJAT_SZAKASZOK[munkaSzakasz(m)];
   const hatter = document.createElement('div');
   hatter.className = 'parbeszed-hatter';
   hatter.innerHTML = `<form class="parbeszed munka-urlap" role="dialog" aria-modal="true" aria-labelledby="mu-cim">
-    <h2 id="mu-cim">${kod ? 'Munka szerkesztése' : 'Új munka'}</h2>
-    <label class="mezo"><span>Megnevezés</span><input name="tetel" required placeholder="Pl. Hőcserélő csere" value="${escape(m.tetel)}"></label>
+    <h2 id="mu-cim">${kod ? sz.szerk : sz.uj}</h2>
+    <label class="mezo"><span>Megnevezés</span><input name="tetel" required placeholder="${escape(sz.pelda)}" value="${escape(m.tetel)}"></label>
     <div class="ketoszlop">
       <label class="mezo"><span>Egységár (Ft)</span><input name="egysegar" type="number" min="0" step="any" required inputmode="numeric" value="${m.egysegar}"></label>
       <label class="mezo"><span>Egység</span><select name="egyseg">${MUNKA_EGYSEGEK.map((e) => `<option${e === m.egyseg ? ' selected' : ''}>${e}</option>`).join('')}</select></label>
@@ -574,11 +595,11 @@ function munkaSzerkeszto(kod = null) {
     const adat = { tetel, egyseg: f.egyseg.value, egysegar, megjegyzes: f.megjegyzes.value.trim(), anyag };
     const ertekek = olvas().egyeb;
     if (kod) Object.assign(allapot.sajatMunkak.find((x) => x.kod === kod), adat);
-    else allapot.sajatMunkak.push({ kod: ujMunkaKod(tetel), ...adat });
+    else allapot.sajatMunkak.push({ kod: ujMunkaKod(tetel), szakasz: munkaSzakasz(m), ...adat });
     ment(SAJAT_MUNKA_KULCS, allapot.sajatMunkak);
     zar();
     egyebFelepit(ertekek);
-    listaAllitas('egyeb', false); // az új/szerkesztett munka látszódjon
+    listaAllitas(sz.lista, false); // az új/szerkesztett tétel látszódjon
     frissit();
   });
   anyagPdfBekotes(urlap);
@@ -625,7 +646,8 @@ function ikonozas() {
     const mezo = label.querySelector('input, select');
     const nev = label.querySelector(':scope > span:not(.lepteto)');
     nev?.classList.add('mezo-nev');
-    const ik = MEZO_IKON[mezo?.name] ?? (mezo?.name?.startsWith('egyeb.') ? 'kalapacs' : mezo?.name?.startsWith('kiallasok.') ? 'csaptelep' : null);
+    const sajatIkon = Object.values(SAJAT_SZAKASZOK).find((sz) => sz.lista === label.parentElement?.id)?.ikon ?? 'kalapacs';
+    const ik = MEZO_IKON[mezo?.name] ?? (mezo?.name?.startsWith('egyeb.') ? sajatIkon : mezo?.name?.startsWith('kiallasok.') ? 'csaptelep' : null);
     if (ik) label.insertAdjacentHTML('afterbegin', `<span class="mezo-ikon">${ikon(ik)}</span>`);
   }
   for (const el of document.querySelectorAll('[data-ikon]')) {
@@ -1771,7 +1793,8 @@ async function indit() {
   felepit();
   allapot.sajatMunkak = (betoltMentett(SAJAT_MUNKA_KULCS) ?? []).filter((m) => m?.kod && m?.tetel);
   egyebFelepit({});
-  $('uj-munka').addEventListener('click', () => munkaSzerkeszto());
+  $('uj-munka').addEventListener('click', () => munkaSzerkeszto(null, 'egyeb'));
+  for (const b of document.querySelectorAll('[data-uj-tetel]')) b.addEventListener('click', () => munkaSzerkeszto(null, b.dataset.ujTetel));
   cimkekFrissitese();
   // Fűtés, szerelvények, gerinc és külső szerelés: a ceruzára, a névre vagy az ikonra koppintva.
   for (const id of ['futes-lista', 'szerelvenyek', 'gerinc-lista']) {
@@ -1779,6 +1802,7 @@ async function indit() {
       const cel = ev.target.closest('.mezo-nev, .mezo-ikon');
       if (!cel) return;
       ev.preventDefault();
+      if (cel.closest('label').dataset.munka) { munkaSzerkeszto(cel.closest('label').dataset.munka); return; }
       const nev = cel.closest('label').querySelector('input, select').name;
       if (nev.startsWith('gerinc.')) { gerincSzerkeszto(nev.split('.')[1]); return; }
       const kod = mezoKod(nev);
