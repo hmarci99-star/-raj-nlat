@@ -30,6 +30,12 @@ export const GERINC = {
   20: { cso: 'Rehau Rautitan Stabil cső 20x2,9 mm', csohej: 'Kaiflex csőhéj 4x22 mm' },
 };
 
+// A gerinc alapanyaga 1 fm-re: a cső és a hozzá illő csőhéj.
+export function gerincAlapAnyag(atmero) {
+  const g = GERINC[atmero];
+  return g ? [{ cikk: g.cso, mennyiseg: 1, egyseg: 'fm' }, { cikk: g.csohej, mennyiseg: 1, egyseg: 'fm' }] : [];
+}
+
 // Hüvelyszabály: idomonként hány toldóhüvely kell, átmérő szerint.
 // T-idom 3, falikorong 1, könyök 2, toldóidom 2. Egy 20-16-20 T-idomhoz
 // két 20-as és egy 16-os hüvely tartozik.
@@ -73,7 +79,8 @@ export function huvelyEltetesek(sorok) {
 // projekt.kiallasok: { kod: darab }, projekt.gerinc: { 16: fm, 20: fm },
 // projekt.felulirasok: { kiallasNev: [sorok] } – a könyvtári csomag helyett.
 // sajatMunkak: [{ kod, tetel, anyag: [{ cikk, mennyiseg, egyseg }] }] – az egyéb munkákhoz rendelt anyag.
-export function gyujtAnyaglista(projekt, konyvtar, sajatMunkak = []) {
+// gerincAnyag: { 16: [sorok 1 fm-re], 20: [...] } – a felületen módosított gerinc-anyag (alapból cső + csőhéj).
+export function gyujtAnyaglista(projekt, konyvtar, sajatMunkak = [], gerincAnyag = {}) {
   const tetelek = new Map();
   const figyelmeztetesek = [];
   const hozzaad = (s, szorzo) => {
@@ -111,8 +118,8 @@ export function gyujtAnyaglista(projekt, konyvtar, sajatMunkak = []) {
   for (const [atmero, { cso, csohej }] of Object.entries(GERINC)) {
     const fm = Number(projekt.gerinc?.[atmero]) || 0;
     if (fm <= 0) continue;
-    hozzaad({ cikk: cso, egyseg: 'fm', mennyiseg: fm }, 1);
-    hozzaad({ cikk: csohej, egyseg: 'fm', mennyiseg: fm }, 1);
+    const sorok = gerincAnyag?.[atmero] ?? gerincAlapAnyag(atmero);
+    for (const a of sorok) hozzaad({ cikk: a.cikk, egyseg: a.egyseg || 'fm', mennyiseg: Number(a.mennyiseg) || 0, cikkszam: a.cikkszam ?? '' }, fm);
   }
 
   const sorok = [...tetelek.values()].map((t) => ({ ...t, mennyiseg: Math.round(t.mennyiseg * 100) / 100 }));

@@ -1,6 +1,6 @@
 import { parseMunkadijTabla } from './csv.js';
-import { KIALLAS_TIPUSOK, SZERELVENY_KODOK, szamolMunkadij, uresProjekt } from './munkadij.js';
-import { parseKonyvtar, gyujtAnyaglista, anyaglistaSzoveg } from './anyaglista.js';
+import { KIALLAS_TIPUSOK, SZERELVENY_KODOK, HOTERMELOK, szamolMunkadij, uresProjekt } from './munkadij.js';
+import { parseKonyvtar, gyujtAnyaglista, anyaglistaSzoveg, gerincAlapAnyag } from './anyaglista.js';
 import { boltValaszBeolvasas, ajanlat, tetelKulcs, parseSzam, nemTetelNev, anyagListaBeolvasas } from './arak.js';
 import { bovitettKonyvtar, bennVanAzAlapban, konyvtarCsv, felulirtKonyvtar } from './konyvtar.js';
 import { ugyfelAjanlatHtml, belsoOsszesitoHtml, fajlnev, ugyfelLevel, mailtoLink } from './sablonok.js';
@@ -25,6 +25,8 @@ const MUNKA_KULCSOK = new Set([MENTES_KULCS, ARAK_KULCS, ADATOK_KULCS, PLUSZ_KUL
 const BOVITES_KULCS = 'arajanlat.konyvtar-bovites';
 const SAJAT_MUNKA_KULCS = 'arajanlat.sajat-munkak';
 const KONYVTAR_FELULIR_KULCS = 'arajanlat.konyvtar-felulirasok';
+const MUNKADIJ_FELULIR_KULCS = 'arajanlat.munkadij-felulirasok';
+const GERINC_ANYAG_KULCS = 'arajanlat.gerinc-anyag';
 const NEZET_KULCS = 'arajanlat.nezet';
 const ft = new Intl.NumberFormat('hu-HU', { useGrouping: 'always' });
 const $ = (id) => document.getElementById(id);
@@ -38,6 +40,8 @@ const allapot = {
   // Egyéb (saját) munkák: { kod, tetel, egyseg, egysegar, megjegyzes, anyag: [{ cikk, mennyiseg, egyseg }] }
   sajatMunkak: [],
   konyvtarFelulirasok: {}, // a felületen szerkesztett kiállás-csomagok: { kiállás neve: [sorok] }
+  munkadijFelulirasok: {}, // munkadíj-tételek módosítása: { kód: { tetel, egysegar, megjegyzes, anyag } }
+  gerincAnyag: {}, // a gerinc anyaga 1 fm-re: { 16: [sorok], 20: [sorok] }
   plusz: [], // az ajánlathoz kézzel vagy a bolt PDF-jéből hozzáadott tételek
   pdfMennyiseg: {}, // tétel -> a bolt PDF-je szerinti mennyiség, ha eltér a listától (ez az irányadó)
   // Feltöltésenként (bolti / kedvezmenyes / szoveg) mit írt be, hogy vissza lehessen vonni:
@@ -135,6 +139,16 @@ function mezoMutatasa(el) {
 // A munkadíj-táblázat a saját munkákkal kiegészítve.
 function munkadijTabla() {
   const t = new Map(allapot.tabla);
+  for (const [kod, f] of Object.entries(allapot.munkadijFelulirasok)) {
+    const alap = t.get(kod);
+    if (!alap) continue;
+    t.set(kod, {
+      ...alap,
+      tetel: f.tetel || alap.tetel,
+      egysegar: Number.isFinite(Number(f.egysegar)) && f.egysegar !== '' ? Number(f.egysegar) : alap.egysegar,
+      megjegyzes: f.megjegyzes ?? alap.megjegyzes,
+    });
+  }
   for (const m of allapot.sajatMunkak) {
     t.set(m.kod, { kod: m.kod, tetel: m.tetel, egyseg: m.egyseg, egysegar: Number(m.egysegar) || 0, megjegyzes: m.megjegyzes ?? '' });
   }
@@ -243,6 +257,161 @@ function anyagPdfBekotes(urlap) {
       uzenet.textContent = `A PDF nem olvasható be: ${err.message}`;
     }
   });
+}
+
+// ---- Munkadíj-tételek és gerinc szerkesztése ----
+
+// A Projekt mezők és a munkadíj-táblázat kódjai.
+const MEZO_KOD = {
+  radiatorKiallas: 'radiator_kiallas', radiatorFelszereles: 'radiator_felszereles', padlofutesKor: 'padlofutes_kor',
+  kulsoVizFm: 'kulso_viz', kulsoSzennyvizFm: 'kulso_szennyviz',
+};
+function mezoKod(nev) {
+  if (nev.startsWith('szerelvenyek.')) return nev.split('.')[1];
+  if (nev === 'hotermelo') return HOTERMELOK[form.elements.hotermelo.value] ?? null;
+  return MEZO_KOD[nev] ?? null;
+}
+
+// Egy szerkesztőablak váza (cím, magyarázat, mezők, Mentés / Visszaállítás / Mégse).
+// mentes(urlap) és visszaallitas() a gombokhoz; a mezők HTML-je a torzs.
+function szerkesztoAblak({ cim, leiras, torzs, modositott, mentes, visszaallitas }) {
+  const hatter = document.createElement('div');
+  hatter.className = 'parbeszed-hatter';
+  hatter.innerHTML = `<form class="parbeszed munka-urlap" role="dialog" aria-modal="true" aria-labelledby="sz-cim">
+    <h2 id="sz-cim">${escape(cim)}</h2>
+    ${leiras ? `<p class="muted" style="margin:0">${escape(leiras)}</p>` : ''}
+    ${torzs}
+    <div class="parbeszed-gombok">
+      <button type="submit">Mentés</button>
+      ${modositott ? '<button type="button" class="button ks-alap">Eredeti visszaállítása</button>' : ''}
+      <button type="button" class="button mu-megse">Mégse</button>
+    </div>
+  </form>`;
+  const urlap = hatter.querySelector('form');
+  const zar = () => { hatter.remove(); document.removeEventListener('keydown', esc); };
+  const esc = (ev) => { if (ev.key === 'Escape') zar(); };
+  document.addEventListener('keydown', esc);
+  const utana = () => { zar(); cimkekFrissitese(); frissit(); megjelenitPlusz(); megjelenitArTabla(true); };
+  hatter.addEventListener('click', async (ev) => {
+    if (ev.target === hatter || ev.target.closest('.mu-megse')) { zar(); return; }
+    if (anyagSzerkesztoKattintas(ev, urlap)) return;
+    if (ev.target.closest('.ks-alap')) {
+      hatter.hidden = true;
+      const v = await kerdes({
+        cim: 'Eredeti visszaállítása',
+        szoveg: 'A módosításaid törlődnek, és az alkalmazás eredeti beállítása érvényes újra.',
+        gombok: [{ felirat: 'Visszaállítás', ertek: 'igen', stilus: 'veszelyes' }, { felirat: 'Vissza', ertek: 'vissza', stilus: 'masodlagos' }],
+      });
+      if (v !== 'igen') { hatter.hidden = false; return; }
+      visszaallitas();
+      utana();
+    }
+  });
+  urlap.addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    if (mentes(urlap) === false) return;
+    utana();
+  });
+  if (urlap.querySelector('#mu-pdf')) anyagPdfBekotes(urlap);
+  document.body.append(hatter);
+  ikonozas();
+  urlap.querySelector('input, button')?.focus();
+}
+
+// Egy munkadíj-tétel (szerelvény, fűtés, külső szerelés) módosítása: név, ár, megjegyzés, anyag.
+function tetelSzerkeszto(kod) {
+  const alap = allapot.tabla.get(kod);
+  if (!alap) return;
+  const f = allapot.munkadijFelulirasok[kod] ?? {};
+  const most = munkadijTabla().get(kod);
+  szerkesztoAblak({
+    cim: alap.tetel,
+    leiras: 'A változás minden további ajánlatra érvényes ezen az eszközön.',
+    modositott: Boolean(allapot.munkadijFelulirasok[kod]),
+    torzs: `
+      <label class="mezo"><span>Megnevezés az ajánlaton</span><input name="tetel" required value="${escape(most.tetel)}"></label>
+      <div class="ketoszlop">
+        <label class="mezo"><span>Egységár (Ft)</span><input name="egysegar" type="number" min="0" step="any" inputmode="numeric" required value="${most.egysegar}"></label>
+        <label class="mezo"><span>Egység</span><input value="${escape(alap.egyseg)}" disabled></label>
+      </div>
+      <label class="mezo"><span>Megjegyzés az ajánlaton</span><input name="megjegyzes" value="${escape(most.megjegyzes ?? '')}"></label>
+      <div class="mezo"><span>Anyag ehhez a tételhez (nem kötelező) – 1 ${escape(alap.egyseg)}-ra számolva</span>${anyagSzerkesztoHtml(f.anyag ?? [])}</div>`,
+    mentes: (urlap) => {
+      const e = urlap.elements;
+      const uj = {
+        tetel: e.tetel.value.trim().replace(/\s+/g, ' '),
+        egysegar: Number(e.egysegar.value),
+        megjegyzes: e.megjegyzes.value.trim(),
+        anyag: anyagSorokOlvasasa(urlap),
+      };
+      if (!uj.tetel || !(uj.egysegar >= 0)) return false;
+      const valtozatlan = uj.tetel === alap.tetel && uj.egysegar === alap.egysegar && uj.megjegyzes === (alap.megjegyzes ?? '') && !uj.anyag.length;
+      if (valtozatlan) delete allapot.munkadijFelulirasok[kod];
+      else allapot.munkadijFelulirasok[kod] = uj;
+      ment(MUNKADIJ_FELULIR_KULCS, allapot.munkadijFelulirasok);
+      return true;
+    },
+    visszaallitas: () => {
+      delete allapot.munkadijFelulirasok[kod];
+      ment(MUNKADIJ_FELULIR_KULCS, allapot.munkadijFelulirasok);
+    },
+  });
+}
+
+// A gerinc anyaga 1 folyóméterre (alapból a cső és a csőhéj).
+function gerincSzerkeszto(atmero) {
+  szerkesztoAblak({
+    cim: `Gerinc, ${atmero}-${atmero === '20' ? 'as' : 'os'} cső – anyag`,
+    leiras: '1 folyóméter gerincre számolva. A változás minden további ajánlatra érvényes ezen az eszközön.',
+    modositott: Boolean(allapot.gerincAnyag[atmero]),
+    torzs: `<div class="mezo">${anyagSzerkesztoHtml(allapot.gerincAnyag[atmero] ?? gerincAlapAnyag(atmero))}</div>`,
+    mentes: (urlap) => {
+      allapot.gerincAnyag[atmero] = anyagSorokOlvasasa(urlap);
+      ment(GERINC_ANYAG_KULCS, allapot.gerincAnyag);
+      return true;
+    },
+    visszaallitas: () => {
+      delete allapot.gerincAnyag[atmero];
+      ment(GERINC_ANYAG_KULCS, allapot.gerincAnyag);
+    },
+  });
+}
+
+// Ceruza gomb minden szerkeszthető sor végére (fűtés, szerelvények, gerinc és külső szerelés).
+function ceruzak() {
+  for (const label of form.querySelectorAll('#futes-lista > label, #szerelvenyek > label, #gerinc-lista > label')) {
+    if (label.querySelector('.tetel-szerk')) continue;
+    const nev = label.querySelector('.mezo-nev')?.textContent ?? '';
+    label.insertAdjacentHTML('beforeend', `<button type="button" class="munka-szerk tetel-szerk" aria-label="Szerkesztés: ${escape(nev)}">${ikon('ceruza')}</button>`);
+  }
+}
+
+// A szerelvények feliratai a (módosított) munkadíj-táblázat szerint.
+function cimkekFrissitese() {
+  const t = munkadijTabla();
+  for (const kod of SZERELVENY_KODOK) {
+    const el = form.elements[`szerelvenyek.${kod}`]?.closest('label')?.querySelector('.mezo-nev');
+    if (el && t.get(kod)) el.textContent = t.get(kod).tetel;
+  }
+}
+
+// A módosított sorok ceruzája kiemelve.
+function modositottJeloles() {
+  for (const label of form.querySelectorAll('.mezolista > label')) {
+    const el = label.querySelector('input, select');
+    if (!el) continue;
+    let mod = false;
+    if (el.name.startsWith('kiallasok.')) {
+      const nev = KIALLAS_TIPUSOK.find((t) => `kiallasok.${t.kod}` === el.name)?.nev;
+      mod = Boolean(allapot.konyvtarFelulirasok[nev]) || allapot.bovitesek.some((b) => b.kiallas === nev);
+    } else if (el.name.startsWith('gerinc.')) {
+      mod = Boolean(allapot.gerincAnyag[el.name.split('.')[1]]);
+    } else if (!el.name.startsWith('egyeb.')) {
+      const kod = mezoKod(el.name);
+      mod = Boolean(kod && allapot.munkadijFelulirasok[kod]);
+    }
+    label.classList.toggle('modositott', mod);
+  }
 }
 
 // Egy kiállás anyagcsomagjának szerkesztése (pl. WC-tartály). Minden további ajánlatra érvényes.
@@ -1360,7 +1529,8 @@ function ajanlatEsemenyek() {
   // Biztonsági mentés fájlba és visszatöltés
   $('mentes-fajlba').addEventListener('click', () => {
     if (allapot.aktualisId) { const r = allapot.ajanlatok.find((x) => x.id === allapot.aktualisId); if (r) rekordFrissites(r); }
-    const tartalom = exportAdat(allapot.ajanlatok, { vallalkozo: olvasAdatok().vallalkozo, bovitesek: allapot.bovitesek, sajatMunkak: allapot.sajatMunkak, konyvtarFelulirasok: allapot.konyvtarFelulirasok });
+    const tartalom = exportAdat(allapot.ajanlatok, { vallalkozo: olvasAdatok().vallalkozo, bovitesek: allapot.bovitesek, sajatMunkak: allapot.sajatMunkak, konyvtarFelulirasok: allapot.konyvtarFelulirasok,
+      munkadijFelulirasok: allapot.munkadijFelulirasok, gerincAnyag: allapot.gerincAnyag });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([tartalom], { type: 'application/json' }));
     a.download = `arajanlatok-${maISO()}.json`;
@@ -1391,6 +1561,11 @@ function ajanlatEsemenyek() {
       const ujFelul = Object.entries(r.beallitasok.konyvtarFelulirasok ?? {}).filter(([n]) => !allapot.konyvtarFelulirasok[n]);
       for (const [n, sorok] of ujFelul) allapot.konyvtarFelulirasok[n] = sorok;
       if (ujBovites.length) allapot.bovitesek.push(...ujBovites);
+      for (const [k, v] of Object.entries(r.beallitasok.munkadijFelulirasok ?? {})) if (!allapot.munkadijFelulirasok[k]) allapot.munkadijFelulirasok[k] = v;
+      for (const [k, v] of Object.entries(r.beallitasok.gerincAnyag ?? {})) if (!allapot.gerincAnyag[k]) allapot.gerincAnyag[k] = v;
+      ment(MUNKADIJ_FELULIR_KULCS, allapot.munkadijFelulirasok);
+      ment(GERINC_ANYAG_KULCS, allapot.gerincAnyag);
+      cimkekFrissitese();
       if (ujBovites.length || ujFelul.length) { konyvtarFrissites(); frissit(); megjelenitPlusz(); }
       ajanlatokMentese();
       megjelenitAjanlatok();
@@ -1454,8 +1629,20 @@ function frissit() {
   }
   allapot.projekt = p;
   kitoltesJelolese();
+  modositottJeloles();
   try {
-    allapot.anyag = gyujtAnyaglista(p, allapot.konyvtar, allapot.sajatMunkak);
+    allapot.anyag = gyujtAnyaglista(p, allapot.konyvtar, allapot.sajatMunkak, allapot.gerincAnyag);
+    // A munkadíj-tételekhez rendelt anyag (pl. WC felszerelés -> nyomólap), a mennyiséggel szorozva.
+    for (const m of allapot.munkadij?.sorok ?? []) {
+      for (const a of allapot.munkadijFelulirasok[m.kod]?.anyag ?? []) {
+        const t = { cikk: a.cikk, egyseg: a.egyseg || 'db', cikkszam: a.cikkszam ?? '' };
+        const q = Math.round((Number(a.mennyiseg) || 0) * m.mennyiseg * 1000) / 1000;
+        if (!(q > 0)) continue;
+        const meglevo = allapot.anyag.sorok.find((s) => tetelKulcs(s) === tetelKulcs(t));
+        if (meglevo) meglevo.mennyiseg = Math.round((meglevo.mennyiseg + q) * 1000) / 1000;
+        else allapot.anyag.sorok.push({ ...t, mennyiseg: q });
+      }
+    }
     for (const t of allapot.plusz) {
       if (!(t.mennyiseg > 0)) continue;
       const meglevo = allapot.anyag.sorok.find((s) => tetelKulcs(s) === tetelKulcs(t));
@@ -1504,6 +1691,25 @@ async function indit() {
   allapot.sajatMunkak = (betoltMentett(SAJAT_MUNKA_KULCS) ?? []).filter((m) => m?.kod && m?.tetel);
   egyebFelepit({});
   $('uj-munka').addEventListener('click', () => munkaSzerkeszto());
+  ceruzak();
+  cimkekFrissitese();
+  // Fűtés, szerelvények, gerinc és külső szerelés: a ceruzára, a névre vagy az ikonra koppintva.
+  for (const id of ['futes-lista', 'szerelvenyek', 'gerinc-lista']) {
+    $(id).addEventListener('click', async (ev) => {
+      const cel = ev.target.closest('.tetel-szerk, .mezo-nev, .mezo-ikon');
+      if (!cel) return;
+      ev.preventDefault();
+      const nev = cel.closest('label').querySelector('input, select').name;
+      if (nev.startsWith('gerinc.')) { gerincSzerkeszto(nev.split('.')[1]); return; }
+      const kod = mezoKod(nev);
+      if (!kod) {
+        await kerdes({ cim: 'Előbb válassz hőtermelőt', szoveg: 'A hőtermelő gépészetének árát és anyagát a kiválasztott típusnál tudod módosítani.',
+          gombok: [{ felirat: 'Rendben', ertek: 'ok', stilus: 'masodlagos' }] });
+        return;
+      }
+      tetelSzerkeszto(kod);
+    });
+  }
   // Kiállás anyagcsomagja: a ceruzára, a névre vagy az ikonra koppintva.
   $('kiallasok').addEventListener('click', (ev) => {
     const cel = ev.target.closest('.kiallas-szerk, .mezo-nev, .mezo-ikon');
@@ -1530,6 +1736,8 @@ async function indit() {
   $('beolvasas-eredmeny').innerHTML = feltoltesAllapotHtml('szoveg');
   allapot.bovitesek = (betoltMentett(BOVITES_KULCS) ?? []).filter((b) => b?.kiallas && b?.cikk && b?.egyseg && b.mennyiseg > 0);
   allapot.konyvtarFelulirasok = betoltMentett(KONYVTAR_FELULIR_KULCS) ?? {};
+  allapot.munkadijFelulirasok = betoltMentett(MUNKADIJ_FELULIR_KULCS) ?? {};
+  allapot.gerincAnyag = betoltMentett(GERINC_ANYAG_KULCS) ?? {};
   allapot.konyvtar = felulirtKonyvtar(bovitettKonyvtar(allapot.alapKonyvtar, allapot.bovitesek), allapot.konyvtarFelulirasok);
   pluszEsemenyek();
   allapot.ajanlatok = (betoltMentett(AJANLATOK_KULCS) ?? []).filter((a) => a?.id);

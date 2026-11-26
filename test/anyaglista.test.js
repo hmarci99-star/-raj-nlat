@@ -88,3 +88,12 @@ test('egyéb munkához rendelt anyag a mennyiséggel szorozva kerül a listára'
   assert.equal(tetel(e, 'Tömítés').mennyiseg, 6);
   assert.equal(gyujtAnyaglista(projekt({}), konyvtar, sajat).sorok.length, 0);
 });
+
+test('gerinc anyaga módosítható (1 fm-re számolva)', async () => {
+  const { gerincAlapAnyag } = await import('../src/anyaglista.js');
+  assert.equal(gerincAlapAnyag(20).length, 2);
+  const e = gyujtAnyaglista(projekt({}, { gerinc: { 16: 0, 20: 10 } }), konyvtar, [],
+    { 20: [{ cikk: 'Rehau Rautitan Stabil cső 20x2,9 mm', mennyiseg: 1, egyseg: 'fm' }, { cikk: 'Csőbilincs 20', mennyiseg: 2, egyseg: 'db' }] });
+  assert.equal(tetel(e, 'Csőbilincs 20').mennyiseg, 20);
+  assert.equal(tetel(e, 'Kaiflex csőhéj 4x22 mm'), undefined);
+});
