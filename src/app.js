@@ -839,10 +839,54 @@ function vanMentetlenMunka() {
     || Boolean(olvasAdatok().ugyfel.nev);
 }
 
-function mentetlenKezelese() {
+// Saját párbeszédablak egyértelmű gombokkal (a böngésző "OK / Mégse" ablaka helyett).
+// gombok: [{ felirat, ertek, stilus: 'fo' | 'veszelyes' | 'masodlagos' }] -> a választott ertek
+function kerdes({ cim, szoveg, gombok }) {
+  return new Promise((kesz) => {
+    const hatter = document.createElement('div');
+    hatter.className = 'parbeszed-hatter';
+    hatter.innerHTML = `<div class="parbeszed" role="alertdialog" aria-modal="true" aria-labelledby="pb-cim" aria-describedby="pb-szoveg">
+      <h2 id="pb-cim">${escape(cim)}</h2>
+      <p id="pb-szoveg">${escape(szoveg)}</p>
+      <div class="parbeszed-gombok">${gombok.map((g, i) => `<button type="button" data-i="${i}"
+        class="${g.stilus === 'fo' ? '' : g.stilus === 'veszelyes' ? 'veszelyes' : 'button'}">${escape(g.felirat)}</button>`).join('')}</div>
+    </div>`;
+    const elozoFokusz = document.activeElement;
+    const vissza = gombok.find((g) => g.stilus === 'masodlagos')?.ertek ?? null;
+    const billentyu = (ev) => { if (ev.key === 'Escape') zar(vissza); };
+    function zar(ertek) {
+      hatter.remove();
+      document.removeEventListener('keydown', billentyu);
+      elozoFokusz?.focus?.();
+      kesz(ertek);
+    }
+    hatter.addEventListener('click', (ev) => {
+      const b = ev.target.closest('button[data-i]');
+      if (b) zar(gombok[Number(b.dataset.i)].ertek);
+      else if (ev.target === hatter) zar(vissza);
+    });
+    document.addEventListener('keydown', billentyu);
+    document.body.append(hatter);
+    hatter.querySelector('button')?.focus();
+  });
+}
+
+// Mentetlen munka esetén megkérdezi, mi legyen vele. Igaz, ha mehet tovább.
+// mire: a gombokon szereplő folytatás ("új ajánlat" / "megnyitás").
+async function mentetlenKezelese(mire) {
   if (!vanMentetlenMunka()) return true;
-  if (confirm('A mostani ajánlat nincs elmentve. Elmented az ajánlatok közé, mielőtt továbblépsz?')) ajanlatMentese();
-  return true;
+  const nev = olvasAdatok().ugyfel.nev;
+  const valasz = await kerdes({
+    cim: 'Az ajánlat nincs elmentve',
+    szoveg: `${nev ? `A(z) „${nev}” ajánlat` : 'A mostani ajánlat'} még nincs az Ajánlatok között. Ha elveted, a beírt adatok elvesznek.`,
+    gombok: [
+      { felirat: `Mentés, és ${mire}`, ertek: 'mentes', stilus: 'fo' },
+      { felirat: `Elvetés, és ${mire}`, ertek: 'elvetes', stilus: 'veszelyes' },
+      { felirat: 'Vissza', ertek: 'vissza', stilus: 'masodlagos' },
+    ],
+  });
+  if (valasz === 'mentes') ajanlatMentese();
+  return valasz === 'mentes' || valasz === 'elvetes';
 }
 
 // Egy mentett ajánlat (vagy üres, új ajánlat) betöltése a munkaterületre.
@@ -882,17 +926,17 @@ function munkaBetoltes(adat, id) {
   megjelenitAjanlatok();
 }
 
-function ujAjanlat() {
-  mentetlenKezelese();
+async function ujAjanlat() {
+  if (!(await mentetlenKezelese('új ajánlat'))) return;
   munkaBetoltes(null, null);
   nezetValtas('projekt');
 }
 
-function ajanlatMegnyitasa(id) {
+async function ajanlatMegnyitasa(id) {
   if (id === allapot.aktualisId) { nezetValtas('ajanlat'); return; }
   const r = allapot.ajanlatok.find((x) => x.id === id);
   if (!r) return;
-  mentetlenKezelese();
+  if (!(await mentetlenKezelese('megnyitás'))) return;
   munkaBetoltes(r.adat, r.id);
   nezetValtas('ajanlat');
 }
