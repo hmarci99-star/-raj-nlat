@@ -88,3 +88,13 @@ test('egyéb (saját) munkák: a táblázathoz adva számolódnak, ismeretlen k�
   assert.equal(e.osszesen, 70000);
   assert.equal(e.figyelmeztetesek.length, 1);
 });
+
+test('kiállásonkénti munkadíj: a saját árú kiállás külön sorban, a többi együtt', () => {
+  const t = new Map(tabla);
+  t.set('alapszereles:konyha', { kod: 'alapszereles:konyha', tetel: 'Vízszerelés alapszerelés – Konyha', egyseg: 'kiállás', egysegar: 55000, megjegyzes: '' });
+  const p = projekt({ kiallasok: { ...uresProjekt().kiallasok, wc_tartaly: 2, konyha: 1 } });
+  const e = szamolMunkadij(p, t);
+  assert.equal(sor(e, 'viz_alapszereles').mennyiseg, 2);
+  assert.equal(sor(e, 'alapszereles:konyha').osszeg, 55000);
+  assert.equal(e.osszesen, 2 * 45000 + 55000);
+});

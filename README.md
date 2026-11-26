@@ -32,7 +32,7 @@ Telefonról is használható weboldal. A beírt adatokat és árakat a böngész
 
 ### Szabályok
 
-- A vízszerelés alapszerelés mennyisége az összes vízszerelési kiállás darabszáma.
+- A vízszerelés alapszerelés mennyisége az összes vízszerelési kiállás darabszáma. Ha egy kiállásnak saját munkadíja van (a szerkesztőjében a „Munkadíj (Ft / kiállás)” mező), az külön sorban szerepel: „Vízszerelés alapszerelés – <kiállás>”.
 - A hőtermelő gépészete 1 db (gázkazán, vegyes tüzelésű kazán vagy hőszivattyú).
 - Ha radiátoros és padlófűtéses kör is van, 1 db felár jár. Kazánnál ez automatikus, hőszivattyúnál külön be kell kapcsolni (nyitott kérdés).
 - Puffertartály csak vegyes tüzelésű kazánhoz vehető fel. Hőszivattyúnál a gépészet díja tartalmazza.

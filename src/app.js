@@ -29,6 +29,7 @@ const MUNKADIJ_FELULIR_KULCS = 'arajanlat.munkadij-felulirasok';
 const GERINC_ANYAG_KULCS = 'arajanlat.gerinc-anyag';
 const SAJAT_KIALLAS_KULCS = 'arajanlat.sajat-kiallasok';
 const KIALLAS_NEV_KULCS = 'arajanlat.kiallas-nevek';
+const KIALLAS_AR_KULCS = 'arajanlat.kiallas-arak';
 const NEZET_KULCS = 'arajanlat.nezet';
 const ft = new Intl.NumberFormat('hu-HU', { useGrouping: 'always' });
 const $ = (id) => document.getElementById(id);
@@ -46,6 +47,7 @@ const allapot = {
   gerincAnyag: {}, // a gerinc anyaga 1 fm-re: { 16: [sorok], 20: [sorok] }
   sajatKiallasok: [], // a felületen felvett kiállástípusok: [{ kod, nev }]; csomagjuk a konyvtarFelulirasok-ban
   kiallasNevek: {}, // a beépített kiállások átnevezése: { kód: megjelenített név } (a csomag a régi néven marad)
+  kiallasArak: {}, // kiállásonkénti saját munkadíj: { kód: Ft / kiállás } (alapból a vízszerelés alapszerelés ára)
   plusz: [], // az ajánlathoz kézzel vagy a bolt PDF-jéből hozzáadott tételek
   pdfMennyiseg: {}, // tétel -> a bolt PDF-je szerinti mennyiség, ha eltér a listától (ez az irányadó)
   // Feltöltésenként (bolti / kedvezmenyes / szoveg) mit írt be, hogy vissza lehessen vonni:
@@ -152,6 +154,13 @@ function munkadijTabla() {
       egysegar: Number.isFinite(Number(f.egysegar)) && f.egysegar !== '' ? Number(f.egysegar) : alap.egysegar,
       megjegyzes: f.megjegyzes ?? alap.megjegyzes,
     });
+  }
+  // Kiállásonkénti saját munkadíj: külön sor "Vízszerelés alapszerelés – <kiállás>" néven.
+  const alap = t.get('viz_alapszereles');
+  for (const [kod, ar] of Object.entries(allapot.kiallasArak)) {
+    const k = osszesKiallas().find((x) => x.kod === kod);
+    if (!k || !alap) continue;
+    t.set(`alapszereles:${kod}`, { kod: `alapszereles:${kod}`, tetel: `${alap.tetel} – ${kiallasCimke(k.nev)}`, egyseg: alap.egyseg, egysegar: Number(ar) || 0, megjegyzes: alap.megjegyzes ?? '' });
   }
   for (const m of allapot.sajatMunkak) {
     t.set(m.kod, { kod: m.kod, tetel: m.tetel, egyseg: m.egyseg, egysegar: Number(m.egysegar) || 0, megjegyzes: m.megjegyzes ?? '' });
@@ -441,7 +450,8 @@ function modositottJeloles() {
       const nev = osszesKiallas().find((t) => `kiallasok.${t.kod}` === el.name)?.nev;
       const kod = el.name.split('.')[1];
       const beepitett = KIALLAS_TIPUSOK.some((t) => t.kod === kod);
-      mod = beepitett && (Boolean(allapot.konyvtarFelulirasok[nev]) || allapot.bovitesek.some((b) => b.kiallas === nev) || Boolean(allapot.kiallasNevek[kod]));
+      mod = beepitett && (Boolean(allapot.konyvtarFelulirasok[nev]) || allapot.bovitesek.some((b) => b.kiallas === nev)
+        || Boolean(allapot.kiallasNevek[kod]) || allapot.kiallasArak[kod] !== undefined);
     } else if (el.name.startsWith('gerinc.')) {
       mod = Boolean(allapot.gerincAnyag[el.name.split('.')[1]]);
     } else if (!el.name.startsWith('egyeb.')) {
@@ -461,6 +471,7 @@ function sajatKiallasSzerkeszto(kod = null) {
     leiras: 'Utána ugyanúgy használható, mint a többi kiállás; minden kiállás után vízszerelés alapszerelés jár.',
     torzs: `
       <label class="mezo"><span>Megnevezés</span><input name="nev" required placeholder="Pl. Bidé, Piszoár, Mosogatógép" value="${escape(regiNev)}"></label>
+      ${kiallasArMezo(kod)}
       <div class="mezo"><span>Anyagcsomag – egy kiállásra számolva</span>${anyagSzerkesztoHtml(k ? allapot.konyvtar.get(regiNev) ?? [] : [])}</div>`,
     mentes: (urlap) => {
       const nev = urlap.elements.nev.value.trim().replace(/\s+/g, ' ');
@@ -473,12 +484,14 @@ function sajatKiallasSzerkeszto(kod = null) {
       }
       const ertekek = olvas().kiallasok;
       if (k) {
+        kiallasArMentese(urlap, kod);
         if (regiNev !== nev) delete allapot.konyvtarFelulirasok[regiNev];
         k.nev = nev;
       } else {
         let uj = `sajat-k-${nev.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 30) || 'kiallas'}`;
         for (let i = 2; osszesKiallas().some((t) => t.kod === uj); i++) uj = uj.replace(/-\d+$/, '') + `-${i}`;
         allapot.sajatKiallasok.push({ kod: uj, nev });
+        kiallasArMentese(urlap, uj);
       }
       allapot.konyvtarFelulirasok[nev] = anyagSorokOlvasasa(urlap);
       ment(SAJAT_KIALLAS_KULCS, allapot.sajatKiallasok);
@@ -493,6 +506,8 @@ function sajatKiallasSzerkeszto(kod = null) {
       vegrehajt: () => {
         const ertekek = olvas().kiallasok;
         allapot.sajatKiallasok = allapot.sajatKiallasok.filter((x) => x.kod !== kod);
+        delete allapot.kiallasArak[kod];
+        ment(KIALLAS_AR_KULCS, allapot.kiallasArak);
         delete allapot.konyvtarFelulirasok[regiNev];
         ment(SAJAT_KIALLAS_KULCS, allapot.sajatKiallasok);
         konyvtarFrissites();
@@ -526,12 +541,27 @@ function feleslegesFelulirasokTorlese() {
   return valtozott;
 }
 
+// A kiállás munkadíja (Ft / kiállás): a saját ár, vagy a vízszerelés alapszerelés ára.
+const alapszerelesAr = () => {
+  const f = allapot.munkadijFelulirasok.viz_alapszereles;
+  return Number.isFinite(Number(f?.egysegar)) && f?.egysegar !== '' && f ? Number(f.egysegar) : allapot.tabla.get('viz_alapszereles')?.egysegar ?? 0;
+};
+const kiallasAr = (kod) => allapot.kiallasArak[kod] ?? alapszerelesAr();
+const kiallasArMezo = (kod) => `<label class="mezo"><span>Munkadíj (Ft / kiállás) – alapból ${ft.format(alapszerelesAr())} Ft</span>
+  <input name="ar" type="number" min="0" step="any" inputmode="numeric" required value="${kod ? kiallasAr(kod) : alapszerelesAr()}"></label>`;
+function kiallasArMentese(urlap, kod) {
+  const ar = Number(urlap.elements.ar.value);
+  if (!(ar >= 0) || ar === alapszerelesAr()) delete allapot.kiallasArak[kod];
+  else allapot.kiallasArak[kod] = ar;
+  ment(KIALLAS_AR_KULCS, allapot.kiallasArak);
+}
+
 // Egy kiállás anyagcsomagjának szerkesztése (pl. WC-tartály). Minden további ajánlatra érvényes.
 function kiallasSzerkeszto(nev) {
   const sorok = allapot.konyvtar.get(nev) ?? [];
   const kod = KIALLAS_TIPUSOK.find((t) => t.nev === nev)?.kod;
   const felulirt = Boolean(allapot.konyvtarFelulirasok[nev] && !azonosCsomag(allapot.konyvtarFelulirasok[nev], eredetiCsomag(nev)))
-    || allapot.bovitesek.some((b) => b.kiallas === nev) || Boolean(allapot.kiallasNevek[kod]);
+    || allapot.bovitesek.some((b) => b.kiallas === nev) || Boolean(allapot.kiallasNevek[kod]) || allapot.kiallasArak[kod] !== undefined;
   const hatter = document.createElement('div');
   hatter.className = 'parbeszed-hatter';
   hatter.innerHTML = `<form class="parbeszed munka-urlap" role="dialog" aria-modal="true" aria-labelledby="ks-cim">
@@ -539,6 +569,7 @@ function kiallasSzerkeszto(nev) {
     <p class="muted" style="margin:0">A változás minden további ajánlatra érvényes ezen az eszközön${
       felulirt ? '; ez a kiállás már módosítva van' : ''}.</p>
     <label class="mezo"><span>Megnevezés</span><input name="nev" required value="${escape(kiallasCimke(nev))}"></label>
+    ${kiallasArMezo(kod)}
     <div class="mezo"><span>Anyagcsomag – egy kiállásra számolva</span>${anyagSzerkesztoHtml(sorok)}</div>
     <div class="parbeszed-gombok">
       <button type="submit">Mentés</button>
@@ -566,12 +597,14 @@ function kiallasSzerkeszto(nev) {
       hatter.hidden = true;
       const v = await kerdes({
         cim: 'Eredeti visszaállítása',
-        szoveg: `A(z) ${kiallasCimke(nev)} neve és anyagcsomagja visszaáll az alkalmazás eredetijére; a módosításaid törlődnek.`,
+        szoveg: `A(z) ${kiallasCimke(nev)} neve, munkadíja és anyagcsomagja visszaáll az alkalmazás eredetijére; a módosításaid törlődnek.`,
         gombok: [{ felirat: 'Visszaállítás', ertek: 'igen', stilus: 'veszelyes' }, { felirat: 'Vissza', ertek: 'vissza', stilus: 'masodlagos' }],
       });
       if (v !== 'igen') { hatter.hidden = false; return; }
       delete allapot.konyvtarFelulirasok[nev];
       delete allapot.kiallasNevek[kod];
+      delete allapot.kiallasArak[kod];
+      ment(KIALLAS_AR_KULCS, allapot.kiallasArak);
       allapot.bovitesek = allapot.bovitesek.filter((b) => b.kiallas !== nev);
       kesz();
     }
@@ -588,6 +621,7 @@ function kiallasSzerkeszto(nev) {
     }
     if (ujNev === nev) delete allapot.kiallasNevek[kod];
     else allapot.kiallasNevek[kod] = ujNev;
+    kiallasArMentese(urlap, kod);
     const ujCsomag = anyagSorokOlvasasa(urlap);
     if (azonosCsomag(ujCsomag, allapot.konyvtar.get(nev) ?? [])) {
       // a csomag nem változott: a meglévő állapot marad (nem lesz belőle "módosított")
@@ -692,7 +726,8 @@ const kiallasCimke = (nev) => {
 function kiallasFelepit(ertekek = olvas().kiallasok) {
   const voltCsukva = $('kiallasok').classList.contains('csukva');
   $('kiallasok').innerHTML = osszesKiallas().map((t) => `<label data-kiallas="${escape(t.nev)}"${KIALLAS_TIPUSOK.includes(t) ? '' : ` data-sajat="${t.kod}"`}>
-    <span>${escape(kiallasCimke(t.nev))}</span>
+    <span>${escape(kiallasCimke(t.nev))}${allapot.kiallasArak[t.kod] !== undefined
+      ? `<small class="munka-ar">${ft.format(allapot.kiallasArak[t.kod])} Ft / kiállás</small>` : ''}</span>
     <input type="number" min="0" name="kiallasok.${t.kod}" value="${Number(ertekek?.[t.kod]) > 0 ? ertekek[t.kod] : ''}">
   </label>`).join('');
   leptetok();
@@ -1701,7 +1736,7 @@ function ajanlatEsemenyek() {
   $('mentes-fajlba').addEventListener('click', () => {
     if (allapot.aktualisId) { const r = allapot.ajanlatok.find((x) => x.id === allapot.aktualisId); if (r) rekordFrissites(r); }
     const tartalom = exportAdat(allapot.ajanlatok, { vallalkozo: olvasAdatok().vallalkozo, bovitesek: allapot.bovitesek, sajatMunkak: allapot.sajatMunkak, konyvtarFelulirasok: allapot.konyvtarFelulirasok,
-      munkadijFelulirasok: allapot.munkadijFelulirasok, gerincAnyag: allapot.gerincAnyag, sajatKiallasok: allapot.sajatKiallasok, kiallasNevek: allapot.kiallasNevek });
+      munkadijFelulirasok: allapot.munkadijFelulirasok, gerincAnyag: allapot.gerincAnyag, sajatKiallasok: allapot.sajatKiallasok, kiallasNevek: allapot.kiallasNevek, kiallasArak: allapot.kiallasArak });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([tartalom], { type: 'application/json' }));
     a.download = `arajanlatok-${maISO()}.json`;
@@ -1740,6 +1775,8 @@ function ajanlatEsemenyek() {
       if (ujK.length) { allapot.sajatKiallasok.push(...ujK); ment(SAJAT_KIALLAS_KULCS, allapot.sajatKiallasok); }
       for (const [k, v] of Object.entries(r.beallitasok.kiallasNevek ?? {})) if (!allapot.kiallasNevek[k]) allapot.kiallasNevek[k] = v;
       ment(KIALLAS_NEV_KULCS, allapot.kiallasNevek);
+      for (const [k, v] of Object.entries(r.beallitasok.kiallasArak ?? {})) if (allapot.kiallasArak[k] === undefined) allapot.kiallasArak[k] = v;
+      ment(KIALLAS_AR_KULCS, allapot.kiallasArak);
       kiallasFelepit();
       cimkekFrissitese();
       if (ujBovites.length || ujFelul.length) { konyvtarFrissites(); frissit(); megjelenitPlusz(); }
@@ -1865,6 +1902,7 @@ async function indit() {
   }
   allapot.sajatKiallasok = (betoltMentett(SAJAT_KIALLAS_KULCS) ?? []).filter((k) => k?.kod && k?.nev);
   allapot.kiallasNevek = betoltMentett(KIALLAS_NEV_KULCS) ?? {};
+  allapot.kiallasArak = betoltMentett(KIALLAS_AR_KULCS) ?? {};
   felepit();
   allapot.sajatMunkak = (betoltMentett(SAJAT_MUNKA_KULCS) ?? []).filter((m) => m?.kod && m?.tetel);
   egyebFelepit({});

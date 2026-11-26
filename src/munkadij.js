@@ -84,7 +84,13 @@ export function szamolMunkadij(projekt, tabla) {
   add('padlofutes_kor', padlo);
 
   // Víz
-  const kiallasOsszesen = Object.values(projekt.kiallasok ?? {}).reduce((s, v) => s + szam(v), 0);
+  // Minden kiállás után alapszerelés jár. Ha egy kiállásnak saját munkadíja van
+  // (a táblázatban "alapszereles:<kód>" sorként), az külön sorban szerepel.
+  let kiallasOsszesen = 0;
+  for (const [kod, v] of Object.entries(projekt.kiallasok ?? {})) {
+    if (tabla.has(`alapszereles:${kod}`)) add(`alapszereles:${kod}`, v);
+    else kiallasOsszesen += szam(v);
+  }
   add('viz_alapszereles', kiallasOsszesen);
   add('kulso_viz', projekt.kulsoVizFm);
   add('kulso_szennyviz', projekt.kulsoSzennyvizFm);
