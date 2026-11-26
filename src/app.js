@@ -405,9 +405,11 @@ function munkadijHtml(e) {
 // A hosszú listák alapból csukva vannak; a sávon a darabszám és az összeg látszik.
 // Ami nyitva van, újrarajzoláskor is nyitva marad (oldal-újratöltésig).
 const nyitottListak = new Set();
+const zartListak = new Set(); // amit a felhasználó kifejezetten becsukott
 
-function lenyilo(kulcs, cim, osszegzes, tartalom) {
-  const nyitva = nyitottListak.has(kulcs);
+// alapNyitva: rövid listáknál alapból nyitva (amíg be nem csukják).
+function lenyilo(kulcs, cim, osszegzes, tartalom, alapNyitva = false) {
+  const nyitva = nyitottListak.has(kulcs) || (alapNyitva && !zartListak.has(kulcs));
   return `<div class="lenyilo">
     <button type="button" class="lenyilo-gomb" data-lenyilo="${kulcs}" aria-expanded="${nyitva}">
       <span class="nyil" aria-hidden="true"></span><span class="lenyilo-cim">${cim}</span>
@@ -423,7 +425,8 @@ document.addEventListener('click', (ev) => {
   const nyit = b.getAttribute('aria-expanded') !== 'true';
   b.setAttribute('aria-expanded', String(nyit));
   b.nextElementSibling.hidden = !nyit;
-  if (nyit) nyitottListak.add(b.dataset.lenyilo); else nyitottListak.delete(b.dataset.lenyilo);
+  if (nyit) { nyitottListak.add(b.dataset.lenyilo); zartListak.delete(b.dataset.lenyilo); }
+  else { nyitottListak.delete(b.dataset.lenyilo); zartListak.add(b.dataset.lenyilo); }
 });
 
 // ---- Anyaglista ----
@@ -455,13 +458,35 @@ function megjelenitAnyag() {
       <td>${escape(s.cikk)}${s.plusz ? ` <span class="cimke">${s.forras === 'pdf' ? 'bolt' : 'plusz'}</span>` : ''}</td>
       <td class="num">${ft.format(s.mennyiseg)} ${escape(s.egyseg)}${s.listaMennyiseg !== undefined
         ? `<div class="muted">PDF szerint; lista: ${ft.format(s.listaMennyiseg)}</div>` : ''}</td>
+      <td class="torles-oszlop">${s.plusz ? `<button type="button" class="sor-torles" data-plusz-torles="${escape(tetelKulcs(s))}"
+        aria-label="Törlés: ${escape(s.cikk)}" title="Törlés">×</button>` : ''}</td>
     </tr>`).join('');
   $('anyaglista').innerHTML = figyelmeztetesHtml(e.figyelmeztetesek) + lenyilo('anyaglista', `Tételek (${e.sorok.length})`, '', `
     <table>
-      <thead><tr>${vanCikkszam ? '<th>Cikkszám</th>' : ''}<th>Cikk</th><th class="num">Mennyiség</th></tr></thead>
+      <thead><tr>${vanCikkszam ? '<th>Cikkszám</th>' : ''}<th>Cikk</th><th class="num">Mennyiség</th><th class="torles-oszlop"></th></tr></thead>
       <tbody>${sorok}</tbody>
     </table>`);
 }
+
+// Plusz tétel törlése közvetlenül az anyaglistából (× gomb).
+document.addEventListener('click', async (ev) => {
+  const b = ev.target.closest('[data-plusz-torles]');
+  if (!b) return;
+  const kulcs = b.dataset.pluszTorles;
+  const t = allapot.plusz.find((x) => tetelKulcs(x) === kulcs);
+  if (!t) return;
+  const v = await kerdes({
+    cim: 'Tétel törlése',
+    szoveg: `Törlöd az anyaglistáról: „${t.cikk}” (${ft.format(t.mennyiseg)} ${t.egyseg})?`,
+    gombok: [{ felirat: 'Törlés', ertek: 'torles', stilus: 'veszelyes' }, { felirat: 'Vissza', ertek: 'vissza', stilus: 'masodlagos' }],
+  });
+  if (v !== 'torles') return;
+  allapot.plusz = allapot.plusz.filter((x) => tetelKulcs(x) !== kulcs);
+  ment(PLUSZ_KULCS, allapot.plusz);
+  frissit();
+  megjelenitPlusz();
+  megjelenitArTabla(true);
+});
 
 // ---- Árak ----
 
@@ -699,7 +724,7 @@ function megjelenitPlusz() {
 
   $('plusz').innerHTML = `
     <h2 class="kartya-fej"><span class="fej-ikon">${ikon('plusz')}</span>Plusz tételek</h2>
-    ${allapot.plusz.length ? lenyilo('plusz', `Plusz tételek (${allapot.plusz.length})`, '', `<ul class="plusz-lista">${sorok}</ul>`)
+    ${allapot.plusz.length ? lenyilo('plusz', `Plusz tételek (${allapot.plusz.length})`, '', `<ul class="plusz-lista">${sorok}</ul>`, allapot.plusz.length <= 5)
       : '<p class="muted">A bolt PDF-jében talált új tételek, vagy amit kézzel adsz hozzá. A „Könyvtárba…” gombbal egy kiállás csomagjába is elmenthető, így legközelebb magától benne lesz.</p>'}
     <form id="plusz-uj" class="plusz-uj">
       <input id="plusz-uj-cikk" placeholder="Új tétel megnevezése" aria-label="Új tétel megnevezése" required>
