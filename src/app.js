@@ -454,8 +454,8 @@ function megjelenitAnyag() {
   const vanCikkszam = e.sorok.some((s) => s.cikkszam);
   const sorok = e.sorok.map((s) => `
     <tr>
-      ${vanCikkszam ? `<td>${escape(s.cikkszam)}</td>` : ''}
-      <td>${escape(s.cikk)}${s.plusz ? ` <span class="cimke">${s.forras === 'pdf' ? 'bolt' : 'plusz'}</span>` : ''}</td>
+      <td class="cikk-oszlop">${escape(s.cikk)}${s.plusz ? ` <span class="cimke">${s.forras === 'pdf' ? 'bolt' : 'plusz'}</span>` : ''}${
+        s.cikkszam ? `<div class="cikkszam">${escape(s.cikkszam)}</div>` : ''}</td>
       <td class="num">${ft.format(s.mennyiseg)} ${escape(s.egyseg)}${s.listaMennyiseg !== undefined
         ? `<div class="muted">PDF szerint; lista: ${ft.format(s.listaMennyiseg)}</div>` : ''}</td>
       <td class="torles-oszlop">${s.plusz ? `<button type="button" class="sor-torles" data-plusz-torles="${escape(tetelKulcs(s))}"
@@ -463,7 +463,7 @@ function megjelenitAnyag() {
     </tr>`).join('');
   $('anyaglista').innerHTML = figyelmeztetesHtml(e.figyelmeztetesek) + lenyilo('anyaglista', `Tételek (${e.sorok.length})`, '', `
     <table>
-      <thead><tr>${vanCikkszam ? '<th>Cikkszám</th>' : ''}<th>Cikk</th><th class="num">Mennyiség</th><th class="torles-oszlop"></th></tr></thead>
+      <thead><tr><th>Cikk${vanCikkszam ? ' / cikkszám' : ''}</th><th class="num">Mennyiség</th><th class="torles-oszlop"></th></tr></thead>
       <tbody>${sorok}</tbody>
     </table>`);
 }

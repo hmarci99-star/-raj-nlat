@@ -170,14 +170,13 @@ K\xF6sz\xF6n\xF6m sz\xE9pen el\u0151re is.
 ${e}
 `;function vs(){let e=i.anyag;q("jelveny-anyag",e.sorok.length?String(e.sorok.length):"");let t=Be(e.sorok);if(u("email").href=`mailto:?subject=${encodeURIComponent("\xC1raj\xE1nlatk\xE9r\xE9s \u2013 anyaglista")}&body=${encodeURIComponent(va(t))}`,u("anyag-gombok").hidden=e.sorok.length===0,e.sorok.length===0){u("anyaglista").innerHTML=We(e.figyelmeztetesek)+'<p class="muted">Adj meg ki\xE1ll\xE1st vagy gerincet.</p>';return}let a=e.sorok.some(n=>n.cikkszam),s=e.sorok.map(n=>`
     <tr>
-      ${a?`<td>${m(n.cikkszam)}</td>`:""}
-      <td>${m(n.cikk)}${n.plusz?` <span class="cimke">${n.forras==="pdf"?"bolt":"plusz"}</span>`:""}</td>
+      <td class="cikk-oszlop">${m(n.cikk)}${n.plusz?` <span class="cimke">${n.forras==="pdf"?"bolt":"plusz"}</span>`:""}${n.cikkszam?`<div class="cikkszam">${m(n.cikkszam)}</div>`:""}</td>
       <td class="num">${K.format(n.mennyiseg)} ${m(n.egyseg)}${n.listaMennyiseg!==void 0?`<div class="muted">PDF szerint; lista: ${K.format(n.listaMennyiseg)}</div>`:""}</td>
       <td class="torles-oszlop">${n.plusz?`<button type="button" class="sor-torles" data-plusz-torles="${m(x(n))}"
         aria-label="T\xF6rl\xE9s: ${m(n.cikk)}" title="T\xF6rl\xE9s">\xD7</button>`:""}</td>
     </tr>`).join("");u("anyaglista").innerHTML=We(e.figyelmeztetesek)+oe("anyaglista",`T\xE9telek (${e.sorok.length})`,"",`
     <table>
-      <thead><tr>${a?"<th>Cikksz\xE1m</th>":""}<th>Cikk</th><th class="num">Mennyis\xE9g</th><th class="torles-oszlop"></th></tr></thead>
+      <thead><tr><th>Cikk${a?" / cikksz\xE1m":""}</th><th class="num">Mennyis\xE9g</th><th class="torles-oszlop"></th></tr></thead>
       <tbody>${s}</tbody>
     </table>`)}document.addEventListener("click",async e=>{let t=e.target.closest("[data-plusz-torles]");if(!t)return;let a=t.dataset.pluszTorles,s=i.plusz.find(l=>x(l)===a);!s||await rt({cim:"T\xE9tel t\xF6rl\xE9se",szoveg:`T\xF6rl\xF6d az anyaglist\xE1r\xF3l: \u201E${s.cikk}\u201D (${K.format(s.mennyiseg)} ${s.egyseg})?`,gombok:[{felirat:"T\xF6rl\xE9s",ertek:"torles",stilus:"veszelyes"},{felirat:"Vissza",ertek:"vissza",stilus:"masodlagos"}]})!=="torles"||(i.plusz=i.plusz.filter(l=>x(l)!==a),j(V,i.plusz),E(),N(),Z(!0))});var ia=(e,t,a)=>`<input type="text" inputmode="decimal" class="ar"
   data-kulcs="${m(e)}" data-mezo="${t}" value="${a??""}" aria-label="${t==="bolti"?"Bolti \xE1r":"Kedvezm\xE9nyes \xE1r"}">`;function Z(e=!1){let t=i.anyag.sorok,a=t.map(n=>`${x(n)}=${n.mennyiseg}`).join(`
