@@ -15,7 +15,7 @@
       --bg: #f3f5f8; --card: #ffffff; --text: #17202b; --muted: #5d6b7b; --line: #dfe4eb;
       --accent: #1f5fbf; --accent-soft: #e8f0fb; --on-accent: #ffffff;
       --warn-bg: #fff4d6; --warn: #7a5600; --error: #c62828; --ok: #2e7d32; --ok-bg: #e3f3e5; --error-bg: #fbe6e6;
-      --radius: 12px; --nav-h: 64px;
+      --radius: 10px; --nav-h: 56px;
     }
     @media (prefers-color-scheme: dark) {
       :root {
@@ -29,20 +29,20 @@
     [hidden] { display: none !important; }
     html { -webkit-text-size-adjust: 100%; }
     body { margin: 0; background: var(--bg); color: var(--text);
-      font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      font: 15px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
       padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px) + 16px); }
     button, input, select, textarea { font: inherit; color: inherit; }
 
     /* ---- Felső sáv: név és összegek ---- */
     .felso { position: sticky; top: 0; z-index: 20; background: var(--card); border-bottom: 1px solid var(--line);
-      padding: calc(env(safe-area-inset-top, 0px) + 10px) max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px)); }
+      padding: calc(env(safe-area-inset-top, 0px) + 6px) max(16px, env(safe-area-inset-right, 0px)) 6px max(16px, env(safe-area-inset-left, 0px)); }
     .felso-belso { max-width: 760px; margin: 0 auto; display: flex; align-items: center; gap: 16px; }
     .felso h1 { font-size: 1.05rem; margin: 0; letter-spacing: .01em; flex: none; }
     .osszegek { display: flex; gap: 14px; margin-left: auto; font-variant-numeric: tabular-nums; min-width: 0; }
     .osszegek div { display: flex; flex-direction: column; align-items: flex-end; min-width: 0; }
-    .osszegek dt { font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
-    .osszegek dd { margin: 0; font-weight: 600; font-size: .92rem; white-space: nowrap; }
-    .osszegek .fo dd { color: var(--accent); font-size: 1rem; }
+    .osszegek dt { font-size: .62rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+    .osszegek dd { margin: 0; font-weight: 600; font-size: .88rem; white-space: nowrap; }
+    .osszegek .fo dd { color: var(--accent); font-size: .95rem; }
     @media (max-width: 420px) { .felso h1 { display: none; } .osszegek { margin-left: 0; width: 100%; justify-content: space-between; } }
 
     /* ---- Fülek ---- */
@@ -53,13 +53,13 @@
     .ful { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
       height: var(--nav-h); border: 0; background: none; color: var(--muted); cursor: pointer; position: relative;
       font-size: .74rem; -webkit-tap-highlight-color: transparent; touch-action: manipulation; min-width: 0; }
-    .ful svg { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 1.8;
+    .ful svg { width: 21px; height: 21px; stroke: currentColor; fill: none; stroke-width: 1.8;
       stroke-linecap: round; stroke-linejoin: round; }
     .ful[aria-current="page"] { color: var(--accent); font-weight: 600; }
     .ful[aria-current="page"]::before { content: ""; position: absolute; top: 0; left: 25%; right: 25%; height: 3px;
       border-radius: 0 0 3px 3px; background: var(--accent); }
     .ful:focus-visible { outline: 2px solid var(--accent); outline-offset: -4px; border-radius: 8px; }
-    .jelveny { position: absolute; top: 8px; left: calc(50% + 8px); min-width: 18px; padding: 0 5px; border-radius: 999px;
+    .jelveny { position: absolute; top: 5px; left: calc(50% + 8px); min-width: 18px; padding: 0 5px; border-radius: 999px;
       background: var(--accent); color: var(--on-accent); font-size: .68rem; font-weight: 700; line-height: 18px;
       text-align: center; font-variant-numeric: tabular-nums; }
     .jelveny:empty { display: none; }
@@ -74,27 +74,27 @@
 
     /* ---- Nézetek és kártyák ---- */
     main { max-width: 760px; margin: 0 auto;
-      padding: 16px max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px)); }
-    .nezet { display: grid; gap: 14px; }
-    .nezet-cim { margin: 4px 2px 0; font-size: 1.35rem; }
-    .nezet-leiras { margin: -8px 2px 0; color: var(--muted); font-size: .92rem; }
+      padding: 10px max(12px, env(safe-area-inset-right, 0px)) 0 max(12px, env(safe-area-inset-left, 0px)); }
+    .nezet { display: grid; gap: 10px; }
+    .nezet-cim { margin: 2px 2px 0; font-size: 1.15rem; }
+    .nezet-leiras { margin: -6px 2px 0; color: var(--muted); font-size: .85rem; }
     .nezet-fej { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
     .nezet-fej-szoveg { min-width: 0; display: grid; gap: 10px; }
     .nezet-fej .nezet-leiras { margin: -6px 2px 0; overflow-wrap: anywhere; }
     .nezet-fej .nezet-leiras:empty { display: none; }
     .nezet-fej > button { flex: none; }
-    .kartya { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; min-width: 0; }
-    .kartya > h2 { font-size: 1rem; margin: 0 0 12px; display: flex; gap: 10px; align-items: center; }
+    .kartya { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; min-width: 0; }
+    .kartya > h2 { font-size: .95rem; margin: 0 0 4px; display: flex; gap: 10px; align-items: center; }
     .kartya > h2 .muted { font-weight: 400; margin-left: auto; }
 
     /* ---- Piktogramok ---- */
     .ikon { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
-    .fej-ikon { width: 32px; height: 32px; border-radius: 9px; background: var(--accent); color: var(--on-accent);
+    .fej-ikon { width: 26px; height: 26px; border-radius: 7px; background: var(--accent); color: var(--on-accent);
       display: grid; place-items: center; flex: none; }
-    .fej-ikon .ikon { width: 19px; height: 19px; stroke-width: 1.9; }
-    .mezo-ikon { width: 36px; height: 36px; border-radius: 10px; background: var(--accent-soft); color: var(--accent);
+    .fej-ikon .ikon { width: 16px; height: 16px; stroke-width: 2; }
+    .mezo-ikon { width: 28px; height: 28px; border-radius: 7px; background: var(--accent-soft); color: var(--accent);
       display: grid; place-items: center; flex: none; transition: background-color .15s, color .15s; }
-    .mezo-ikon .ikon { width: 22px; height: 22px; }
+    .mezo-ikon .ikon { width: 18px; height: 18px; }
     label.kitoltott .mezo-ikon { background: var(--accent); color: var(--on-accent); }
     label.kitoltott .mezo-nev { font-weight: 600; }
     .button .ikon, button .ikon, .fajl-gomb .ikon { width: 18px; height: 18px; flex: none; }
@@ -104,52 +104,52 @@
     .kartya.belso { border-style: dashed; }
     h3 { font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 18px 0 6px; }
     .kartya > h3:first-of-type { margin-top: 0; }
-    .tovabb { display: flex; justify-content: flex-end; margin-bottom: 76px; } /* hely a hanggombnak */
+    .tovabb { display: flex; justify-content: flex-end; margin-bottom: 64px; } /* hely a hanggombnak */
     .tovabb button { min-width: 50%; }
 
     /* ---- Mezők ---- */
-    .mezolista { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 2px 24px; }
+    .mezolista { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 0 24px; }
     .mezolista label, .sor-mezo { display: flex; justify-content: space-between; align-items: center; gap: 12px;
-      min-height: 48px; border-bottom: 1px solid var(--line); }
+      min-height: 40px; border-bottom: 1px solid var(--line); }
     .mezolista label .mezo-nev { flex: 1; min-width: 0; }
     .lepteto { display: inline-flex; align-items: stretch; flex: none; }
-    .lepteto input[type=number] { width: 52px; border-radius: 0; text-align: center; -moz-appearance: textfield; }
+    .lepteto input[type=number] { width: 42px; padding: 4px 2px; border-radius: 0; text-align: center; -moz-appearance: textfield; }
     .lepteto input[type=number]::-webkit-inner-spin-button,
     .lepteto input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-    .lepes { width: 38px; min-height: 38px; padding: 0; font-size: 1.2rem; line-height: 1; cursor: pointer;
+    .lepes { width: 34px; min-height: 32px; padding: 0; font-size: 1.2rem; line-height: 1; cursor: pointer;
       border: 1px solid var(--line); background: var(--card); color: var(--accent); touch-action: manipulation; }
     .lepes:first-child { border-radius: 8px 0 0 8px; border-right: none; }
     .lepes:last-child { border-radius: 0 8px 8px 0; border-left: none; }
     .lepes:active { background: var(--accent-soft); }
     .lepes:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; position: relative; }
     input[type=number], input[type=text], input[type=date], input[type=tel], input[type=email], input:not([type]), select, textarea {
-      padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--text); }
+      padding: 6px 8px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg); color: var(--text); }
     input[type=number] { width: 80px; text-align: right; }
     input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 0; border-color: var(--accent); }
-    .check { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+    .check { display: flex; align-items: center; gap: 10px; min-height: 36px; }
     .muted { color: var(--muted); font-size: .9rem; }
-    .megj { color: var(--muted); font-size: .85rem; margin: 10px 0 0; }
+    .megj { color: var(--muted); font-size: .78rem; margin: 6px 0 0; }
 
     /* ---- Táblázatok ---- */
     table { width: 100%; border-collapse: collapse; }
-    th, td { padding: 9px 4px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th, td { padding: 6px 4px; border-bottom: 1px solid var(--line); vertical-align: top; }
     th { text-align: left; font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 600; }
     td.num, th.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
     tfoot td { font-weight: 700; border-bottom: none; }
     @media (max-width: 520px) { .hide-sm { display: none; } }
 
     /* ---- Gombok, üzenetek ---- */
-    button, .button { padding: 10px 18px; border-radius: 10px; border: 1px solid var(--accent);
+    button, .button { padding: 8px 14px; border-radius: 9px; border: 1px solid var(--accent);
       background: var(--accent); color: var(--on-accent); text-decoration: none; cursor: pointer; font-weight: 600;
       text-align: center; touch-action: manipulation; }
     .button { background: transparent; color: var(--accent); }
     .button.fo-gomb { background: var(--accent); color: var(--on-accent); }
-    .kartya-fej { font-size: 1rem; margin: 0 0 12px; display: flex; gap: 10px; align-items: center; }
-    button.kicsi, .button.kicsi { padding: 6px 12px; font-size: .88rem; border-radius: 8px; }
+    .kartya-fej { font-size: .95rem; margin: 0 0 6px; display: flex; gap: 10px; align-items: center; }
+    button.kicsi, .button.kicsi { padding: 5px 10px; font-size: .85rem; border-radius: 7px; }
     button:disabled { opacity: .5; cursor: default; }
     button:focus-visible, .button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-    .actions { display: flex; gap: 10px; align-items: center; margin-top: 14px; flex-wrap: wrap; }
-    .anyag-gombok { margin: 0 0 12px; }
+    .actions { display: flex; gap: 8px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+    .anyag-gombok { margin: 0 0 8px; }
     .warn { background: var(--warn-bg); color: var(--warn); padding: 10px 12px; border-radius: 8px; margin: 0 0 10px; font-size: .92rem; }
     .error { color: var(--error); }
     .cimke { font-size: .68rem; text-transform: uppercase; letter-spacing: .05em; padding: 1px 6px; font-weight: 600;
@@ -163,20 +163,20 @@
     .allapot-valaszto { min-width: 0; max-width: 100%; }
     .ev-sor { display: flex; justify-content: flex-end; margin-bottom: 12px; }
     .ev-valaszto { display: flex; align-items: center; gap: 8px; font-size: .9rem; color: var(--muted); }
-    .kpi-racs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-    .kpi { display: flex; flex-direction: column; gap: 2px; padding: 12px; border-radius: 10px; background: var(--bg); min-width: 0; }
+    .kpi-racs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .kpi { display: flex; flex-direction: column; gap: 1px; padding: 9px 10px; border-radius: 10px; background: var(--bg); min-width: 0; }
     .kpi-fo { grid-column: 1 / -1; background: var(--accent); color: var(--on-accent); }
     .kpi:last-child { grid-column: 1 / -1; }
     .kpi-cim { font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; opacity: .8; }
     .kpi-ertek { font-size: 1.25rem; font-weight: 700; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-    .kpi-fo .kpi-ertek { font-size: 1.7rem; }
+    .kpi-fo .kpi-ertek { font-size: 1.5rem; }
     .kpi-al { font-size: .8rem; opacity: .8; overflow-wrap: anywhere; }
     .szurok { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; }
     .szuro { flex: none; padding: 7px 14px; border-radius: 999px; font-size: .88rem; font-weight: 600;
       background: var(--card); color: var(--muted); border: 1px solid var(--line); }
     .szuro.aktiv { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
-    .ajanlat-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
-    .ajanlat-kartya { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; display: grid; gap: 10px; }
+    .ajanlat-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+    .ajanlat-kartya { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; display: grid; gap: 8px; }
     .ajanlat-kartya.aktualis { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
     .ak-fej { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
     .ak-nev { display: flex; flex-direction: column; min-width: 0; overflow-wrap: anywhere; }
@@ -230,8 +230,8 @@
     .anyag-sorok { max-height: 46vh; overflow: auto; }
 
     /* ---- Lenyitható tétellisták ---- */
-    .lenyilo { margin: 10px 0; }
-    .lenyilo-gomb { display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 14px; border-radius: 10px;
+    .lenyilo { margin: 6px 0; }
+    .lenyilo-gomb { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 12px; border-radius: 9px;
       border: 1px solid var(--line); background: var(--bg); color: var(--text); font-weight: 600; text-align: left;
       -webkit-tap-highlight-color: transparent; }
     .lenyilo-gomb .nyil { flex: none; width: 8px; height: 8px; border-right: 2px solid var(--accent); border-bottom: 2px solid var(--accent);
@@ -249,7 +249,7 @@
       padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; min-width: 0; }
     .jeloltek li > span, .bovites-lista li > span { min-width: 0; overflow-wrap: anywhere; }
     .jeloltek button, .bovites-lista button { flex: none; }
-    .plusz-sor { padding: 10px; border: 1px solid var(--line); border-radius: 8px; display: grid; gap: 8px; }
+    .plusz-sor { padding: 8px; border: 1px solid var(--line); border-radius: 8px; display: grid; gap: 8px; }
     .plusz-fej { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
     .plusz-nev { min-width: 0; overflow-wrap: anywhere; }
     .plusz-menny { flex: none; white-space: nowrap; }
@@ -274,9 +274,9 @@
     /* ---- Hangos árajánlat ---- */
     .hangos-fab { position: fixed; z-index: 25; right: max(16px, env(safe-area-inset-right, 0px));
       bottom: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px) + 14px);
-      display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; padding: 0;
+      display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; padding: 0;
       box-shadow: 0 6px 18px rgba(16, 40, 80, .25); }
-    .hangos-fab svg, .hangos-mic svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+    .hangos-fab svg, .hangos-mic svg { width: 23px; height: 23px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
     .hangos { position: fixed; z-index: 30; left: 0; right: 0; margin: 0 auto; max-width: 760px;
       bottom: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px)); max-height: 58vh; overflow: auto;
       background: var(--card); border: 1px solid var(--line); border-bottom: 0; border-radius: 16px 16px 0 0;
@@ -315,8 +315,8 @@
     .diktalt .jeloltek li > span.nowrap { display: flex; gap: 8px; }
 
     /* ---- Árak ---- */
-    .feltoltesek { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
-    .feltoltes { display: flex; flex-direction: column; gap: 8px; min-width: 0; padding: 12px;
+    .feltoltesek { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px; }
+    .feltoltes { display: flex; flex-direction: column; gap: 6px; min-width: 0; padding: 8px;
       border: 1px dashed var(--line); border-radius: 10px; }
     .fajl-gomb { display: block; }
     .rejtett-fajl { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
@@ -340,15 +340,16 @@
     input.ar.hibas { border-color: var(--error); }
 
     /* ---- Ajánlat ---- */
-    .adatok { display: grid; gap: 12px; }
+    .adatok { display: grid; gap: 8px; }
     .adatok .mezo { display: flex; flex-direction: column; gap: 4px; }
     .adatok .mezo span { font-size: .85rem; color: var(--muted); }
     .adatok input, .adatok textarea { width: 100%; text-align: left; }
-    .adatok .harmas { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
-    .adatok details { display: grid; gap: 12px; }
+    .adatok .harmas { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) minmax(0, .8fr); gap: 8px; align-items: end; }
+    .adatok .harmas input { min-width: 0; padding-left: 6px; padding-right: 4px; }
+    .adatok details { display: grid; gap: 8px; }
     .adatok details[open] > summary { margin-bottom: 4px; }
-    .vegosszeg { display: flex; justify-content: space-between; font-size: 1.15rem; font-weight: 700;
-      border-top: 2px solid var(--text); padding-top: 10px; margin-top: 16px; font-variant-numeric: tabular-nums; }
+    .vegosszeg { display: flex; justify-content: space-between; font-size: 1.1rem; font-weight: 700;
+      border-top: 2px solid var(--text); padding-top: 8px; margin-top: 10px; font-variant-numeric: tabular-nums; }
     .osszesito { display: grid; grid-template-columns: 1fr auto; gap: 6px 16px; margin: 16px 0 0; font-variant-numeric: tabular-nums; }
     .osszesito dt { color: var(--muted); }
     .osszesito dd { margin: 0; text-align: right; font-weight: 600; }
@@ -619,6 +620,6 @@
   </div>
 </main>
 <div id="nyomtat"></div>
-<script type="module" src="dist/app.js?v=8727aa9b16"></script>
+<script type="module" src="dist/app.js?v=4afef5da5f"></script>
 </body>
 </html>

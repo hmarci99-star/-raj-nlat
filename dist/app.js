@@ -308,7 +308,7 @@ ${e}
       ${Ea(e)}
     </div>
     <div class="actions"><button type="button" class="kicsi button" data-ajanlat-muvelet="uj">\xDAj aj\xE1nlat</button>
-      <button type="button" class="kicsi button" data-ajanlat-muvelet="lista">\xD6sszes aj\xE1nlat</button></div>`:`<p class="muted">Ez az aj\xE1nlat m\xE9g nincs elmentve. Ment\xE9s ut\xE1n az Aj\xE1nlatok k\xF6z\xF6tt k\xF6vetheted az \xE1llapot\xE1t \xE9s a profitj\xE1t.</p>
+      <button type="button" class="kicsi button" data-ajanlat-muvelet="lista">\xD6sszes aj\xE1nlat</button></div>`:`<p class="muted" style="margin:0">M\xE9g nincs elmentve \u2013 ment\xE9s ut\xE1n az Aj\xE1nlatok k\xF6z\xF6tt k\xF6vetheted.</p>
     <div class="actions"><button type="button" class="kicsi" data-ajanlat-muvelet="mentes">Ment\xE9s az aj\xE1nlatok k\xF6z\xE9</button>
       <button type="button" class="kicsi button" data-ajanlat-muvelet="uj">\xDAj aj\xE1nlat</button></div>`}function I(){let e=i.ajanlatok,t=Jt(e);i.ajanlatEv!=="mind"&&!t.includes(i.ajanlatEv)&&(i.ajanlatEv="mind");let a=Zt(e,i.ajanlatEv);q("jelveny-ajanlatok",a.fuggoDb?String(a.fuggoDb):""),u("ajanlatok-osszesites").innerHTML=`
     <div class="ev-sor">

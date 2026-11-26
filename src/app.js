@@ -1128,7 +1128,7 @@ function megjelenitAjanlatAllapot() {
     </div>
     <div class="actions"><button type="button" class="kicsi button" data-ajanlat-muvelet="uj">Új ajánlat</button>
       <button type="button" class="kicsi button" data-ajanlat-muvelet="lista">Összes ajánlat</button></div>`
-    : `<p class="muted">Ez az ajánlat még nincs elmentve. Mentés után az Ajánlatok között követheted az állapotát és a profitját.</p>
+    : `<p class="muted" style="margin:0">Még nincs elmentve – mentés után az Ajánlatok között követheted.</p>
     <div class="actions"><button type="button" class="kicsi" data-ajanlat-muvelet="mentes">Mentés az ajánlatok közé</button>
       <button type="button" class="kicsi button" data-ajanlat-muvelet="uj">Új ajánlat</button></div>`;
 }
