@@ -35,15 +35,16 @@
 
     /* ---- Felső sáv: név és összegek ---- */
     .felso { position: sticky; top: 0; z-index: 20; background: var(--card); border-bottom: 1px solid var(--line);
-      padding: calc(env(safe-area-inset-top, 0px) + 6px) max(16px, env(safe-area-inset-right, 0px)) 6px max(16px, env(safe-area-inset-left, 0px)); }
+      padding: calc(env(safe-area-inset-top, 0px) + 3px) max(16px, env(safe-area-inset-right, 0px)) 3px max(16px, env(safe-area-inset-left, 0px)); }
     .felso-belso { max-width: 760px; margin: 0 auto; display: flex; align-items: center; gap: 16px; }
     .felso h1 { font-size: 1.05rem; margin: 0; letter-spacing: .01em; flex: none; }
     .osszegek { display: flex; gap: 14px; margin-left: auto; font-variant-numeric: tabular-nums; min-width: 0; }
-    .osszegek div { display: flex; flex-direction: column; align-items: flex-end; min-width: 0; }
-    .osszegek dt { font-size: .62rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
-    .osszegek dd { margin: 0; font-weight: 600; font-size: .88rem; white-space: nowrap; }
-    .osszegek .fo dd { color: var(--accent); font-size: .95rem; }
-    @media (max-width: 420px) { .felso h1 { display: none; } .osszegek { margin-left: 0; width: 100%; justify-content: space-between; } }
+    .osszegek div { display: flex; align-items: baseline; gap: 5px; min-width: 0; line-height: 1.25; }
+    .osszegek dt { font-size: .66rem; color: var(--muted); white-space: nowrap; }
+    .osszegek dd { margin: 0; font-weight: 600; font-size: .8rem; white-space: nowrap; }
+    .osszegek .fo dd { color: var(--accent); }
+    @media (max-width: 420px) { .felso h1 { display: none; } .osszegek { margin-left: 0; width: 100%; justify-content: space-between; gap: 8px; } }
+    @media (max-width: 370px) { .osszegek dt { display: none; } }
 
     /* ---- Fülek ---- */
     .fulek { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: var(--card);
@@ -65,7 +66,7 @@
     .jelveny:empty { display: none; }
     @media (min-width: 761px) {
       body { padding-bottom: 32px; }
-      .fulek { position: sticky; top: 61px; bottom: auto; border-top: 0; border-bottom: 1px solid var(--line); }
+      .fulek { position: sticky; top: 31px; bottom: auto; border-top: 0; border-bottom: 1px solid var(--line); }
       .ful { flex-direction: row; gap: 8px; height: 48px; font-size: .92rem; }
       .ful svg { width: 20px; height: 20px; }
       .ful[aria-current="page"]::before { top: auto; bottom: 0; border-radius: 3px 3px 0 0; }
@@ -426,9 +427,9 @@
   <div class="felso-belso">
     <h1>Árajánlat</h1>
     <dl class="osszegek" aria-label="Összegek">
-      <div><dt>Munkadíj</dt><dd id="sum-munkadij">–</dd></div>
-      <div><dt>Anyag</dt><dd id="sum-anyag">–</dd></div>
-      <div class="fo"><dt>Végösszeg</dt><dd id="sum-vegosszeg">–</dd></div>
+      <div title="Munkadíj"><dt>Munka</dt><dd id="sum-munkadij">–</dd></div>
+      <div title="Anyag"><dt>Anyag</dt><dd id="sum-anyag">–</dd></div>
+      <div class="fo" title="Végösszeg"><dt>Össz.</dt><dd id="sum-vegosszeg">–</dd></div>
     </dl>
   </div>
 </header>
