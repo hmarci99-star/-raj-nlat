@@ -111,4 +111,4 @@ A weboldal statikus fájlokból áll. Közvetlenül fájlként (`file://`) megny
 
 ## Kinézet
 
-Az Ajánlatok lépés alján a „Kinézet” kártyán választható: Kék (alap), Narancs vagy Sárga (fekete–sárga, szögletes). Világos és sötét módban is működik; a választás az eszközön megmarad.
+Az Ajánlatok lépés alján a „Kinézet” kártyán választható: Kék (alap), Narancs, Sárga (fekete–sárga, szögletes), Smaragd (zöld, lekerekített) vagy Letisztult (szinte fekete-fehér). Világos és sötét módban is működik; a választás az eszközön megmarad.

@@ -38,7 +38,23 @@
       --bg: #f2f2f0; --card: #ffffff; --text: #111111; --muted: #555555; --line: #cfcfcc;
       --accent: #111111; --accent-soft: #fff3b0; --on-accent: #ffd400; --radius: 4px;
     }
+    html[data-tema="smaragd"] {
+      --bg: #eef4f1; --card: #ffffff; --text: #13221c; --muted: #5a6d65; --line: #dbe6e0;
+      --accent: #0f7a5a; --accent-soft: #e0f2ea; --on-accent: #ffffff; --radius: 16px;
+    }
+    html[data-tema="letisztult"] {
+      --bg: #ffffff; --card: #f7f8fa; --text: #0f172a; --muted: #64748b; --line: #eef0f3;
+      --accent: #334155; --accent-soft: #eef2f7; --on-accent: #ffffff; --radius: 12px;
+    }
     @media (prefers-color-scheme: dark) {
+      html[data-tema="smaragd"] {
+        --bg: #0d1613; --card: #14201c; --text: #e3efe9; --muted: #93aaa0; --line: #24352f;
+        --accent: #3fd19b; --accent-soft: #163329; --on-accent: #06140f;
+      }
+      html[data-tema="letisztult"] {
+        --bg: #0a0c10; --card: #12151b; --text: #e8ebf0; --muted: #8b95a5; --line: #1b2029;
+        --accent: #cbd5e1; --accent-soft: #1c222c; --on-accent: #0a0c10;
+      }
       html[data-tema="narancs"] {
         --bg: #141210; --card: #1e1b18; --text: #efe9e2; --muted: #a59a8e; --line: #332e29;
         --accent: #ff8a3d; --accent-soft: #3a2516; --on-accent: #1a0f06;
@@ -53,6 +69,9 @@
     html[data-tema="sarga"] button, html[data-tema="sarga"] .button, html[data-tema="sarga"] input,
     html[data-tema="sarga"] select, html[data-tema="sarga"] textarea { border-radius: 4px; }
     html[data-tema="sarga"] .hangos-fab, html[data-tema="sarga"] .jelveny { border-radius: 999px; }
+    html[data-tema="smaragd"] button, html[data-tema="smaragd"] .button { border-radius: 999px; }
+    html[data-tema="smaragd"] .tema-gomb { border-radius: 12px; }
+    html[data-tema="letisztult"] .kartya { border-color: transparent; box-shadow: none; }
     .tema-valaszto { display: flex; gap: 8px; flex-wrap: wrap; }
     .tema-gomb { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid var(--line);
       border-radius: var(--radius); background: var(--card); color: var(--text); cursor: pointer; font-weight: 600; }
@@ -690,12 +709,14 @@
         <button type="button" class="tema-gomb" data-tema="kek"><span class="tema-minta" style="background:#1f5fbf"></span>Kék</button>
         <button type="button" class="tema-gomb" data-tema="narancs"><span class="tema-minta" style="background:#e8711c"></span>Narancs</button>
         <button type="button" class="tema-gomb" data-tema="sarga"><span class="tema-minta" style="background:linear-gradient(135deg,#ffd400 50%,#111 50%)"></span>Sárga</button>
+        <button type="button" class="tema-gomb" data-tema="smaragd"><span class="tema-minta" style="background:#0f7a5a"></span>Smaragd</button>
+        <button type="button" class="tema-gomb" data-tema="letisztult"><span class="tema-minta" style="background:linear-gradient(135deg,#f7f8fa 50%,#334155 50%);border:1px solid #cbd5e1"></span>Letisztult</button>
       </div>
     </section>
     <script>
       (() => {
         const gombok = document.querySelectorAll('.tema-gomb');
-        const szinek = { kek: '#1f5fbf', narancs: '#d9620f', sarga: '#111111' };
+        const szinek = { kek: '#1f5fbf', narancs: '#d9620f', sarga: '#111111', smaragd: '#0f7a5a', letisztult: '#334155' };
         const beallit = (t) => {
           if (t === 'kek') delete document.documentElement.dataset.tema; else document.documentElement.dataset.tema = t;
           try { if (t === 'kek') localStorage.removeItem('arajanlat.tema'); else localStorage.setItem('arajanlat.tema', t); } catch {}
