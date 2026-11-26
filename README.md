@@ -51,6 +51,8 @@ Négy lépés, telefonon alul fülekkel: **Projekt**, **Anyag**, **Árak**, **Aj
 
 A Projekt lépésben egy kiállás nevére, ikonjára vagy a mellette lévő ceruzára koppintva megnyílik az anyagcsomagja (egy kiállásra számolva): a tételek átírhatók, törölhetők, újak vehetők fel, vagy PDF-ből beolvashatók. A változás minden további ajánlatra érvényes ezen az eszközön; az „Eredeti csomag visszaállítása” gombbal visszaáll az alkalmazás csomagja. A módosítások a biztonsági mentésbe és a „Könyvtár letöltése (CSV)” exportba is bekerülnek.
 
+Új kiállás is felvehető (pl. bidé, piszoár): a „Vízszerelési kiállások” kártya „Új kiállás” gombjával, névvel és anyagcsomaggal (kézzel vagy PDF-ből). Ugyanúgy működik, mint a többi kiállás – alapszerelés jár utána, a csomagja az anyaglistára kerül –, a ceruzával átnevezhető, szerkeszthető, törölhető, és bekerül a mentett ajánlatokba és a biztonsági mentésbe.
+
 A többi sor is szerkeszthető (ceruza, vagy koppintás a névre): a szerelvényeknél, a fűtésnél és a külső szerelésnél a megnevezés az ajánlaton, az egységár, a megjegyzés és a tételhez rendelt anyag (egységenként); a hőtermelőnél a kiválasztott típusé; a gerincnél az 1 fm-re jutó anyag (alapból cső és csőhéj). A módosított sorok ceruzája kiemelve látszik, és mindegyik visszaállítható az eredetire.
 
 A Projekt lépés fő pontjai (kiállások, fűtés, szerelvények, gerinc és külső szerelés, egyéb munkák) összecsukhatók: csukva csak a kitöltött sorok látszanak, a „Továbbiak” / „… megadása” gombbal nyílik a többi.

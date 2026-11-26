@@ -80,7 +80,8 @@ export function huvelyEltetesek(sorok) {
 // projekt.felulirasok: { kiallasNev: [sorok] } – a könyvtári csomag helyett.
 // sajatMunkak: [{ kod, tetel, anyag: [{ cikk, mennyiseg, egyseg }] }] – az egyéb munkákhoz rendelt anyag.
 // gerincAnyag: { 16: [sorok 1 fm-re], 20: [...] } – a felületen módosított gerinc-anyag (alapból cső + csőhéj).
-export function gyujtAnyaglista(projekt, konyvtar, sajatMunkak = [], gerincAnyag = {}) {
+// sajatKiallasok: [{ kod, nev }] – a felületen felvett kiállástípusok (csomagjuk a könyvtárban, a nevükön).
+export function gyujtAnyaglista(projekt, konyvtar, sajatMunkak = [], gerincAnyag = {}, sajatKiallasok = []) {
   const tetelek = new Map();
   const figyelmeztetesek = [];
   const hozzaad = (s, szorzo) => {
@@ -91,7 +92,7 @@ export function gyujtAnyaglista(projekt, konyvtar, sajatMunkak = [], gerincAnyag
     tetelek.set(kulcs, t);
   };
 
-  for (const { kod, nev } of KIALLAS_TIPUSOK) {
+  for (const { kod, nev } of [...KIALLAS_TIPUSOK, ...sajatKiallasok]) {
     const darab = Number(projekt.kiallasok?.[kod]) || 0;
     if (darab <= 0) continue;
     const csomag = projekt.felulirasok?.[nev] ?? konyvtar.get(nev);

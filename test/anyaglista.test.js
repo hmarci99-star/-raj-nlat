@@ -97,3 +97,15 @@ test('gerinc anyaga módosítható (1 fm-re számolva)', async () => {
   assert.equal(tetel(e, 'Csőbilincs 20').mennyiseg, 20);
   assert.equal(tetel(e, 'Kaiflex csőhéj 4x22 mm'), undefined);
 });
+
+test('saját kiállás: a csomagja a mennyiséggel szorozva, és alapszerelés jár utána', async () => {
+  const { szamolMunkadij } = await import('../src/munkadij.js');
+  const { parseMunkadijTabla } = await import('../src/csv.js');
+  const tabla = parseMunkadijTabla(readFileSync(new URL('../data/munkadij.csv', import.meta.url), 'utf8'));
+  const k = new Map(konyvtar);
+  k.set('Bidé', [{ cikk: 'Bidé csaptelep bekötő', mennyiseg: 1, egyseg: 'db', cikkszam: '' }]);
+  const p = projekt({ 'sajat-k-bide': 2 });
+  const e = gyujtAnyaglista(p, k, [], {}, [{ kod: 'sajat-k-bide', nev: 'Bidé' }]);
+  assert.equal(tetel(e, 'Bidé csaptelep bekötő').mennyiseg, 2);
+  assert.equal(szamolMunkadij(p, tabla).osszesen, 2 * 45000);
+});

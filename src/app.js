@@ -27,6 +27,7 @@ const SAJAT_MUNKA_KULCS = 'arajanlat.sajat-munkak';
 const KONYVTAR_FELULIR_KULCS = 'arajanlat.konyvtar-felulirasok';
 const MUNKADIJ_FELULIR_KULCS = 'arajanlat.munkadij-felulirasok';
 const GERINC_ANYAG_KULCS = 'arajanlat.gerinc-anyag';
+const SAJAT_KIALLAS_KULCS = 'arajanlat.sajat-kiallasok';
 const NEZET_KULCS = 'arajanlat.nezet';
 const ft = new Intl.NumberFormat('hu-HU', { useGrouping: 'always' });
 const $ = (id) => document.getElementById(id);
@@ -42,6 +43,7 @@ const allapot = {
   konyvtarFelulirasok: {}, // a felületen szerkesztett kiállás-csomagok: { kiállás neve: [sorok] }
   munkadijFelulirasok: {}, // munkadíj-tételek módosítása: { kód: { tetel, egysegar, megjegyzes, anyag } }
   gerincAnyag: {}, // a gerinc anyaga 1 fm-re: { 16: [sorok], 20: [sorok] }
+  sajatKiallasok: [], // a felületen felvett kiállástípusok: [{ kod, nev }]; csomagjuk a konyvtarFelulirasok-ban
   plusz: [], // az ajánlathoz kézzel vagy a bolt PDF-jéből hozzáadott tételek
   pdfMennyiseg: {}, // tétel -> a bolt PDF-je szerinti mennyiség, ha eltér a listától (ez az irányadó)
   // Feltöltésenként (bolti / kedvezmenyes / szoveg) mit írt be, hogy vissza lehessen vonni:
@@ -274,7 +276,7 @@ function mezoKod(nev) {
 
 // Egy szerkesztőablak váza (cím, magyarázat, mezők, Mentés / Visszaállítás / Mégse).
 // mentes(urlap) és visszaallitas() a gombokhoz; a mezők HTML-je a torzs.
-function szerkesztoAblak({ cim, leiras, torzs, modositott, mentes, visszaallitas }) {
+function szerkesztoAblak({ cim, leiras, torzs, modositott, mentes, visszaallitas, torles }) {
   const hatter = document.createElement('div');
   hatter.className = 'parbeszed-hatter';
   hatter.innerHTML = `<form class="parbeszed munka-urlap" role="dialog" aria-modal="true" aria-labelledby="sz-cim">
@@ -284,6 +286,7 @@ function szerkesztoAblak({ cim, leiras, torzs, modositott, mentes, visszaallitas
     <div class="parbeszed-gombok">
       <button type="submit">Mentés</button>
       ${modositott ? '<button type="button" class="button ks-alap">Eredeti visszaállítása</button>' : ''}
+      ${torles ? `<button type="button" class="veszelyes sz-torles">${escape(torles.felirat)}</button>` : ''}
       <button type="button" class="button mu-megse">Mégse</button>
     </div>
   </form>`;
@@ -292,6 +295,17 @@ function szerkesztoAblak({ cim, leiras, torzs, modositott, mentes, visszaallitas
   const esc = (ev) => { if (ev.key === 'Escape') zar(); };
   document.addEventListener('keydown', esc);
   const utana = () => { zar(); cimkekFrissitese(); frissit(); megjelenitPlusz(); megjelenitArTabla(true); };
+  hatter.addEventListener('click', async (ev) => {
+    if (!torles || !ev.target.closest('.sz-torles')) return;
+    hatter.hidden = true;
+    const v = await kerdes({
+      cim: torles.felirat, szoveg: torles.kerdes,
+      gombok: [{ felirat: 'Törlés', ertek: 'igen', stilus: 'veszelyes' }, { felirat: 'Vissza', ertek: 'vissza', stilus: 'masodlagos' }],
+    });
+    if (v !== 'igen') { hatter.hidden = false; return; }
+    torles.vegrehajt();
+    utana();
+  });
   hatter.addEventListener('click', async (ev) => {
     if (ev.target === hatter || ev.target.closest('.mu-megse')) { zar(); return; }
     if (anyagSzerkesztoKattintas(ev, urlap)) return;
@@ -402,7 +416,7 @@ function modositottJeloles() {
     if (!el) continue;
     let mod = false;
     if (el.name.startsWith('kiallasok.')) {
-      const nev = KIALLAS_TIPUSOK.find((t) => `kiallasok.${t.kod}` === el.name)?.nev;
+      const nev = osszesKiallas().find((t) => `kiallasok.${t.kod}` === el.name)?.nev;
       mod = Boolean(allapot.konyvtarFelulirasok[nev]) || allapot.bovitesek.some((b) => b.kiallas === nev);
     } else if (el.name.startsWith('gerinc.')) {
       mod = Boolean(allapot.gerincAnyag[el.name.split('.')[1]]);
@@ -412,6 +426,57 @@ function modositottJeloles() {
     }
     label.classList.toggle('modositott', mod);
   }
+}
+
+// Saját (új) kiállás felvétele vagy szerkesztése: név és anyagcsomag (egy kiállásra).
+function sajatKiallasSzerkeszto(kod = null) {
+  const k = allapot.sajatKiallasok.find((x) => x.kod === kod);
+  const regiNev = k?.nev ?? '';
+  szerkesztoAblak({
+    cim: k ? 'Kiállás szerkesztése' : 'Új kiállás',
+    leiras: 'Utána ugyanúgy használható, mint a többi kiállás; minden kiállás után vízszerelés alapszerelés jár.',
+    torzs: `
+      <label class="mezo"><span>Megnevezés</span><input name="nev" required placeholder="Pl. Bidé, Piszoár, Mosogatógép" value="${escape(regiNev)}"></label>
+      <div class="mezo"><span>Anyagcsomag – egy kiállásra számolva</span>${anyagSzerkesztoHtml(k ? allapot.konyvtar.get(regiNev) ?? [] : [])}</div>`,
+    mentes: (urlap) => {
+      const nev = urlap.elements.nev.value.trim().replace(/\s+/g, ' ');
+      if (!nev) return false;
+      if (osszesKiallas().some((t) => t.nev.toLowerCase() === nev.toLowerCase() && t.kod !== kod)) {
+        urlap.elements.nev.setCustomValidity('Már van ilyen nevű kiállás.');
+        urlap.elements.nev.reportValidity();
+        urlap.elements.nev.addEventListener('input', () => urlap.elements.nev.setCustomValidity(''), { once: true });
+        return false;
+      }
+      const ertekek = olvas().kiallasok;
+      if (k) {
+        if (regiNev !== nev) delete allapot.konyvtarFelulirasok[regiNev];
+        k.nev = nev;
+      } else {
+        let uj = `sajat-k-${nev.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 30) || 'kiallas'}`;
+        for (let i = 2; osszesKiallas().some((t) => t.kod === uj); i++) uj = uj.replace(/-\d+$/, '') + `-${i}`;
+        allapot.sajatKiallasok.push({ kod: uj, nev });
+      }
+      allapot.konyvtarFelulirasok[nev] = anyagSorokOlvasasa(urlap);
+      ment(SAJAT_KIALLAS_KULCS, allapot.sajatKiallasok);
+      konyvtarFrissites();
+      kiallasFelepit(ertekek);
+      listaAllitas('kiallasok', false);
+      return true;
+    },
+    torles: k ? {
+      felirat: 'Kiállás törlése',
+      kerdes: `Törlöd a(z) „${regiNev}” kiállást? A már elmentett ajánlatokban a mentett összegük megmarad.`,
+      vegrehajt: () => {
+        const ertekek = olvas().kiallasok;
+        allapot.sajatKiallasok = allapot.sajatKiallasok.filter((x) => x.kod !== kod);
+        delete allapot.konyvtarFelulirasok[regiNev];
+        ment(SAJAT_KIALLAS_KULCS, allapot.sajatKiallasok);
+        konyvtarFrissites();
+        delete ertekek[kod];
+        kiallasFelepit(ertekek);
+      },
+    } : null,
+  });
 }
 
 // Egy kiállás anyagcsomagjának szerkesztése (pl. WC-tartály). Minden további ajánlatra érvényes.
@@ -537,11 +602,25 @@ function szamMezo(nev, cimke) {
   return `<label><span>${escape(cimke)}</span><input type="number" min="0" name="${nev}"></label>`;
 }
 
-function felepit() {
-  $('kiallasok').innerHTML = KIALLAS_TIPUSOK.map((t) => `<label><span>${escape(t.nev)}</span>
-    <input type="number" min="0" name="kiallasok.${t.kod}">
-    <button type="button" class="munka-szerk kiallas-szerk" data-kiallas="${escape(t.nev)}" aria-label="Anyagcsomag szerkesztése: ${escape(t.nev)}">${ikon('ceruza')}</button>
+// Az összes kiállástípus: az alkalmazás kilenc típusa és a felületen felvettek.
+const osszesKiallas = () => [...KIALLAS_TIPUSOK, ...allapot.sajatKiallasok];
+
+// A kiállás-sorok (a saját kiállásokkal). ertekek: a megtartandó mennyiségek.
+function kiallasFelepit(ertekek = olvas().kiallasok) {
+  const voltCsukva = $('kiallasok').classList.contains('csukva');
+  $('kiallasok').innerHTML = osszesKiallas().map((t) => `<label><span>${escape(t.nev)}</span>
+    <input type="number" min="0" name="kiallasok.${t.kod}" value="${Number(ertekek?.[t.kod]) > 0 ? ertekek[t.kod] : ''}">
+    <button type="button" class="munka-szerk kiallas-szerk" data-kiallas="${escape(t.nev)}"${KIALLAS_TIPUSOK.includes(t) ? '' : ` data-sajat="${t.kod}"`}
+      aria-label="Szerkesztés: ${escape(t.nev)}">${ikon('ceruza')}</button>
   </label>`).join('');
+  leptetok();
+  ikonozas();
+  kitoltesJelolese();
+  listaAllitas('kiallasok', voltCsukva);
+}
+
+function felepit() {
+  kiallasFelepit({});
   $('szerelvenyek').innerHTML = SZERELVENY_KODOK
     .map((kod) => szamMezo(`szerelvenyek.${kod}`, allapot.tabla.get(kod).tetel)).join('');
   leptetok();
@@ -556,7 +635,7 @@ function ikonozas() {
     const mezo = label.querySelector('input, select');
     const nev = label.querySelector(':scope > span:not(.lepteto)');
     nev?.classList.add('mezo-nev');
-    const ik = MEZO_IKON[mezo?.name] ?? (mezo?.name?.startsWith('egyeb.') ? 'kalapacs' : null);
+    const ik = MEZO_IKON[mezo?.name] ?? (mezo?.name?.startsWith('egyeb.') ? 'kalapacs' : mezo?.name?.startsWith('kiallasok.') ? 'csaptelep' : null);
     if (ik) label.insertAdjacentHTML('afterbegin', `<span class="mezo-ikon">${ikon(ik)}</span>`);
   }
   for (const el of document.querySelectorAll('[data-ikon]')) {
@@ -927,7 +1006,7 @@ function pluszHozzaad(t, mennyisegFrissit = false) {
 }
 
 function kiallasDarab(nev) {
-  const kod = KIALLAS_TIPUSOK.find((t) => t.nev === nev)?.kod;
+  const kod = osszesKiallas().find((t) => t.nev === nev)?.kod;
   return Number(allapot.projekt?.kiallasok?.[kod]) || 0;
 }
 
@@ -939,7 +1018,7 @@ function javasoltMennyiseg(t, kiallas) {
 function megjelenitPlusz() {
   const sorok = allapot.plusz.map((t, i) => {
     const nyitva = allapot.konyvtarbaNyitva === i;
-    const alapKiallas = KIALLAS_TIPUSOK.find((k) => kiallasDarab(k.nev) > 0)?.nev ?? KIALLAS_TIPUSOK[0].nev;
+    const alapKiallas = osszesKiallas().find((k) => kiallasDarab(k.nev) > 0)?.nev ?? KIALLAS_TIPUSOK[0].nev;
     return `<li class="plusz-sor">
       <div class="plusz-fej">
         <span class="plusz-nev">${escape(t.cikk)}${t.cikkszam ? ` <span class="muted">(${escape(t.cikkszam)})</span>` : ''}${t.forras === 'pdf' ? '<br><span class="muted">a bolt PDF-jéből</span>' : ''}</span>
@@ -952,7 +1031,7 @@ function megjelenitPlusz() {
       </div>
       ${nyitva ? `<div class="konyvtarba">
         <label>Melyik kiálláshoz?
-          <select id="kb-kiallas">${KIALLAS_TIPUSOK.map((k) => `<option${k.nev === alapKiallas ? ' selected' : ''}>${escape(k.nev)}</option>`).join('')}</select></label>
+          <select id="kb-kiallas">${osszesKiallas().map((k) => `<option${k.nev === alapKiallas ? ' selected' : ''}>${escape(k.nev)}</option>`).join('')}</select></label>
         <label>Mennyiség kiállásonként
           <span class="nowrap"><input id="kb-mennyiseg" type="number" min="0" step="any" value="${javasoltMennyiseg(t, alapKiallas)}"> ${escape(t.egyseg)}</span></label>
         <div class="actions">
@@ -1241,6 +1320,8 @@ function pillanatkep() {
     adatok: { ugyfel: adatok.ugyfel, ajanlat: adatok.ajanlat },
     // a felhasznált egyéb munkák leírása, hogy másik eszközön is megnyitható legyen
     sajatMunkak: allapot.sajatMunkak.filter((m) => Number(olvas().egyeb?.[m.kod]) > 0),
+    sajatKiallasok: allapot.sajatKiallasok.filter((k) => Number(olvas().kiallasok?.[k.kod]) > 0)
+      .map((k) => ({ ...k, csomag: allapot.konyvtar.get(k.nev) ?? [] })),
   };
 }
 
@@ -1365,10 +1446,17 @@ function munkaBetoltes(adat, id) {
   // Az ajánlatban használt, de itt még nem ismert egyéb munkák felvétele.
   const ujMunkak = (adat?.sajatMunkak ?? []).filter((m) => m?.kod && !allapot.sajatMunkak.some((x) => x.kod === m.kod));
   if (ujMunkak.length) { allapot.sajatMunkak.push(...ujMunkak); ment(SAJAT_MUNKA_KULCS, allapot.sajatMunkak); }
+  const ujKiallasok = (adat?.sajatKiallasok ?? []).filter((k) => k?.kod && !allapot.sajatKiallasok.some((x) => x.kod === k.kod));
+  for (const k of ujKiallasok) {
+    allapot.sajatKiallasok.push({ kod: k.kod, nev: k.nev });
+    if (!allapot.konyvtarFelulirasok[k.nev]) allapot.konyvtarFelulirasok[k.nev] = k.csomag ?? [];
+  }
+  if (ujKiallasok.length) { ment(SAJAT_KIALLAS_KULCS, allapot.sajatKiallasok); konyvtarFrissites(); }
+  kiallasFelepit({});
   egyebFelepit({});
   kitolt({
     ...ures, ...p,
-    kiallasok: { ...ures.kiallasok, ...p.kiallasok },
+    kiallasok: { ...ures.kiallasok, ...Object.fromEntries(allapot.sajatKiallasok.map((k) => [k.kod, 0])), ...p.kiallasok },
     szerelvenyek: { ...ures.szerelvenyek, ...p.szerelvenyek },
     gerinc: { ...ures.gerinc, ...p.gerinc },
     egyeb: Object.fromEntries(allapot.sajatMunkak.map((m) => [m.kod, p.egyeb?.[m.kod] ?? 0])),
@@ -1530,7 +1618,7 @@ function ajanlatEsemenyek() {
   $('mentes-fajlba').addEventListener('click', () => {
     if (allapot.aktualisId) { const r = allapot.ajanlatok.find((x) => x.id === allapot.aktualisId); if (r) rekordFrissites(r); }
     const tartalom = exportAdat(allapot.ajanlatok, { vallalkozo: olvasAdatok().vallalkozo, bovitesek: allapot.bovitesek, sajatMunkak: allapot.sajatMunkak, konyvtarFelulirasok: allapot.konyvtarFelulirasok,
-      munkadijFelulirasok: allapot.munkadijFelulirasok, gerincAnyag: allapot.gerincAnyag });
+      munkadijFelulirasok: allapot.munkadijFelulirasok, gerincAnyag: allapot.gerincAnyag, sajatKiallasok: allapot.sajatKiallasok });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([tartalom], { type: 'application/json' }));
     a.download = `arajanlatok-${maISO()}.json`;
@@ -1565,6 +1653,8 @@ function ajanlatEsemenyek() {
       for (const [k, v] of Object.entries(r.beallitasok.gerincAnyag ?? {})) if (!allapot.gerincAnyag[k]) allapot.gerincAnyag[k] = v;
       ment(MUNKADIJ_FELULIR_KULCS, allapot.munkadijFelulirasok);
       ment(GERINC_ANYAG_KULCS, allapot.gerincAnyag);
+      const ujK = (r.beallitasok.sajatKiallasok ?? []).filter((k) => k?.kod && !allapot.sajatKiallasok.some((x) => x.kod === k.kod));
+      if (ujK.length) { allapot.sajatKiallasok.push(...ujK); ment(SAJAT_KIALLAS_KULCS, allapot.sajatKiallasok); kiallasFelepit(); }
       cimkekFrissitese();
       if (ujBovites.length || ujFelul.length) { konyvtarFrissites(); frissit(); megjelenitPlusz(); }
       ajanlatokMentese();
@@ -1631,7 +1721,7 @@ function frissit() {
   kitoltesJelolese();
   modositottJeloles();
   try {
-    allapot.anyag = gyujtAnyaglista(p, allapot.konyvtar, allapot.sajatMunkak, allapot.gerincAnyag);
+    allapot.anyag = gyujtAnyaglista(p, allapot.konyvtar, allapot.sajatMunkak, allapot.gerincAnyag, allapot.sajatKiallasok);
     // A munkadíj-tételekhez rendelt anyag (pl. WC felszerelés -> nyomólap), a mennyiséggel szorozva.
     for (const m of allapot.munkadij?.sorok ?? []) {
       for (const a of allapot.munkadijFelulirasok[m.kod]?.anyag ?? []) {
@@ -1687,6 +1777,7 @@ async function indit() {
     $('anyaglista').innerHTML = '';
     return;
   }
+  allapot.sajatKiallasok = (betoltMentett(SAJAT_KIALLAS_KULCS) ?? []).filter((k) => k?.kod && k?.nev);
   felepit();
   allapot.sajatMunkak = (betoltMentett(SAJAT_MUNKA_KULCS) ?? []).filter((m) => m?.kod && m?.tetel);
   egyebFelepit({});
@@ -1715,8 +1806,11 @@ async function indit() {
     const cel = ev.target.closest('.kiallas-szerk, .mezo-nev, .mezo-ikon');
     if (!cel) return;
     ev.preventDefault();
-    kiallasSzerkeszto(cel.closest('label').querySelector('.kiallas-szerk').dataset.kiallas);
+    const gomb = cel.closest('label').querySelector('.kiallas-szerk');
+    if (gomb.dataset.sajat) sajatKiallasSzerkeszto(gomb.dataset.sajat);
+    else kiallasSzerkeszto(gomb.dataset.kiallas);
   });
+  $('uj-kiallas').addEventListener('click', () => sajatKiallasSzerkeszto());
   $('egyeb').addEventListener('click', (ev) => {
     const b = ev.target.closest('.munka-szerk');
     if (b) { ev.preventDefault(); munkaSzerkeszto(b.dataset.munka); }
