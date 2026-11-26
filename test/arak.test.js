@@ -3,11 +3,11 @@ import assert from 'node:assert/strict';
 import { parseSzam, boltValaszBeolvasas, ajanlat, tetelKulcs, ujTetelJelolt, nemTetelNev } from '../src/arak.js';
 
 const sorok = [
-  { cikk: 'Rehau PX 20-16-20 T-idom', egyseg: 'db', mennyiseg: 4, cikkszam: '' },
-  { cikk: 'Rehau PX 20 T-idom', egyseg: 'db', mennyiseg: 2, cikkszam: '' },
-  { cikk: 'Rehau Rautitan Stabil cső 16,2x2,6 mm', egyseg: 'fm', mennyiseg: 6, cikkszam: '' },
-  { cikk: 'Kaiflex csőhéj 4x18 mm', egyseg: 'fm', mennyiseg: 6, cikkszam: '' },
-  { cikk: 'Grohe Rapid SL WC-tartály (nyomólap nélkül)', egyseg: 'db', mennyiseg: 1, cikkszam: '38340001' },
+  { cikk: 'Rehau PX 20-16-20 T-idom', egyseg: 'db', mennyiseg: 4 },
+  { cikk: 'Rehau PX 20 T-idom', egyseg: 'db', mennyiseg: 2 },
+  { cikk: 'Rehau Rautitan Stabil cső 16,2x2,6 mm', egyseg: 'fm', mennyiseg: 6 },
+  { cikk: 'Kaiflex csőhéj 4x18 mm', egyseg: 'fm', mennyiseg: 6 },
+  { cikk: 'Grohe Rapid SL WC-tartály (nyomólap nélkül)', egyseg: 'db', mennyiseg: 1 },
 ];
 const ar = (e, i) => e.arak.get(tetelKulcs(sorok[i]));
 
@@ -45,8 +45,8 @@ test('szóközzel tagolt PDF-szöveg, kedvezményes elöl', () => {
   assert.deepEqual(ar(e, 3), { bolti: 420, kedvezmenyes: 310 });
 });
 
-test('cikkszám alapján, eltérő megnevezéssel', () => {
-  const e = boltValaszBeolvasas('38340001 GROHE nyomóöblítő tartály  1  48 900  41 500', sorok);
+test('a bolt cikkszáma a megnevezés elől levágódik, az illesztés a névre megy', () => {
+  const e = boltValaszBeolvasas('38340001 Grohe Rapid SL WC-tartály nyomólap nélkül  1  48 900  41 500', sorok);
   assert.deepEqual(ar(e, 4), { bolti: 48900, kedvezmenyes: 41500 });
 });
 
@@ -119,10 +119,10 @@ test('más méret nem keveredik: a PX 25 T-idom új tétel, nem a PX 20', () => 
   assert.equal(e.jeloltek[0].cikk, 'Rehau PX 25 T-idom');
 });
 
-test('új tétel javaslat: cikkszám, mennyiség, egység, ár', () => {
+test('új tétel javaslat: megnevezés (cikkszám nélkül), mennyiség, egység, ár', () => {
   assert.deepEqual(
     { ...ujTetelJelolt('55120\tGeberit Duofix szerelőelem\t1 db\t89 900\t79 500'), sor: undefined },
-    { cikk: 'Geberit Duofix szerelőelem', cikkszam: '55120', mennyiseg: 1, egyseg: 'db',
+    { cikk: 'Geberit Duofix szerelőelem', mennyiseg: 1, egyseg: 'db',
       ar: { bolti: 89900, kedvezmenyes: 79500 }, sor: undefined },
   );
   const l = ujTetelJelolt('Pipelife KAEM lefolyócső 110/0,5 m\t3 db\t1 200\t3 600', 'kedvezmenyes');
@@ -201,7 +201,7 @@ const valodi = [
 
 test('valódi PDF: az egységár a kerekített helyett az értékből (11 684 / 200 = 58,42)', () => {
   const j = ujTetelJelolt(valodi[0], 'bolti');
-  assert.deepEqual([j.cikk, j.cikkszam, j.mennyiseg, j.egyseg, j.ar], ['Fischer ED 18 beütőszeg 200 db/doboz', 'FIS_79815', 200, 'db', { bolti: 58.42 }]);
+  assert.deepEqual([j.cikk, j.cikkszam, j.mennyiseg, j.egyseg, j.ar], ['Fischer ED 18 beütőszeg 200 db/doboz', undefined, 200, 'db', { bolti: 58.42 }]);
   const k = ujTetelJelolt(valodi[7], 'bolti');
   assert.equal(k.mennyiseg, 0.3);
   assert.equal(Math.round(k.mennyiseg * k.ar.bolti), 2795);
@@ -209,10 +209,10 @@ test('valódi PDF: az egységár a kerekített helyett az értékből (11 684 / 
 
 test('valódi PDF: méretek pontosan, a "20" nem "20-16-16", tizedespont = vessző', () => {
   const lista = [
-    { cikk: 'Kaiflex csőhéj 4x18 mm', egyseg: 'fm', mennyiseg: 12, cikkszam: '' },
-    { cikk: 'Rehau PX 16 toldóhüvely', egyseg: 'db', mennyiseg: 19, cikkszam: '' },
-    { cikk: 'Rehau PX 20 T-idom', egyseg: 'db', mennyiseg: 8, cikkszam: '' },
-    { cikk: 'Rehau Rautitan Stabil cső 20x2,9 mm', egyseg: 'fm', mennyiseg: 4, cikkszam: '' },
+    { cikk: 'Kaiflex csőhéj 4x18 mm', egyseg: 'fm', mennyiseg: 12 },
+    { cikk: 'Rehau PX 16 toldóhüvely', egyseg: 'db', mennyiseg: 19 },
+    { cikk: 'Rehau PX 20 T-idom', egyseg: 'db', mennyiseg: 8 },
+    { cikk: 'Rehau Rautitan Stabil cső 20x2,9 mm', egyseg: 'fm', mennyiseg: 4 },
   ];
   const e = boltValaszBeolvasas(valodi.join('\n'), lista, 'bolti');
   const ertek = (i) => Math.round(e.mennyisegek.get(tetelKulcs(lista[i])) * e.arak.get(tetelKulcs(lista[i])).bolti);
@@ -226,7 +226,7 @@ test('valódi PDF: méretek pontosan, a "20" nem "20-16-16", tizedespont = vessz
 });
 
 test('ugyanaz a tétel két sorban: a mennyiségek összeadódnak', () => {
-  const lista = [{ cikk: 'Rehau PX 20 T-idom', egyseg: 'db', mennyiseg: 2, cikkszam: '' }];
+  const lista = [{ cikk: 'Rehau PX 20 T-idom', egyseg: 'db', mennyiseg: 2 }];
   const e = boltValaszBeolvasas('Rehau PX 20 T-idom\t2 db\t4 000\t8 000 Ft\nRehau PX 20 T-idom\t3 db\t5 000\t15 000 Ft', lista, 'bolti');
   const k = tetelKulcs(lista[0]);
   assert.equal(e.mennyisegek.get(k), 5);
@@ -251,6 +251,6 @@ test('anyagszükséglet PDF-ből: megnevezés, mennyiség, egység, árak nélk�
     ['Pipelife KAEM lefolyócső 110/0,5 m', 3, 'db']]);
   assert.equal(t.length, 4 + valodi.length);
   const fischer = t.find((x) => x.cikk.startsWith('Fischer'));
-  assert.deepEqual([fischer.cikkszam, fischer.mennyiseg], ['FIS_79815', 200]);
+  assert.deepEqual([fischer.cikk, fischer.cikkszam, fischer.mennyiseg], ['Fischer ED 18 beütőszeg 200 db/doboz', undefined, 200]);
   assert.deepEqual(t.find((x) => x.cikk.startsWith('Rothenberger')).mennyiseg, 0.3);
 });

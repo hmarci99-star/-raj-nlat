@@ -74,10 +74,10 @@ test('a könyvtár nem változik a felülírástól', () => {
 test('e-mail szöveg', () => {
   assert.equal(
     anyaglistaSzoveg([
-      { cikk: 'Cső', mennyiseg: 2.5, egyseg: 'fm', cikkszam: '' },
-      { cikk: 'Idom', mennyiseg: 3, egyseg: 'db', cikkszam: '12345' },
+      { cikk: 'Cső', mennyiseg: 2.5, egyseg: 'fm' },
+      { cikk: 'Idom', mennyiseg: 3, egyseg: 'db' },
     ]),
-    '1. Cső – 2,5 fm\n\n2. Idom – 3 db (cikkszám: 12345)',
+    '1. Cső – 2,5 fm\n\n2. Idom – 3 db',
   );
 });
 
@@ -103,7 +103,7 @@ test('saját kiállás: a csomagja a mennyiséggel szorozva, és alapszerelés j
   const { parseMunkadijTabla } = await import('../src/csv.js');
   const tabla = parseMunkadijTabla(readFileSync(new URL('../data/munkadij.csv', import.meta.url), 'utf8'));
   const k = new Map(konyvtar);
-  k.set('Bidé', [{ cikk: 'Bidé csaptelep bekötő', mennyiseg: 1, egyseg: 'db', cikkszam: '' }]);
+  k.set('Bidé', [{ cikk: 'Bidé csaptelep bekötő', mennyiseg: 1, egyseg: 'db' }]);
   const p = projekt({ 'sajat-k-bide': 2 });
   const e = gyujtAnyaglista(p, k, [], {}, [{ kod: 'sajat-k-bide', nev: 'Bidé' }]);
   assert.equal(tetel(e, 'Bidé csaptelep bekötő').mennyiseg, 2);

@@ -50,12 +50,10 @@ function sorVegiSzamok(sor) {
   return { szamok, szoveg: sor.slice(0, m.index) };
 }
 
-// A sor szövegéhez legjobban illő tétel: cikkszám egyezés, vagy a megnevezés
+// A sor szövegéhez legjobban illő tétel: a megnevezés
 // szavainak legalább 70%-a megtalálható és egyértelműen ez a legjobb.
 function illeszt(szoveg, sorok) {
   const nsz = normal(szoveg);
-  const cikkszamos = sorok.find((s) => s.cikkszam && new RegExp(`(^|\\D)${s.cikkszam}(\\D|$)`).test(szoveg));
-  if (cikkszamos) return cikkszamos;
   const sorSzavaiLista = szavak(szoveg);
   const sorSzavai = new Set(sorSzavaiLista);
   // Pontszám: [a tétel szavaiból mennyi van a sorban, a sor szavaiból mennyi van a tételben].
@@ -145,7 +143,7 @@ const NEM_TETEL = new RegExp('(^|[\\s(/:-])(' + [
 export const nemTetelNev = (nev) => NEM_TETEL.test(` ${nev}`) || nev.includes('%');
 
 // Egy tételhez nem köthető sorból új tétel javaslata: megnevezés, mennyiség,
-// egység, cikkszám és ár(ak). Ha a sor nem tételnek látszik, null.
+// egység és ár(ak). Ha a sor nem tételnek látszik, null.
 export function ujTetelJelolt(sor, mezo = null) {
   const { szamok, szoveg } = sorVegiSzamok(sor);
   if (szamok.length === 0) return null;
@@ -162,7 +160,7 @@ export function ujTetelJelolt(sor, mezo = null) {
 
   const t = nevTisztitas(szoveg);
   if (!t) return null;
-  return { cikk: t.nev, cikkszam: t.cikkszam, mennyiseg, egyseg, ar, sor };
+  return { cikk: t.nev, mennyiseg, egyseg, ar, sor };
 }
 
 // A sor szöveges részéből a megnevezés: tételsorszám, "Hivatkozás:" és a bolti cikkszám
@@ -171,13 +169,13 @@ function nevTisztitas(szoveg) {
   let nev = szoveg.replace(/\s+/g, ' ').trim()
     .replace(/^\d+[.)]\s+/, '') // tételsorszám: "12."
     .replace(/^hivatkozás:\s*/i, '');
-  let cikkszam = '';
-  // Cikkszám a megnevezés elején: csupa szám ("38340001") vagy bolti kód ("FIS_79815", "UH-499811", "PIP_KAB32-45").
+  // A bolt cikkszáma a megnevezés elején (csupa szám, pl. "38340001", vagy bolti kód, pl. "FIS_79815",
+  // "UH-499811", "PIP_KAB32-45") nem kell: levágjuk.
   const csz = nev.match(/^(\d{4,}|(?=[A-Z0-9_./-]*\d)[A-Z][A-Z0-9]*[_-][A-Z0-9_./-]+)\s+(.*)$/);
-  if (csz) [, cikkszam, nev] = csz;
+  if (csz) nev = csz[2];
   nev = nev.replace(/[\s–:;|-]+$/, '').trim();
   if ((nev.match(/\p{L}/gu) ?? []).length < 3 || nemTetelNev(nev)) return null;
-  return { nev, cikkszam };
+  return { nev };
 }
 
 // Anyagszükséglet egy PDF-ből vagy szövegből (árak nélkül is): soronként megnevezés,
@@ -204,7 +202,7 @@ export function anyagListaBeolvasas(text) {
     if (!t) continue;
     const mennyiseg = parseSzam(m[1]);
     if (!(mennyiseg > 0)) continue;
-    tetelek.push({ cikk: t.nev[0].toLocaleUpperCase('hu') + t.nev.slice(1), cikkszam: t.cikkszam, mennyiseg, egyseg: egysegNormal(m[2]) });
+    tetelek.push({ cikk: t.nev[0].toLocaleUpperCase('hu') + t.nev.slice(1), mennyiseg, egyseg: egysegNormal(m[2]) });
   }
   return tetelek;
 }

@@ -18,7 +18,7 @@ Telefonról is használható weboldal. A beírt adatokat és árakat a böngész
 6. **E-mail az ügyfélnek:** az ügyfélajánlat alatt; előre megírt levél az ügyfél e-mail címére (tárgy, összesítés, érvényesség, aláírás). A PDF-et kézzel kell csatolni (a böngésző nem tud fájlt csatolni). Mentett ajánlatnál az állapot „Ajánlat elküldve” lesz.
 
 - `data/munkadij.csv`: a munkadíj-táblázat. Árat itt kell módosítani. A `Kód` oszlopot ne írd át.
-- `data/kiallas-konyvtar.csv`: a kiállás-csomagok (kiállás, cikk, mennyiség, egység, cikkszám). A cikkszám oszlop még üres; ha kitöltöd, megjelenik a listában és az e-mailben.
+- `data/kiallas-konyvtar.csv`: a kiállás-csomagok (kiállás, cikk, mennyiség, egység).
 - `src/munkadij.js`: a munkadíj szabályai.
 - `src/anyaglista.js`: az anyaglista összegyűjtése, a gerinc és a hüvelyszabály.
 - `src/arak.js`: a bolt válaszának beolvasása és az ajánlat összesítése.
@@ -40,7 +40,7 @@ Telefonról is használható weboldal. A beírt adatokat és árakat a böngész
 - Hüvelyszabály: T-idom 3, falikorong 1, könyök 2, toldóidom 2 hüvely, átmérő szerint. A program figyelmeztet, ha egy csomag ettől eltér. A könyvtár jelenleg minden csomagja megfelel neki.
 - Projektenként felülírható csomag: a számítás már kezeli, a felülethez még nincs szerkesztő.
 - Árak: a bolt bruttó (ÁFÁ-s) árakat küld. Alanyi adómentesként az ÁFA nem igényelhető vissza, ezért ez a valódi beszerzési költség. Az ügyfélnek a bruttó bolti ár megy tovább, a haszon a két bruttó ár különbsége.
-- Árbeolvasás: a sorokat cikkszám, vagy ennek hiányában a megnevezés szavai alapján köti tételhez (a szavak legalább 80%-ának egyeznie kell). A méreteknek pontosan kell egyezniük: a „20” nem azonos a „20-16-16”-tal, a tizedespont és -vessző viszont mindegy („20x2.9mm” = „20x2,9 mm”). Ha a bolt a sor értékét is megadja, az egységár abból számolódik (a kiírt egységár gyakran kerekített), így az összeg a PDF-fel egyezik. Ha ugyanaz a tétel több sorban szerepel, a mennyiségek összeadódnak. A bolt cikkszáma (pl. „FIS_79815”) a megnevezés elől a cikkszám mezőbe kerül.
+- Árbeolvasás: a sorokat a megnevezés szavai alapján köti tételhez (a szavak legalább 80%-ának egyeznie kell). A méreteknek pontosan kell egyezniük: a „20” nem azonos a „20-16-16”-tal, a tizedespont és -vessző viszont mindegy („20x2.9mm” = „20x2,9 mm”). Ha a bolt a sor értékét is megadja, az egységár abból számolódik (a kiírt egységár gyakran kerekített), így az összeg a PDF-fel egyezik. Ha ugyanaz a tétel több sorban szerepel, a mennyiségek összeadódnak. A bolt cikkszáma (pl. „FIS_79815”) a megnevezés elől levágódik.
 - Ha már van bolti árajánlat, a lista azon tételei, amik nincsenek benne, kimaradnak az ajánlatból (az ügyfélajánlatnál lenyitható listában látszanak). Ha kézzel árat kapnak, visszakerülnek.
 
 ## Felület

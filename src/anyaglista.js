@@ -8,17 +8,17 @@ function tizedes(s) {
   return Number(String(s).trim().replace(',', '.'));
 }
 
-// Kiállás neve -> [{ cikk, mennyiseg, egyseg, cikkszam }]
+// Kiállás neve -> [{ cikk, mennyiseg, egyseg }]
 export function parseKonyvtar(text) {
   const [, ...rows] = parseCsv(text.replace(/^﻿/, ''));
   const konyvtar = new Map();
-  for (const [kiallas, cikk, menny, egyseg, cikkszam = ''] of rows) {
+  for (const [kiallas, cikk, menny, egyseg] of rows) {
     const mennyiseg = tizedes(menny);
     if (!kiallas || !cikk || !Number.isFinite(mennyiseg)) {
       throw new Error(`Hibás sor a kiállás-könyvtárban: ${[kiallas, cikk, menny].join(', ')}`);
     }
     if (!konyvtar.has(kiallas)) konyvtar.set(kiallas, []);
-    konyvtar.get(kiallas).push({ cikk, mennyiseg, egyseg, cikkszam: cikkszam.trim() });
+    konyvtar.get(kiallas).push({ cikk, mennyiseg, egyseg });
   }
   return konyvtar;
 }
@@ -86,9 +86,8 @@ export function gyujtAnyaglista(projekt, konyvtar, sajatMunkak = [], gerincAnyag
   const figyelmeztetesek = [];
   const hozzaad = (s, szorzo) => {
     const kulcs = `${s.cikk}|${s.egyseg}`;
-    const t = tetelek.get(kulcs) ?? { cikk: s.cikk, egyseg: s.egyseg, cikkszam: s.cikkszam ?? '', mennyiseg: 0 };
+    const t = tetelek.get(kulcs) ?? { cikk: s.cikk, egyseg: s.egyseg, mennyiseg: 0 };
     t.mennyiseg += s.mennyiseg * szorzo;
-    if (!t.cikkszam && s.cikkszam) t.cikkszam = s.cikkszam;
     tetelek.set(kulcs, t);
   };
 
@@ -112,7 +111,7 @@ export function gyujtAnyaglista(projekt, konyvtar, sajatMunkak = [], gerincAnyag
     const db = Number(projekt.egyeb?.[m.kod]) || 0;
     if (db <= 0) continue;
     for (const a of m.anyag ?? []) {
-      if (a?.cikk && Number(a.mennyiseg) > 0) hozzaad({ cikk: a.cikk, egyseg: a.egyseg || 'db', mennyiseg: Number(a.mennyiseg), cikkszam: a.cikkszam ?? '' }, db);
+      if (a?.cikk && Number(a.mennyiseg) > 0) hozzaad({ cikk: a.cikk, egyseg: a.egyseg || 'db', mennyiseg: Number(a.mennyiseg) }, db);
     }
   }
 
@@ -120,7 +119,7 @@ export function gyujtAnyaglista(projekt, konyvtar, sajatMunkak = [], gerincAnyag
     const fm = Number(projekt.gerinc?.[atmero]) || 0;
     if (fm <= 0) continue;
     const sorok = gerincAnyag?.[atmero] ?? gerincAlapAnyag(atmero);
-    for (const a of sorok) hozzaad({ cikk: a.cikk, egyseg: a.egyseg || 'fm', mennyiseg: Number(a.mennyiseg) || 0, cikkszam: a.cikkszam ?? '' }, fm);
+    for (const a of sorok) hozzaad({ cikk: a.cikk, egyseg: a.egyseg || 'fm', mennyiseg: Number(a.mennyiseg) || 0 }, fm);
   }
 
   const sorok = [...tetelek.values()].map((t) => ({ ...t, mennyiseg: Math.round(t.mennyiseg * 100) / 100 }));
@@ -131,7 +130,6 @@ export function gyujtAnyaglista(projekt, konyvtar, sajatMunkak = [], gerincAnyag
 // Számozott sorok, köztük üres sorral, hogy levélben is jól olvasható legyen.
 export function anyaglistaSzoveg(sorok) {
   return sorok
-    .map((s, i) => `${i + 1}. ${s.cikk} – ${String(s.mennyiseg).replace('.', ',')} ${s.egyseg}`
-      + (s.cikkszam ? ` (cikkszám: ${s.cikkszam})` : ''))
+    .map((s, i) => `${i + 1}. ${s.cikk} – ${String(s.mennyiseg).replace('.', ',')} ${s.egyseg}`)
     .join('\n\n');
 }

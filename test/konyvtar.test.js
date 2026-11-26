@@ -6,7 +6,7 @@ import { bovitettKonyvtar, konyvtarCsv, bennVanAzAlapban } from '../src/konyvtar
 
 const csv = readFileSync(new URL('../data/kiallas-konyvtar.csv', import.meta.url), 'utf8');
 const alap = parseKonyvtar(csv);
-const uj = { kiallas: 'WC-tartály', cikk: 'Geberit nyomólap, fehér', mennyiseg: 1, egyseg: 'db', cikkszam: '115.770' };
+const uj = { kiallas: 'WC-tartály', cikk: 'Geberit nyomólap, fehér', mennyiseg: 1, egyseg: 'db' };
 
 test('bővítés: új sor a kiállás csomagjában, az alap nem változik', () => {
   const k = bovitettKonyvtar(alap, [uj]);
@@ -24,14 +24,14 @@ test('ami már benne van, nem duplázódik', () => {
 test('CSV export: a beolvasással visszaolvasható, vesszős és tizedes értékkel is', () => {
   const k = bovitettKonyvtar(alap, [uj, { kiallas: 'Konyha', cikk: 'Cső "extra"', mennyiseg: 0.5, egyseg: 'fm' }]);
   const vissza = parseKonyvtar(konyvtarCsv(k));
-  assert.deepEqual([...vissza], [...k].map(([n, s]) => [n, s.map((t) => ({ ...t, cikkszam: t.cikkszam ?? '' }))]));
+  assert.deepEqual([...vissza], [...k]);
   assert.equal(konyvtarCsv(alap), csv);
 });
 
 test('kiállás-csomag szerkesztése: a felülírás lecseréli a csomagot, a többi változatlan', async () => {
   const { felulirtKonyvtar } = await import('../src/konyvtar.js');
   const k = felulirtKonyvtar(alap, { 'WC-tartály': [{ cikk: 'Geberit Duofix', mennyiseg: 1, egyseg: 'db' }] });
-  assert.deepEqual(k.get('WC-tartály'), [{ cikk: 'Geberit Duofix', mennyiseg: 1, egyseg: 'db', cikkszam: '' }]);
+  assert.deepEqual(k.get('WC-tartály'), [{ cikk: 'Geberit Duofix', mennyiseg: 1, egyseg: 'db' }]);
   assert.deepEqual(k.get('Mosógép'), alap.get('Mosógép'));
   assert.ok(alap.get('WC-tartály').length > 1);
 });

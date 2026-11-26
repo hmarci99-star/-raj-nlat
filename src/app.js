@@ -218,7 +218,7 @@ function ujMunkaKod(nev) {
 
 const anyagSor = (a = {}) => {
   const egysegek = ANYAG_EGYSEGEK.includes(a.egyseg ?? 'db') ? ANYAG_EGYSEGEK : [...ANYAG_EGYSEGEK, a.egyseg];
-  return `<div class="anyag-sor" data-cikkszam="${escape(a.cikkszam ?? '')}">
+  return `<div class="anyag-sor">
       <input class="as-cikk" placeholder="Anyag megnevezése" aria-label="Anyag megnevezése" value="${escape(a.cikk ?? '')}">
       <input class="as-menny" type="number" min="0" step="any" aria-label="Mennyiség" value="${a.mennyiseg ?? 1}">
       <select class="as-egyseg" aria-label="Egység">${egysegek.map((e) => `<option${e === (a.egyseg ?? 'db') ? ' selected' : ''}>${escape(e)}</option>`).join('')}</select>
@@ -240,7 +240,6 @@ function anyagSorokOlvasasa(urlap) {
     cikk: sor.querySelector('.as-cikk').value.trim().replace(/\s+/g, ' '),
     mennyiseg: Number(sor.querySelector('.as-menny').value) || 0,
     egyseg: sor.querySelector('.as-egyseg').value,
-    cikkszam: sor.dataset.cikkszam || '',
   })).filter((a) => a.cikk && a.mennyiseg > 0);
 }
 
@@ -896,11 +895,9 @@ function megjelenitAnyag() {
       + '<p class="muted">Adj meg kiállást vagy gerincet.</p>';
     return;
   }
-  const vanCikkszam = e.sorok.some((s) => s.cikkszam);
   const sorok = e.sorok.map((s) => `
     <tr>
-      <td class="cikk-oszlop">${escape(s.cikk)}${s.plusz ? ` <span class="cimke">${s.forras === 'pdf' ? 'bolt' : 'plusz'}</span>` : ''}${
-        s.cikkszam ? `<div class="cikkszam">${escape(s.cikkszam)}</div>` : ''}</td>
+      <td class="cikk-oszlop">${escape(s.cikk)}${s.plusz ? ` <span class="cimke">${s.forras === 'pdf' ? 'bolt' : 'plusz'}</span>` : ''}</td>
       <td class="num">${ft.format(s.mennyiseg)} ${escape(s.egyseg)}${s.listaMennyiseg !== undefined
         ? `<div class="muted">PDF szerint; lista: ${ft.format(s.listaMennyiseg)}</div>` : ''}</td>
       <td class="torles-oszlop">${s.plusz ? `<button type="button" class="sor-torles" data-plusz-torles="${escape(tetelKulcs(s))}"
@@ -908,7 +905,7 @@ function megjelenitAnyag() {
     </tr>`).join('');
   $('anyaglista').innerHTML = figyelmeztetesHtml(e.figyelmeztetesek) + lenyilo('anyaglista', `Tételek (${e.sorok.length})`, '', `
     <table>
-      <thead><tr><th>Cikk${vanCikkszam ? ' / cikkszám' : ''}</th><th class="num">Mennyiség</th><th class="torles-oszlop"></th></tr></thead>
+      <thead><tr><th>Cikk</th><th class="num">Mennyiség</th><th class="torles-oszlop"></th></tr></thead>
       <tbody>${sorok}</tbody>
     </table>`);
 }
@@ -1078,7 +1075,7 @@ function jeloltHtml(j) {
   const arak = Object.entries(j.ar).filter(([, v]) => v !== null)
     .map(([m, v]) => `${MEZO_NEV[m]} ${penz(v)}`).join(', ');
   return `<li>
-    <span><strong>${escape(j.cikk)}</strong>${j.cikkszam ? ` <span class="muted">(${escape(j.cikkszam)})</span>` : ''}<br>
+    <span><strong>${escape(j.cikk)}</strong><br>
       <span class="muted">${ft.format(j.mennyiseg)} ${escape(j.egyseg)} · ${arak}</span></span>
   </li>`;
 }
@@ -1115,7 +1112,7 @@ function pluszHozzaad(t, mennyisegFrissit = false) {
   const k = tetelKulcs(t);
   const meglevo = allapot.plusz.find((p) => tetelKulcs(p) === k);
   if (!meglevo) {
-    allapot.plusz.push({ cikk: t.cikk, egyseg: t.egyseg, mennyiseg: t.mennyiseg, cikkszam: t.cikkszam ?? '', ...(t.forras && { forras: t.forras }) });
+    allapot.plusz.push({ cikk: t.cikk, egyseg: t.egyseg, mennyiseg: t.mennyiseg, ...(t.forras && { forras: t.forras }) });
   } else if (mennyisegFrissit) {
     meglevo.mennyiseg = t.mennyiseg;
   }
@@ -1140,7 +1137,7 @@ function megjelenitPlusz() {
     const alapKiallas = osszesKiallas().find((k) => kiallasDarab(k.nev) > 0)?.nev ?? KIALLAS_TIPUSOK[0].nev;
     return `<li class="plusz-sor">
       <div class="plusz-fej">
-        <span class="plusz-nev">${escape(t.cikk)}${t.cikkszam ? ` <span class="muted">(${escape(t.cikkszam)})</span>` : ''}${t.forras === 'pdf' ? '<br><span class="muted">a bolt PDF-jéből</span>' : ''}</span>
+        <span class="plusz-nev">${escape(t.cikk)}${t.forras === 'pdf' ? '<br><span class="muted">a bolt PDF-jéből</span>' : ''}</span>
         <span class="plusz-menny"><input type="number" min="0" step="any" class="plusz-mennyiseg" data-i="${i}"
           value="${t.mennyiseg}" aria-label="Mennyiség: ${escape(t.cikk)}"> ${escape(t.egyseg)}</span>
       </div>
@@ -1293,7 +1290,7 @@ function pluszEsemenyek() {
       const kiallas = $('kb-kiallas').value;
       const mennyiseg = Number($('kb-mennyiseg').value);
       if (!(mennyiseg > 0)) { $('kb-mennyiseg').focus(); return; }
-      allapot.bovitesek.push({ kiallas, cikk: t.cikk, mennyiseg, egyseg: t.egyseg, cikkszam: t.cikkszam ?? '' });
+      allapot.bovitesek.push({ kiallas, cikk: t.cikk, mennyiseg, egyseg: t.egyseg });
       konyvtarFrissites();
       // Ha a projektben van ilyen kiállás, a tételt mostantól a csomag adja, plusz tételként már nem kell.
       const db = kiallasDarab(kiallas);
@@ -1850,7 +1847,7 @@ function frissit() {
     // A munkadíj-tételekhez rendelt anyag (pl. WC felszerelés -> nyomólap), a mennyiséggel szorozva.
     for (const m of allapot.munkadij?.sorok ?? []) {
       for (const a of allapot.munkadijFelulirasok[m.kod]?.anyag ?? []) {
-        const t = { cikk: a.cikk, egyseg: a.egyseg || 'db', cikkszam: a.cikkszam ?? '' };
+        const t = { cikk: a.cikk, egyseg: a.egyseg || 'db' };
         const q = Math.round((Number(a.mennyiseg) || 0) * m.mennyiseg * 1000) / 1000;
         if (!(q > 0)) continue;
         const meglevo = allapot.anyag.sorok.find((s) => tetelKulcs(s) === tetelKulcs(t));
@@ -1888,7 +1885,31 @@ async function betolt(utvonal, nev) {
   return valasz.text();
 }
 
+// A cikkszám már nem használt: a korábban mentett adatokból (plusz tételek, csomagok,
+// munkák anyaga, ajánlatok) egyszer kitöröljük.
+function cikkszamokTorlese() {
+  const tisztit = (x) => {
+    if (Array.isArray(x)) return x.reduce((v, e) => tisztit(e) || v, false);
+    if (!x || typeof x !== 'object') return false;
+    let valtozott = 'cikkszam' in x;
+    delete x.cikkszam;
+    for (const v of Object.values(x)) valtozott = tisztit(v) || valtozott;
+    return valtozott;
+  };
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const kulcs = localStorage.key(i);
+      if (!kulcs?.startsWith('arajanlat.')) continue;
+      const szoveg = localStorage.getItem(kulcs);
+      if (!szoveg?.includes('cikkszam')) continue;
+      const adat = JSON.parse(szoveg);
+      if (tisztit(adat)) localStorage.setItem(kulcs, JSON.stringify(adat));
+    }
+  } catch { /* nem kötelező */ }
+}
+
 async function indit() {
+  cikkszamokTorlese();
   nezetek();
   try {
     const [tablaCsv, konyvtarCsv] = await Promise.all([

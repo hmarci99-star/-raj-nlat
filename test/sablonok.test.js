@@ -7,7 +7,7 @@ const munkadij = {
   sorok: [{ tetel: 'WC felszerelés', egyseg: 'db', egysegar: 20000, mennyiseg: 2, osszeg: 40000, megjegyzes: '' }],
   osszesen: 40000,
 };
-const anyagSorok = [{ cikk: 'Rehau PX 20 T-idom', egyseg: 'db', mennyiseg: 2, cikkszam: '' }];
+const anyagSorok = [{ cikk: 'Rehau PX 20 T-idom', egyseg: 'db', mennyiseg: 2 }];
 const sz = (x) => new RegExp(x.replace(/ /g, '\\s'));
 const a = ajanlat(munkadij, anyagSorok, { 'Rehau PX 20 T-idom|db': { bolti: 2100, kedvezmenyes: 1600 } });
 const adatok = {
