@@ -232,3 +232,25 @@ test('ugyanaz a tétel két sorban: a mennyiségek összeadódnak', () => {
   assert.equal(e.mennyisegek.get(k), 5);
   assert.equal(Math.round(e.mennyisegek.get(k) * e.arak.get(k).bolti), 23000);
 });
+
+test('anyagszükséglet PDF-ből: megnevezés, mennyiség, egység, árak nélkül is', async () => {
+  const { anyagListaBeolvasas } = await import('../src/arak.js');
+  const t = anyagListaBeolvasas([
+    'Anyagszükséglet – hőcserélő csere',
+    'Lemezes hőcserélő 30 lemezes 1 db',
+    'Tömítés 3/4 col\t2 db',
+    '3 db golyóscsap 3/4 col',
+    'Pipelife KAEM lefolyócső 110/0,5 m\t3 db\t1 200\t3 600',
+    ...valodi,
+    'Nettó összesen: 107 811 Ft',
+    'Batthyány utca 20',
+  ].join('\n'));
+  const nevek = t.map((x) => [x.cikk, x.mennyiseg, x.egyseg]);
+  assert.deepEqual(nevek.slice(0, 4), [
+    ['Lemezes hőcserélő 30 lemezes', 1, 'db'], ['Tömítés 3/4 col', 2, 'db'], ['Golyóscsap 3/4 col', 3, 'db'],
+    ['Pipelife KAEM lefolyócső 110/0,5 m', 3, 'db']]);
+  assert.equal(t.length, 4 + valodi.length);
+  const fischer = t.find((x) => x.cikk.startsWith('Fischer'));
+  assert.deepEqual([fischer.cikkszam, fischer.mennyiseg], ['FIS_79815', 200]);
+  assert.deepEqual(t.find((x) => x.cikk.startsWith('Rothenberger')).mennyiseg, 0.3);
+});

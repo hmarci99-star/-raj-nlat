@@ -220,10 +220,14 @@
     .munka-urlap input, .munka-urlap select { width: 100%; text-align: left; }
     .ketoszlop { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .anyag-sorok { display: grid; gap: 8px; margin: 4px 0 8px; }
-    .anyag-sor { display: grid; grid-template-columns: 1fr 64px 76px 34px; gap: 6px; }
+    .anyag-sor { display: grid; grid-template-columns: 1fr 1fr 40px; gap: 6px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+    .anyag-sor .as-cikk { grid-column: 1 / -1; }
     .anyag-sor input, .anyag-sor select { padding: 7px 6px; min-width: 0; }
     .anyag-sor .as-torles { padding: 0; }
-    .munka-urlap .as-uj { justify-self: start; }
+    .munka-urlap .kicsi-gombok { margin-top: 0; }
+    .munka-urlap .mu-pdf-uzenet { margin: 2px 0 0; }
+    .munka-urlap .mu-pdf-uzenet:empty { display: none; }
+    .anyag-sorok { max-height: 46vh; overflow: auto; }
 
     /* ---- Lenyitható tétellisták ---- */
     .lenyilo { margin: 10px 0; }
@@ -615,6 +619,6 @@
   </div>
 </main>
 <div id="nyomtat"></div>
-<script type="module" src="dist/app.js?v=288da8e0f4"></script>
+<script type="module" src="dist/app.js?v=8727aa9b16"></script>
 </body>
 </html>

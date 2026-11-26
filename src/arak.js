@@ -160,6 +160,14 @@ export function ujTetelJelolt(sor, mezo = null) {
   const ar = arakSzamokbol(szamok, mennyiseg, mezo);
   if (!ar || !Object.values(ar).some((v) => v >= 10)) return null;
 
+  const t = nevTisztitas(szoveg);
+  if (!t) return null;
+  return { cikk: t.nev, cikkszam: t.cikkszam, mennyiseg, egyseg, ar, sor };
+}
+
+// A sor szöveges részéből a megnevezés: tételsorszám, "Hivatkozás:" és a bolti cikkszám
+// leválasztva. Ha nem tételnek látszik (összesítő sor, túl rövid), null.
+function nevTisztitas(szoveg) {
   let nev = szoveg.replace(/\s+/g, ' ').trim()
     .replace(/^\d+[.)]\s+/, '') // tételsorszám: "12."
     .replace(/^hivatkozás:\s*/i, '');
@@ -167,9 +175,38 @@ export function ujTetelJelolt(sor, mezo = null) {
   // Cikkszám a megnevezés elején: csupa szám ("38340001") vagy bolti kód ("FIS_79815", "UH-499811", "PIP_KAB32-45").
   const csz = nev.match(/^(\d{4,}|(?=[A-Z0-9_./-]*\d)[A-Z][A-Z0-9]*[_-][A-Z0-9_./-]+)\s+(.*)$/);
   if (csz) [, cikkszam, nev] = csz;
-  nev = nev.replace(/[\s–:-]+$/, '').trim();
+  nev = nev.replace(/[\s–:;|-]+$/, '').trim();
   if ((nev.match(/\p{L}/gu) ?? []).length < 3 || nemTetelNev(nev)) return null;
-  return { cikk: nev, cikkszam, mennyiseg, egyseg, ar, sor };
+  return { nev, cikkszam };
+}
+
+// Anyagszükséglet egy PDF-ből vagy szövegből (árak nélkül is): soronként megnevezés,
+// mennyiség és egység. Csak azokat a sorokat veszi, ahol a mennyiség egységgel áll
+// ("3 db", "12 fm", "0,300 cs"); az árakat figyelmen kívül hagyja.
+export function anyagListaBeolvasas(text) {
+  const egysegMinta = new RegExp(`(?:^|[\\s\\t])(\\d+(?:[.,]\\d+)?)\\s*(${EGYSEGEK})\\.?(?=[\\s\\t;|,]|$)`, 'gi');
+  const tetelek = [];
+  for (const nyers of text.split(/\r?\n/)) {
+    const sor = nyers.trim();
+    if (!sor) continue;
+    const talalatok = [...sor.matchAll(egysegMinta)];
+    // A mennyiség a megnevezés után áll (az utolsó ilyen); ha előtte nincs szöveg, a mennyiség áll elöl ("3 db golyóscsap").
+    let t = null;
+    let m = null;
+    for (let i = talalatok.length - 1; i >= 0 && !t; i--) {
+      m = talalatok[i];
+      t = nevTisztitas(sor.slice(0, m.index));
+    }
+    if (!t && talalatok.length) {
+      m = talalatok[0];
+      t = nevTisztitas(sor.slice(m.index + m[0].length).replace(/^[\s\t]*[\d\s.,]*(ft)?/i, ''));
+    }
+    if (!t) continue;
+    const mennyiseg = parseSzam(m[1]);
+    if (!(mennyiseg > 0)) continue;
+    tetelek.push({ cikk: t.nev[0].toLocaleUpperCase('hu') + t.nev.slice(1), cikkszam: t.cikkszam, mennyiseg, egyseg: egysegNormal(m[2]) });
+  }
+  return tetelek;
 }
 
 // text: a bolt válasza (szövegként, akár PDF-ből kimásolva).

@@ -49,7 +49,7 @@ Négy lépés, telefonon alul fülekkel: **Projekt**, **Anyag**, **Árak**, **Aj
 
 ## Egyéb munkák
 
-A Projekt lépés „Egyéb munkák” kártyáján az „Új munka” gombbal a táblázatban nem szereplő munka vehető fel (pl. hőcserélő csere): megnevezés, egységár, egység, megjegyzés az ajánlaton, és ha kell, a munkához tartozó anyag (egy munkára számolva). Ezután minden ajánlatnál ott van a többi sor között; a mennyiség szerint beleszámít a munkadíjba, az anyag pedig felkerül az anyaglistára. A ceruza gombbal szerkeszthető vagy törölhető. Az eszközön tárolódik, és bekerül a biztonsági mentésbe; a mentett ajánlat a benne használt munkák leírását is megőrzi.
+A Projekt lépés „Egyéb munkák” kártyáján az „Új munka” gombbal a táblázatban nem szereplő munka vehető fel (pl. hőcserélő csere): megnevezés, egységár, egység, megjegyzés az ajánlaton, és ha kell, a munkához tartozó anyag (egy munkára számolva). Ezután minden ajánlatnál ott van a többi sor között; a mennyiség szerint beleszámít a munkadíjba, az anyag pedig felkerül az anyaglistára. A ceruza gombbal szerkeszthető vagy törölhető. Az „Anyag PDF-ből” gombbal egy PDF (anyagszükséglet vagy bolti ajánlat) tételei – megnevezés, mennyiség, egység – egyszerre bekerülnek a munka anyagai közé; azonos nevű tételnél a mennyiség összeadódik. Az eszközön tárolódik, és bekerül a biztonsági mentésbe; a mentett ajánlat a benne használt munkák leírását is megőrzi.
 
 ## Ajánlatok és profit
 

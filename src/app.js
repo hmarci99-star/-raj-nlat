@@ -1,7 +1,7 @@
 import { parseMunkadijTabla } from './csv.js';
 import { KIALLAS_TIPUSOK, SZERELVENY_KODOK, szamolMunkadij, uresProjekt } from './munkadij.js';
 import { parseKonyvtar, gyujtAnyaglista, anyaglistaSzoveg } from './anyaglista.js';
-import { boltValaszBeolvasas, ajanlat, tetelKulcs, parseSzam, nemTetelNev } from './arak.js';
+import { boltValaszBeolvasas, ajanlat, tetelKulcs, parseSzam, nemTetelNev, anyagListaBeolvasas } from './arak.js';
 import { bovitettKonyvtar, bennVanAzAlapban, konyvtarCsv } from './konyvtar.js';
 import { ugyfelAjanlatHtml, belsoOsszesitoHtml, fajlnev, ugyfelLevel, mailtoLink } from './sablonok.js';
 import { pdfSzoveg } from './pdfszoveg.js';
@@ -136,7 +136,7 @@ function ujMunkaKod(nev) {
 // Szerkesztőablak egy egyéb munkához (új vagy meglévő).
 function munkaSzerkeszto(kod = null) {
   const m = allapot.sajatMunkak.find((x) => x.kod === kod) ?? { tetel: '', egyseg: 'db', egysegar: '', megjegyzes: '', anyag: [] };
-  const anyagSor = (a = {}) => `<div class="anyag-sor">
+  const anyagSor = (a = {}) => `<div class="anyag-sor" data-cikkszam="${escape(a.cikkszam ?? '')}">
       <input class="as-cikk" placeholder="Anyag megnevezése" aria-label="Anyag megnevezése" value="${escape(a.cikk ?? '')}">
       <input class="as-menny" type="number" min="0" step="any" aria-label="Mennyiség" value="${a.mennyiseg ?? 1}">
       <select class="as-egyseg" aria-label="Egység">${ANYAG_EGYSEGEK.map((e) => `<option${e === (a.egyseg ?? 'db') ? ' selected' : ''}>${e}</option>`).join('')}</select>
@@ -154,7 +154,12 @@ function munkaSzerkeszto(kod = null) {
     <label class="mezo"><span>Megjegyzés az ajánlaton (nem kötelező)</span><input name="megjegyzes" placeholder="Pl. a régi hőcserélő elszállításával" value="${escape(m.megjegyzes ?? '')}"></label>
     <div class="mezo"><span>Anyag ehhez a munkához (nem kötelező) – egy munkára számolva</span>
       <div class="anyag-sorok">${(m.anyag ?? []).map(anyagSor).join('')}</div>
-      <button type="button" class="kicsi button as-uj">+ Anyag</button>
+      <div class="actions kicsi-gombok">
+        <button type="button" class="kicsi button as-uj">+ Anyag</button>
+        <label class="button kicsi fajl-gomb-kicsi" for="mu-pdf" data-ikon="feltolt">Anyag PDF-ből</label>
+        <input type="file" id="mu-pdf" accept="application/pdf,.pdf" class="rejtett-fajl">
+      </div>
+      <p class="muted mu-pdf-uzenet" aria-live="polite"></p>
     </div>
     <div class="parbeszed-gombok">
       <button type="submit">Mentés</button>
@@ -198,6 +203,7 @@ function munkaSzerkeszto(kod = null) {
       cikk: sor.querySelector('.as-cikk').value.trim().replace(/\s+/g, ' '),
       mennyiseg: Number(sor.querySelector('.as-menny').value) || 0,
       egyseg: sor.querySelector('.as-egyseg').value,
+      cikkszam: sor.dataset.cikkszam || '',
     })).filter((a) => a.cikk && a.mennyiseg > 0);
     const adat = { tetel, egyseg: f.egyseg.value, egysegar, megjegyzes: f.megjegyzes.value.trim(), anyag };
     const ertekek = olvas().egyeb;
@@ -208,7 +214,43 @@ function munkaSzerkeszto(kod = null) {
     egyebFelepit(ertekek);
     frissit();
   });
+  // Anyagszükséglet beolvasása PDF-ből: a tételek az anyagsorok közé kerülnek (azonos névnél a mennyiség nő).
+  urlap.querySelector('#mu-pdf').addEventListener('change', async (ev) => {
+    const fajl = ev.target.files?.[0];
+    ev.target.value = '';
+    if (!fajl) return;
+    const uzenet = urlap.querySelector('.mu-pdf-uzenet');
+    uzenet.textContent = `${fajl.name} beolvasása…`;
+    try {
+      const szoveg = await pdfSzoveg(fajl);
+      const tetelek = anyagListaBeolvasas(szoveg);
+      if (!tetelek.length) {
+        uzenet.textContent = szoveg.trim()
+          ? 'Nem találtam benne mennyiséggel megadott tételt (pl. „2 db”, „12 fm”).'
+          : 'Ebben a PDF-ben nincs kiolvasható szöveg (valószínűleg szkennelt kép).';
+        return;
+      }
+      const sorokEl = urlap.querySelector('.anyag-sorok');
+      let uj = 0;
+      for (const t of tetelek) {
+        const egyseg = ANYAG_EGYSEGEK.includes(t.egyseg) ? t.egyseg : 'db';
+        const meglevo = [...sorokEl.querySelectorAll('.anyag-sor')].find((sor) =>
+          sor.querySelector('.as-cikk').value.trim().toLowerCase() === t.cikk.toLowerCase() && sor.querySelector('.as-egyseg').value === egyseg);
+        if (meglevo) {
+          const m = meglevo.querySelector('.as-menny');
+          m.value = Math.round(((Number(m.value) || 0) + t.mennyiseg) * 1000) / 1000;
+        } else {
+          sorokEl.insertAdjacentHTML('beforeend', anyagSor({ ...t, egyseg }));
+          uj += 1;
+        }
+      }
+      uzenet.textContent = `${tetelek.length} tétel beolvasva (${uj} új sor). Nézd át, és ami nem kell, töröld az × gombbal.`;
+    } catch (err) {
+      uzenet.textContent = `A PDF nem olvasható be: ${err.message}`;
+    }
+  });
   document.body.append(hatter);
+  ikonozas();
   urlap.elements.tetel.focus();
 }
 
