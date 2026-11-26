@@ -108,3 +108,7 @@ A weboldal statikus fájlokból áll. Közvetlenül fájlként (`file://`) megny
 1. Az árbeolvasás finomítása valódi bolti válaszok alapján. A szkennelt (képként mentett) PDF-ből nem lehet szöveget kiolvasni.
 2. Csomag-felülírás szerkesztése a felületen; a gerinc idomai és a 25-ös cső.
 3. Több ajánlat mentése és kezelése, ajánlat-követés: állapot, következő lépés, határidő.
+
+## Kinézet
+
+Az Ajánlatok lépés alján a „Kinézet” kártyán választható: Kék (alap), Narancs vagy Sárga (fekete–sárga, szögletes). Világos és sötét módban is működik; a választás az eszközön megmarad.

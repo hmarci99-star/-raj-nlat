@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Árajánlat</title>
   <meta name="theme-color" content="#1f5fbf">
+  <script>
+    // A választott kinézet már a betöltéskor, villanás nélkül.
+    try { const t = localStorage.getItem('arajanlat.tema'); if (t) document.documentElement.dataset.tema = t; } catch {}
+  </script>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -25,6 +29,35 @@
         color-scheme: dark;
       }
     }
+    /* Választható kinézetek (Ajánlatok → Kinézet). */
+    html[data-tema="narancs"] {
+      --bg: #f6f4f1; --card: #ffffff; --text: #221c16; --muted: #6f655b; --line: #e7e1d9;
+      --accent: #d9620f; --accent-soft: #fdeee2; --on-accent: #ffffff;
+    }
+    html[data-tema="sarga"] {
+      --bg: #f2f2f0; --card: #ffffff; --text: #111111; --muted: #555555; --line: #cfcfcc;
+      --accent: #111111; --accent-soft: #fff3b0; --on-accent: #ffd400; --radius: 4px;
+    }
+    @media (prefers-color-scheme: dark) {
+      html[data-tema="narancs"] {
+        --bg: #141210; --card: #1e1b18; --text: #efe9e2; --muted: #a59a8e; --line: #332e29;
+        --accent: #ff8a3d; --accent-soft: #3a2516; --on-accent: #1a0f06;
+      }
+      html[data-tema="sarga"] {
+        --bg: #0b0b0b; --card: #161616; --text: #f5f5f5; --muted: #a8a8a8; --line: #2e2e2e;
+        --accent: #ffd400; --accent-soft: #332b00; --on-accent: #111111;
+      }
+    }
+    html[data-tema="sarga"] .felso { border-bottom: 3px solid #ffd400; }
+    html[data-tema="sarga"] h2 { text-transform: uppercase; letter-spacing: .04em; }
+    html[data-tema="sarga"] button, html[data-tema="sarga"] .button, html[data-tema="sarga"] input,
+    html[data-tema="sarga"] select, html[data-tema="sarga"] textarea { border-radius: 4px; }
+    html[data-tema="sarga"] .hangos-fab, html[data-tema="sarga"] .jelveny { border-radius: 999px; }
+    .tema-valaszto { display: flex; gap: 8px; flex-wrap: wrap; }
+    .tema-gomb { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid var(--line);
+      border-radius: var(--radius); background: var(--card); color: var(--text); cursor: pointer; font-weight: 600; }
+    .tema-gomb[aria-pressed="true"] { border: 2px solid var(--accent); padding: 7px 11px; }
+    .tema-minta { width: 20px; height: 20px; border-radius: 50%; flex: none; }
     * { box-sizing: border-box; }
     [hidden] { display: none !important; }
     html { -webkit-text-size-adjust: 100%; }
@@ -651,6 +684,28 @@
       </div>
       <p class="muted" id="mentes-uzenet" aria-live="polite"></p>
     </section>
+    <section class="kartya">
+      <h2>Kinézet</h2>
+      <div class="tema-valaszto" role="group" aria-label="Kinézet">
+        <button type="button" class="tema-gomb" data-tema="kek"><span class="tema-minta" style="background:#1f5fbf"></span>Kék</button>
+        <button type="button" class="tema-gomb" data-tema="narancs"><span class="tema-minta" style="background:#e8711c"></span>Narancs</button>
+        <button type="button" class="tema-gomb" data-tema="sarga"><span class="tema-minta" style="background:linear-gradient(135deg,#ffd400 50%,#111 50%)"></span>Sárga</button>
+      </div>
+    </section>
+    <script>
+      (() => {
+        const gombok = document.querySelectorAll('.tema-gomb');
+        const szinek = { kek: '#1f5fbf', narancs: '#d9620f', sarga: '#111111' };
+        const beallit = (t) => {
+          if (t === 'kek') delete document.documentElement.dataset.tema; else document.documentElement.dataset.tema = t;
+          try { if (t === 'kek') localStorage.removeItem('arajanlat.tema'); else localStorage.setItem('arajanlat.tema', t); } catch {}
+          document.querySelector('meta[name="theme-color"]')?.setAttribute('content', szinek[t]);
+          gombok.forEach((g) => g.setAttribute('aria-pressed', String(g.dataset.tema === t)));
+        };
+        gombok.forEach((g) => g.addEventListener('click', () => beallit(g.dataset.tema)));
+        beallit(document.documentElement.dataset.tema || 'kek');
+      })();
+    </script>
     <div class="tovabb"></div>
   </div>
 </main>
