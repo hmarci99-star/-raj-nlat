@@ -8,6 +8,7 @@ import { pdfSzoveg } from './pdfszoveg.js';
 import { diktaltTetelek, vanDiktalas, diktalas } from './diktalas.js';
 import { hangosModInit } from './hangosfelulet.js';
 import { ikon, MEZO_IKON } from './ikonok.js';
+import { ELRENDEZESEK, elrendezesInit, elrendezesFrissit, elrendezesValtas, aktualisElrendezes } from './elrendezes.js';
 import {
   ALLAPOTOK, SZUROK, allapotAdat, osszesites, szur, evek, profit, ujAzonosito, javasoltAllapot, exportAdat, importAdat,
 } from './ajanlatok.js';
@@ -31,6 +32,7 @@ const SAJAT_KIALLAS_KULCS = 'arajanlat.sajat-kiallasok';
 const KIALLAS_NEV_KULCS = 'arajanlat.kiallas-nevek';
 const KIALLAS_AR_KULCS = 'arajanlat.kiallas-arak';
 const NEZET_KULCS = 'arajanlat.nezet';
+const KEZDOLAP_KULCS = 'arajanlat.kezdolap';
 const ft = new Intl.NumberFormat('hu-HU', { useGrouping: 'always' });
 const $ = (id) => document.getElementById(id);
 const form = $('projekt');
@@ -104,7 +106,9 @@ function nezetek() {
   for (const f of document.querySelectorAll('.ful')) f.addEventListener('click', () => nezetValtas(f.dataset.nezet));
   for (const b of document.querySelectorAll('[data-ugras]')) b.addEventListener('click', () => nezetValtas(b.dataset.ugras));
   let mentett = null;
-  try { mentett = localStorage.getItem(NEZET_KULCS); } catch { /* nincs */ }
+  try {
+    mentett = localStorage.getItem(KEZDOLAP_KULCS) === 'ajanlatok' ? 'ajanlatok' : localStorage.getItem(NEZET_KULCS);
+  } catch { /* nincs */ }
   nezetValtas(mentett ?? 'projekt', false);
 }
 
@@ -1671,7 +1675,7 @@ function megjelenitAjanlatok() {
     data-szuro="${f.kod}" aria-pressed="${f.kod === allapot.ajanlatSzuro}">${f.nev}</button>`).join('');
   const szurt = szur(lista, allapot.ajanlatSzuro, allapot.ajanlatEv);
   $('ajanlat-lista').innerHTML = szurt.length ? szurt.map((r) => `
-    <li class="ajanlat-kartya${r.id === allapot.aktualisId ? ' aktualis' : ''}">
+    <li class="ajanlat-kartya${r.id === allapot.aktualisId ? ' aktualis' : ''}" data-csoport="${ALLAPOTOK.find((a) => a.kod === r.allapot)?.csoport ?? 'folyamatban'}">
       <div class="ak-fej">
         <div class="ak-nev"><strong>${escape(r.ugyfel || 'Névtelen ajánlat')}</strong>
           <span class="muted">${[r.cim, r.szam && `#${r.szam}`, r.datum && datumRovid(r.datum)].filter(Boolean).map(escape).join(' · ')}</span></div>
@@ -1843,6 +1847,7 @@ function frissit() {
   allapot.projekt = p;
   kitoltesJelolese();
   modositottJeloles();
+  elrendezesFrissit();
   try {
     allapot.anyag = gyujtAnyaglista(p, allapot.konyvtar, allapot.sajatMunkak, allapot.gerincAnyag, allapot.sajatKiallasok);
     // A munkadíj-tételekhez rendelt anyag (pl. WC felszerelés -> nyomólap), a mennyiséggel szorozva.
@@ -1884,6 +1889,31 @@ async function betolt(utvonal, nev) {
   const valasz = await fetch(utvonal, { cache: 'no-cache' });
   if (!valasz.ok) throw new Error(`A(z) ${nev} nem tölthető be (${valasz.status}).`);
   return valasz.text();
+}
+
+// Elrendezés-váltó (Projekt lépés teteje) és a kezdőlap beállítása (Ajánlatok → Kinézet).
+function elrendezesValtoBekotes() {
+  const valto = $('elrendezes-valto');
+  const rajzol = () => {
+    valto.innerHTML = ELRENDEZESEK.map((e) => `<button type="button" class="szuro${e.kod === aktualisElrendezes() ? ' aktiv' : ''}"
+      aria-pressed="${e.kod === aktualisElrendezes()}" data-elrendezes="${e.kod}">${e.nev}</button>`).join('');
+  };
+  rajzol();
+  valto.addEventListener('click', (ev) => {
+    const b = ev.target.closest('[data-elrendezes]');
+    if (!b) return;
+    elrendezesValtas(b.dataset.elrendezes);
+    if (b.dataset.elrendezes === 'lista') listakCsukasa();
+    rajzol();
+  });
+  const pipa = $('kezdolap-ajanlatok');
+  try { pipa.checked = localStorage.getItem(KEZDOLAP_KULCS) === 'ajanlatok'; } catch { /* alap */ }
+  pipa.addEventListener('change', () => {
+    try {
+      if (pipa.checked) localStorage.setItem(KEZDOLAP_KULCS, 'ajanlatok');
+      else localStorage.removeItem(KEZDOLAP_KULCS);
+    } catch { /* nem kötelező */ }
+  });
 }
 
 async function indit() {
@@ -1943,6 +1973,8 @@ async function indit() {
     ev.preventDefault();
     munkaSzerkeszto(cel.closest('label').dataset.munka);
   });
+  elrendezesInit(form, { kesz: () => nezetValtas('anyag') });
+  elrendezesValtoBekotes();
   const mentett = betoltMentett(MENTES_KULCS);
   if (mentett) kitolt(mentett);
   allapot.arak = betoltMentett(ARAK_KULCS) ?? {};

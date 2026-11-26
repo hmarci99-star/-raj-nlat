@@ -112,3 +112,14 @@ A weboldal statikus fájlokból áll. Közvetlenül fájlként (`file://`) megny
 ## Kinézet
 
 Az Ajánlatok lépés alján a „Kinézet” kártyán választható: Kék (alap), Narancs, Sárga (fekete–sárga, szögletes), Smaragd (zöld, lekerekített) vagy Letisztult (szinte fekete-fehér). Világos és sötét módban is működik; a választás az eszközön megmarad.
+
+## Elrendezések
+
+A Projekt lépés tetején választható, hogyan adod meg a munkát (a választás megmarad):
+
+- **Lista**: az eredeti kártyás lista.
+- **Csempék**: nagy ikonos csempék; koppintás = +1, a sarokban a − elvesz, hosszan nyomva nyílik a tétel szerkesztője. A folyóméteres tételeknél (gerinc, külső szerelés) a csempén beírható a hossz.
+- **Lépésenként**: egyszerre egy kérdés nagy gombokkal, Vissza / Tovább / Szakasz átugrása; a végén összegzés és tovább az anyaglistára.
+- **Kosár**: keresés és kategóriák; a lista csak a felvett tételeket mutatja, a keresésből „+ Hozzáad”-dal vehetők fel újak.
+
+Az Ajánlatok → Kinézet kártyán beállítható, hogy induláskor az Ajánlatok nyíljanak (ajánlat-központ). Az ajánlatkártyák bal szélén színes csík jelzi az állapotot.

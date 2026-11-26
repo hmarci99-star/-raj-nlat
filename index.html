@@ -77,6 +77,83 @@
       border-radius: var(--radius); background: var(--card); color: var(--text); cursor: pointer; font-weight: 600; }
     .tema-gomb[aria-pressed="true"] { border: 2px solid var(--accent); padding: 7px 11px; }
     .tema-minta { width: 20px; height: 20px; border-radius: 50%; flex: none; }
+
+    /* ---- Választható elrendezések (src/elrendezes.js) ---- */
+    .elr-valto { margin: 0 0 10px; }
+    #elrendezes-nezet { min-width: 0; max-width: 100%; }
+    #elrendezes-nezet:empty { display: none; }
+    .varazs-kartya .varazs-kerdes { text-transform: none; letter-spacing: 0; color: var(--text); font-size: 1.35rem; margin: 8px 0 18px; }
+    .kosar-kereso { display: block; }
+    .kosar-kereso input { width: 100%; font-size: 1rem; }
+    .vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    .elr-csempe #projekt .mezolista > label:has(input[type=number]),
+    .elr-kosar #projekt .mezolista > label:has(input[type=number]),
+    .elr-csempe #projekt .tobb-gomb, .elr-kosar #projekt .tobb-gomb { display: none !important; }
+    .elr-csempe #projekt .mezolista > label:has(select),
+    .elr-kosar #projekt .mezolista > label:has(select) { display: flex !important; }
+    .elr-varazslo #projekt { display: none; }
+    .ajanlat-kartya[data-csoport] { border-left: 5px solid var(--cs, var(--accent)); }
+    .ajanlat-kartya[data-csoport="elkuldve"] { --cs: #c27c00; }
+    .ajanlat-kartya[data-csoport="elfogadva"] { --cs: var(--ok); }
+    .ajanlat-kartya[data-csoport="elutasitva"] { --cs: var(--error); }
+    /* Csempék */
+    .csempe-racs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 4px 0 10px; }
+    .csempe { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
+      min-height: 84px; padding: 12px 4px 8px; border: 1px solid var(--line); border-radius: 12px; background: var(--card);
+      text-align: center; font-size: .78rem; line-height: 1.15; cursor: pointer; user-select: none; -webkit-user-select: none;
+      -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+    .csempe:active { transform: scale(.97); }
+    .csempe .csempe-ikon { width: 28px; height: 28px; color: var(--accent); stroke: currentColor; fill: none; stroke-width: 1.7;
+      stroke-linecap: round; stroke-linejoin: round; }
+    .csempe.van { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+    .csempe.van .csempe-ikon { color: var(--on-accent); }
+    .csempe-nev { overflow-wrap: anywhere; }
+    .csempe-db { position: absolute; top: 5px; right: 8px; font-weight: 800; font-size: .95rem; }
+    .csempe-minusz { position: absolute; top: 4px; left: 4px; width: 26px; height: 26px; padding: 0; border: 0; border-radius: 50%;
+      background: color-mix(in srgb, var(--on-accent) 25%, transparent); color: var(--on-accent); font-weight: 700; line-height: 26px; }
+    .csempe-fm { display: flex; align-items: center; gap: 4px; font-size: .75rem; }
+    .csempe-fm input { width: 58px; padding: 3px 5px; text-align: center; color: var(--text); background: var(--bg); }
+    /* Varázsló */
+    .varazs-halad { display: flex; gap: 4px; margin: 2px 0 6px; }
+    .varazs-halad i { flex: 1; height: 5px; border-radius: 3px; background: var(--line); }
+    .varazs-halad i.k { background: var(--accent); }
+    .varazs-hol { margin: 0 0 10px; color: var(--muted); font-size: .82rem; }
+    .varazs-kartya { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 24px 16px; text-align: center; }
+    .varazs-ikon { width: 56px; height: 56px; color: var(--accent); stroke: currentColor; fill: none; stroke-width: 1.5;
+      stroke-linecap: round; stroke-linejoin: round; }
+    .varazs-kerdes { font-size: 1.35rem; margin: 8px 0 18px; }
+    .varazs-lepteto { display: flex; align-items: center; justify-content: center; gap: 22px; }
+    .varazs-lepteto button { width: 62px; height: 62px; border-radius: 50%; border: 2px solid var(--accent); background: none;
+      color: var(--accent); font-size: 1.9rem; line-height: 1; cursor: pointer; touch-action: manipulation; }
+    .varazs-lepteto b { font-size: 2.8rem; min-width: 64px; font-variant-numeric: tabular-nums; }
+    .varazs-gyors, .varazs-opciok { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 16px; }
+    .varazs-gyors button, .varazs-opcio { border: 1px solid var(--line); border-radius: 999px; padding: 7px 15px; background: var(--bg);
+      color: var(--text); font-weight: 600; cursor: pointer; }
+    .varazs-opcio { padding: 11px 18px; }
+    .varazs-gyors button[aria-pressed="true"], .varazs-opcio[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+    .varazs-fm { display: inline-flex; align-items: center; gap: 8px; font-size: 1.2rem; }
+    .varazs-fm input { width: 120px; font-size: 1.6rem; text-align: center; padding: 8px; }
+    .varazs-gombok { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 14px; }
+    .link-gomb { border: 0; background: none; color: var(--accent); font-weight: 600; padding: 8px 4px; cursor: pointer; margin-top: 12px; }
+    .varazs-gombok .link-gomb { margin-top: 0; }
+    .varazs-osszegzes { list-style: none; padding: 0; margin: 0; text-align: left; }
+    .varazs-osszegzes li { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid var(--line); }
+    /* Kosár */
+    .kosar-kereso input { width: 100%; padding: 11px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+    .kosar-chipek { display: flex; gap: 6px; overflow-x: auto; margin: 10px 0; padding-bottom: 2px; }
+    .kosar-chipek .szuro { white-space: nowrap; }
+    .kosar-tetel { display: flex; align-items: center; gap: 10px; background: var(--card); border: 1px solid var(--line);
+      border-radius: 12px; padding: 8px 10px; margin-bottom: 6px; }
+    .kosar-tetel > .ikon { width: 24px; height: 24px; flex: none; color: var(--accent); stroke: currentColor; fill: none;
+      stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+    .kosar-tetel.van { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
+    .kosar-nev { flex: 1; min-width: 0; text-align: left; border: 0; background: none; padding: 2px 0; color: var(--text); font-weight: 600; cursor: pointer; }
+    .kosar-nev small { display: block; font-weight: 400; color: var(--muted); font-size: .75rem; }
+    .kosar-tetel .lepteto .kosar-db { display: flex; align-items: center; justify-content: center; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    .kosar-db { min-width: 30px; text-align: center; font-variant-numeric: tabular-nums; }
+    .kosar-fm input { width: 70px; text-align: center; }
+    .kosar-ures { border: 1px dashed var(--line); border-radius: 12px; padding: 14px; color: var(--muted); text-align: center; margin: 0; }
+    .kosar-alcim { font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 18px 0 8px; }
     * { box-sizing: border-box; }
     [hidden] { display: none !important; }
     html { -webkit-text-size-adjust: 100%; }
@@ -516,6 +593,7 @@
       </div>
       <button type="button" class="kicsi" data-ajanlat-muvelet="uj" data-ikon="plusz">Új ajánlat</button>
     </div>
+    <div class="szurok elr-valto" id="elrendezes-valto" role="group" aria-label="Elrendezés"></div>
     <form id="projekt" class="nezet">
       <section class="kartya">
         <h2 data-ikon="csepp">Vízszerelési kiállások</h2>
@@ -688,8 +766,13 @@
 
   <!-- 5. Ajánlatok -->
   <div class="nezet" id="nezet-ajanlatok" hidden>
-    <h2 class="nezet-cim">Ajánlatok</h2>
-    <p class="nezet-leiras">Az elmentett ajánlatok, állapotuk és a profit az elfogadottakon.</p>
+    <div class="nezet-fej">
+      <div class="nezet-fej-szoveg">
+        <h2 class="nezet-cim">Ajánlatok</h2>
+        <p class="nezet-leiras">Az elmentett ajánlatok, állapotuk és a profit az elfogadottakon.</p>
+      </div>
+      <button type="button" class="kicsi" data-ajanlat-muvelet="uj" data-ikon="plusz">Új ajánlat</button>
+    </div>
     <section class="kartya" id="ajanlatok-osszesites"></section>
     <div class="szurok" id="ajanlat-szurok" role="group" aria-label="Szűrés állapot szerint"></div>
     <ul class="ajanlat-lista" id="ajanlat-lista"></ul>
@@ -705,6 +788,7 @@
     </section>
     <section class="kartya">
       <h2>Kinézet</h2>
+      <p class="megj" style="margin-top:0">A Projekt lépés elrendezése (Lista, Csempék, Lépésenként, Kosár) a Projekt oldal tetején váltható.</p>
       <div class="tema-valaszto" role="group" aria-label="Kinézet">
         <button type="button" class="tema-gomb" data-tema="kek"><span class="tema-minta" style="background:#1f5fbf"></span>Kék</button>
         <button type="button" class="tema-gomb" data-tema="narancs"><span class="tema-minta" style="background:#e8711c"></span>Narancs</button>
@@ -712,6 +796,7 @@
         <button type="button" class="tema-gomb" data-tema="smaragd"><span class="tema-minta" style="background:#0f7a5a"></span>Smaragd</button>
         <button type="button" class="tema-gomb" data-tema="letisztult"><span class="tema-minta" style="background:linear-gradient(135deg,#f7f8fa 50%,#334155 50%);border:1px solid #cbd5e1"></span>Letisztult</button>
       </div>
+      <label class="check" style="margin-top:12px"><input type="checkbox" id="kezdolap-ajanlatok"><span>Induláskor az Ajánlatok nyíljanak (ajánlat-központ)</span></label>
     </section>
     <script>
       (() => {
@@ -731,6 +816,6 @@
   </div>
 </main>
 <div id="nyomtat"></div>
-<script type="module" src="dist/app.js?v=99f5fd2a8b"></script>
+<script type="module" src="dist/app.js?v=10fcba855c"></script>
 </body>
 </html>
