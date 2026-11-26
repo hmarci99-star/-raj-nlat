@@ -27,3 +27,11 @@ test('CSV export: a beolvasással visszaolvasható, vesszős és tizedes érték
   assert.deepEqual([...vissza], [...k].map(([n, s]) => [n, s.map((t) => ({ ...t, cikkszam: t.cikkszam ?? '' }))]));
   assert.equal(konyvtarCsv(alap), csv);
 });
+
+test('kiállás-csomag szerkesztése: a felülírás lecseréli a csomagot, a többi változatlan', async () => {
+  const { felulirtKonyvtar } = await import('../src/konyvtar.js');
+  const k = felulirtKonyvtar(alap, { 'WC-tartály': [{ cikk: 'Geberit Duofix', mennyiseg: 1, egyseg: 'db' }] });
+  assert.deepEqual(k.get('WC-tartály'), [{ cikk: 'Geberit Duofix', mennyiseg: 1, egyseg: 'db', cikkszam: '' }]);
+  assert.deepEqual(k.get('Mosógép'), alap.get('Mosógép'));
+  assert.ok(alap.get('WC-tartály').length > 1);
+});

@@ -47,6 +47,12 @@ Telefonról is használható weboldal. A beírt adatokat és árakat a böngész
 
 Négy lépés, telefonon alul fülekkel: **Projekt**, **Anyag**, **Árak**, **Ajánlat**. Felül mindig látszik a munkadíj, az anyag és a végösszeg. A füleken kis szám mutatja az anyaglista tételeinek számát, és hogy hány tételnek van már bolti ára.
 
+## Kiállás-csomagok szerkesztése
+
+A Projekt lépésben egy kiállás nevére, ikonjára vagy a mellette lévő ceruzára koppintva megnyílik az anyagcsomagja (egy kiállásra számolva): a tételek átírhatók, törölhetők, újak vehetők fel, vagy PDF-ből beolvashatók. A változás minden további ajánlatra érvényes ezen az eszközön; az „Eredeti csomag visszaállítása” gombbal visszaáll az alkalmazás csomagja. A módosítások a biztonsági mentésbe és a „Könyvtár letöltése (CSV)” exportba is bekerülnek.
+
+A Projekt lépés fő pontjai (kiállások, fűtés, szerelvények, gerinc és külső szerelés, egyéb munkák) összecsukhatók: csukva csak a kitöltött sorok látszanak, a „Továbbiak” / „… megadása” gombbal nyílik a többi.
+
 ## Egyéb munkák
 
 A Projekt lépés „Egyéb munkák” kártyáján az „Új munka” gombbal a táblázatban nem szereplő munka vehető fel (pl. hőcserélő csere): megnevezés, egységár, egység, megjegyzés az ajánlaton, és ha kell, a munkához tartozó anyag (egy munkára számolva). Ezután minden ajánlatnál ott van a többi sor között; a mennyiség szerint beleszámít a munkadíjba, az anyag pedig felkerül az anyaglistára. A ceruza gombbal szerkeszthető vagy törölhető. Az „Anyag PDF-ből” gombbal egy PDF (anyagszükséglet vagy bolti ajánlat) tételei – megnevezés, mennyiség, egység – egyszerre bekerülnek a munka anyagai közé; azonos nevű tételnél a mennyiség összeadódik. Az eszközön tárolódik, és bekerül a biztonsági mentésbe; a mentett ajánlat a benne használt munkák leírását is megőrzi.

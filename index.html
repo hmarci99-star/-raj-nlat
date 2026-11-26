@@ -461,13 +461,14 @@
     <form id="projekt" class="nezet">
       <section class="kartya">
         <h2 data-ikon="csepp">Vízszerelési kiállások</h2>
-        <div class="mezolista" id="kiallasok"></div>
+        <div class="mezolista osszecsukhato" id="kiallasok" data-cim="Kiállások"></div>
+        <button type="button" class="tobb-gomb" data-lista="kiallasok" aria-controls="kiallasok"></button>
         <p class="megj">Minden kiállás után vízszerelés alapszerelés jár.</p>
       </section>
 
       <section class="kartya">
         <h2 data-ikon="radiator">Fűtés</h2>
-        <div class="mezolista">
+        <div class="mezolista osszecsukhato" id="futes-lista" data-cim="Fűtés">
           <label><span>Radiátor kiállás</span><input type="number" min="0" name="radiatorKiallas"></label>
           <label><span>Radiátor felszerelés</span><input type="number" min="0" name="radiatorFelszereles"></label>
           <label><span>Padlófűtés kör</span><input type="number" min="0" name="padlofutesKor"></label>
@@ -480,6 +481,7 @@
             </select>
           </label>
         </div>
+        <button type="button" class="tobb-gomb" data-lista="futes-lista" aria-controls="futes-lista"></button>
         <label class="check" id="puffer-sor"><input type="checkbox" name="puffer"><span>Puffertartály (vegyes kazánhoz)</span></label>
         <label class="check" id="felar-hsz-sor"><input type="checkbox" name="felarHoszivattyunal"><span>Vegyes kör felára hőszivattyúnál is</span></label>
       </section>
@@ -492,12 +494,13 @@
 
       <section class="kartya">
         <h2 data-ikon="cso">Gerinc és külső szerelés</h2>
-        <div class="mezolista">
+        <div class="mezolista osszecsukhato" id="gerinc-lista" data-cim="Gerinc, külső szerelés">
           <label><span>Gerinc, 16-os cső (fm)</span><input type="number" min="0" step="0.5" name="gerinc.16"></label>
           <label><span>Gerinc, 20-as cső (fm)</span><input type="number" min="0" step="0.5" name="gerinc.20"></label>
           <label><span>Külső vízbekötés (fm)</span><input type="number" min="0" step="0.5" name="kulsoVizFm"></label>
           <label><span>Külső szennyvíz (fm)</span><input type="number" min="0" step="0.5" name="kulsoSzennyvizFm"></label>
         </div>
+        <button type="button" class="tobb-gomb" data-lista="gerinc-lista" aria-controls="gerinc-lista"></button>
         <p class="megj">A külső szerelés ásás nélkül értendő. A gerincnél csak a cső és a csőhéj kerül az anyaglistára.</p>
       </section>
 
@@ -642,6 +645,6 @@
   </div>
 </main>
 <div id="nyomtat"></div>
-<script type="module" src="dist/app.js?v=a05d1fa660"></script>
+<script type="module" src="dist/app.js?v=76c1ea7871"></script>
 </body>
 </html>

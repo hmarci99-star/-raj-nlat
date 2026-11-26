@@ -33,3 +33,12 @@ export function konyvtarCsv(konyvtar) {
   }
   return `${sorok.map((s) => s.map(mezo).join(',')).join('\n')}\n`;
 }
+
+// A felületen szerkesztett kiállás-csomagok (teljes csere): { kiállás neve: [sorok] }.
+export function felulirtKonyvtar(konyvtar, felulirasok = {}) {
+  const k = new Map([...konyvtar].map(([n, s]) => [n, [...s]]));
+  for (const [nev, sorok] of Object.entries(felulirasok)) {
+    if (Array.isArray(sorok)) k.set(nev, sorok.map((t) => ({ cikk: t.cikk, mennyiseg: t.mennyiseg, egyseg: t.egyseg, cikkszam: t.cikkszam ?? '' })));
+  }
+  return k;
+}
