@@ -72,7 +72,8 @@ export function huvelyEltetesek(sorok) {
 
 // projekt.kiallasok: { kod: darab }, projekt.gerinc: { 16: fm, 20: fm },
 // projekt.felulirasok: { kiallasNev: [sorok] } – a könyvtári csomag helyett.
-export function gyujtAnyaglista(projekt, konyvtar) {
+// sajatMunkak: [{ kod, tetel, anyag: [{ cikk, mennyiseg, egyseg }] }] – az egyéb munkákhoz rendelt anyag.
+export function gyujtAnyaglista(projekt, konyvtar, sajatMunkak = []) {
   const tetelek = new Map();
   const figyelmeztetesek = [];
   const hozzaad = (s, szorzo) => {
@@ -97,6 +98,14 @@ export function gyujtAnyaglista(projekt, konyvtar) {
       );
     }
     for (const s of csomag) hozzaad(s, darab);
+  }
+
+  for (const m of sajatMunkak) {
+    const db = Number(projekt.egyeb?.[m.kod]) || 0;
+    if (db <= 0) continue;
+    for (const a of m.anyag ?? []) {
+      if (a?.cikk && Number(a.mennyiseg) > 0) hozzaad({ cikk: a.cikk, egyseg: a.egyseg || 'db', mennyiseg: Number(a.mennyiseg), cikkszam: a.cikkszam ?? '' }, db);
+    }
   }
 
   for (const [atmero, { cso, csohej }] of Object.entries(GERINC)) {

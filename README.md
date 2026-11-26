@@ -47,6 +47,10 @@ Telefonról is használható weboldal. A beírt adatokat és árakat a böngész
 
 Négy lépés, telefonon alul fülekkel: **Projekt**, **Anyag**, **Árak**, **Ajánlat**. Felül mindig látszik a munkadíj, az anyag és a végösszeg. A füleken kis szám mutatja az anyaglista tételeinek számát, és hogy hány tételnek van már bolti ára.
 
+## Egyéb munkák
+
+A Projekt lépés „Egyéb munkák” kártyáján az „Új munka” gombbal a táblázatban nem szereplő munka vehető fel (pl. hőcserélő csere): megnevezés, egységár, egység, megjegyzés az ajánlaton, és ha kell, a munkához tartozó anyag (egy munkára számolva). Ezután minden ajánlatnál ott van a többi sor között; a mennyiség szerint beleszámít a munkadíjba, az anyag pedig felkerül az anyaglistára. A ceruza gombbal szerkeszthető vagy törölhető. Az eszközön tárolódik, és bekerül a biztonsági mentésbe; a mentett ajánlat a benne használt munkák leírását is megőrzi.
+
 ## Ajánlatok és profit
 
 Az Ajánlat lépésnél a „Mentés az ajánlatok közé” gombbal az ajánlat bekerül az Ajánlatok közé; utána minden változás magától mentődik. Az „Új ajánlat” tiszta lappal indít (a saját adatok maradnak), a listából bármelyik ajánlat újra megnyitható a projekttel, árakkal, PDF-ekkel és plusz tételekkel együtt.

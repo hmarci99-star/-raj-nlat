@@ -209,6 +209,22 @@
     button.veszelyes { background: var(--error); border-color: var(--error); color: #fff; }
     @media (min-width: 761px) { .parbeszed-hatter { place-items: center; } }
 
+    /* ---- Egyéb munkák ---- */
+    .munka-ar { display: block; font-size: .8rem; color: var(--muted); font-weight: 400; }
+    .munka-szerk { width: 34px; height: 34px; padding: 0; border-radius: 8px; background: transparent; border: 1px solid var(--line);
+      color: var(--muted); display: grid; place-items: center; flex: none; }
+    .munka-szerk .ikon { width: 17px; height: 17px; }
+    .munka-urlap { display: grid; gap: 12px; max-height: calc(100vh - 32px); overflow: auto; }
+    .munka-urlap .mezo { display: flex; flex-direction: column; gap: 4px; }
+    .munka-urlap .mezo > span { font-size: .85rem; color: var(--muted); }
+    .munka-urlap input, .munka-urlap select { width: 100%; text-align: left; }
+    .ketoszlop { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .anyag-sorok { display: grid; gap: 8px; margin: 4px 0 8px; }
+    .anyag-sor { display: grid; grid-template-columns: 1fr 64px 76px 34px; gap: 6px; }
+    .anyag-sor input, .anyag-sor select { padding: 7px 6px; min-width: 0; }
+    .anyag-sor .as-torles { padding: 0; }
+    .munka-urlap .as-uj { justify-self: start; }
+
     /* ---- Lenyitható tétellisták ---- */
     .lenyilo { margin: 10px 0; }
     .lenyilo-gomb { display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 14px; border-radius: 10px;
@@ -458,6 +474,12 @@
         </div>
         <p class="megj">A külső szerelés ásás nélkül értendő. A gerincnél csak a cső és a csőhéj kerül az anyaglistára.</p>
       </section>
+
+      <section class="kartya">
+        <h2 data-ikon="kalapacs">Egyéb munkák</h2>
+        <div class="mezolista" id="egyeb"></div>
+        <div class="actions"><button type="button" class="kicsi button" id="uj-munka" data-ikon="plusz">Új munka</button></div>
+      </section>
     </form>
 
     <section class="kartya">
@@ -593,6 +615,6 @@
   </div>
 </main>
 <div id="nyomtat"></div>
-<script type="module" src="dist/app.js?v=13afedcbdd"></script>
+<script type="module" src="dist/app.js?v=288da8e0f4"></script>
 </body>
 </html>

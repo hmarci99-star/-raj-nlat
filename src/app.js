@@ -23,6 +23,7 @@ const AKTUALIS_KULCS = 'arajanlat.aktualis-ajanlat';
 // A munka adatai: ha ezek változnak és az ajánlat már el van mentve, magától frissül a mentés.
 const MUNKA_KULCSOK = new Set([MENTES_KULCS, ARAK_KULCS, ADATOK_KULCS, PLUSZ_KULCS, PDF_MENNY_KULCS, FELTOLTES_KULCS]);
 const BOVITES_KULCS = 'arajanlat.konyvtar-bovites';
+const SAJAT_MUNKA_KULCS = 'arajanlat.sajat-munkak';
 const NEZET_KULCS = 'arajanlat.nezet';
 const ft = new Intl.NumberFormat('hu-HU', { useGrouping: 'always' });
 const $ = (id) => document.getElementById(id);
@@ -33,6 +34,8 @@ const allapot = {
   alapKonyvtar: null,
   konyvtar: null,
   bovitesek: [], // a könyvtárhoz a felületen hozzáadott sorok (az eszközön tárolva)
+  // Egyéb (saját) munkák: { kod, tetel, egyseg, egysegar, megjegyzes, anyag: [{ cikk, mennyiseg, egyseg }] }
+  sajatMunkak: [],
   plusz: [], // az ajánlathoz kézzel vagy a bolt PDF-jéből hozzáadott tételek
   pdfMennyiseg: {}, // tétel -> a bolt PDF-je szerinti mennyiség, ha eltér a listától (ez az irányadó)
   // Feltöltésenként (bolti / kedvezmenyes / szoveg) mit írt be, hogy vissza lehessen vonni:
@@ -95,6 +98,120 @@ function nezetek() {
 
 const kiir = (id, szoveg) => { const el = $(id); if (el) el.textContent = szoveg; };
 
+// ---- Egyéb (saját) munkák ----
+
+// A munkadíj-táblázat a saját munkákkal kiegészítve.
+function munkadijTabla() {
+  const t = new Map(allapot.tabla);
+  for (const m of allapot.sajatMunkak) {
+    t.set(m.kod, { kod: m.kod, tetel: m.tetel, egyseg: m.egyseg, egysegar: Number(m.egysegar) || 0, megjegyzes: m.megjegyzes ?? '' });
+  }
+  return t;
+}
+
+const MUNKA_EGYSEGEK = ['db', 'óra', 'fm', 'm²', 'kör', 'alkalom', 'kiállás', 'nap'];
+const ANYAG_EGYSEGEK = ['db', 'fm', 'pár', 'csomag', 'szett', 'kg', 'tekercs', 'doboz'];
+
+// Az "Egyéb munkák" sorai a Projekt lépésben. ertekek: a megtartandó mennyiségek (alapból a mostaniak).
+function egyebFelepit(ertekek = olvas().egyeb) {
+  const sorok = allapot.sajatMunkak.map((m) => `
+    <label><span>${escape(m.tetel)}<small class="munka-ar">${ft.format(Number(m.egysegar) || 0)} Ft / ${escape(m.egyseg)}${
+      m.anyag?.length ? ` · ${m.anyag.length} anyag` : ''}</small></span>
+      <input type="number" min="0" step="any" name="egyeb.${m.kod}" value="${Number(ertekek?.[m.kod]) > 0 ? ertekek[m.kod] : ''}">
+      <button type="button" class="munka-szerk" data-munka="${m.kod}" aria-label="Szerkesztés: ${escape(m.tetel)}">${ikon('ceruza')}</button>
+    </label>`).join('');
+  $('egyeb').innerHTML = sorok || '<p class="muted" style="margin:4px 0 0">Itt veheted fel a táblázatban nem szereplő munkákat (pl. hőcserélő csere) saját egységárral. Minden ajánlatnál használhatók.</p>';
+  leptetok();
+  ikonozas();
+  kitoltesJelolese();
+}
+
+function ujMunkaKod(nev) {
+  const alap = `sajat-${nev.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 30) || 'munka'}`;
+  let kod = alap;
+  for (let i = 2; allapot.sajatMunkak.some((m) => m.kod === kod); i++) kod = `${alap}-${i}`;
+  return kod;
+}
+
+// Szerkesztőablak egy egyéb munkához (új vagy meglévő).
+function munkaSzerkeszto(kod = null) {
+  const m = allapot.sajatMunkak.find((x) => x.kod === kod) ?? { tetel: '', egyseg: 'db', egysegar: '', megjegyzes: '', anyag: [] };
+  const anyagSor = (a = {}) => `<div class="anyag-sor">
+      <input class="as-cikk" placeholder="Anyag megnevezése" aria-label="Anyag megnevezése" value="${escape(a.cikk ?? '')}">
+      <input class="as-menny" type="number" min="0" step="any" aria-label="Mennyiség" value="${a.mennyiseg ?? 1}">
+      <select class="as-egyseg" aria-label="Egység">${ANYAG_EGYSEGEK.map((e) => `<option${e === (a.egyseg ?? 'db') ? ' selected' : ''}>${e}</option>`).join('')}</select>
+      <button type="button" class="kicsi button as-torles" aria-label="Anyag törlése">×</button>
+    </div>`;
+  const hatter = document.createElement('div');
+  hatter.className = 'parbeszed-hatter';
+  hatter.innerHTML = `<form class="parbeszed munka-urlap" role="dialog" aria-modal="true" aria-labelledby="mu-cim">
+    <h2 id="mu-cim">${kod ? 'Munka szerkesztése' : 'Új munka'}</h2>
+    <label class="mezo"><span>Megnevezés</span><input name="tetel" required placeholder="Pl. Hőcserélő csere" value="${escape(m.tetel)}"></label>
+    <div class="ketoszlop">
+      <label class="mezo"><span>Egységár (Ft)</span><input name="egysegar" type="number" min="0" step="any" required inputmode="numeric" value="${m.egysegar}"></label>
+      <label class="mezo"><span>Egység</span><select name="egyseg">${MUNKA_EGYSEGEK.map((e) => `<option${e === m.egyseg ? ' selected' : ''}>${e}</option>`).join('')}</select></label>
+    </div>
+    <label class="mezo"><span>Megjegyzés az ajánlaton (nem kötelező)</span><input name="megjegyzes" placeholder="Pl. a régi hőcserélő elszállításával" value="${escape(m.megjegyzes ?? '')}"></label>
+    <div class="mezo"><span>Anyag ehhez a munkához (nem kötelező) – egy munkára számolva</span>
+      <div class="anyag-sorok">${(m.anyag ?? []).map(anyagSor).join('')}</div>
+      <button type="button" class="kicsi button as-uj">+ Anyag</button>
+    </div>
+    <div class="parbeszed-gombok">
+      <button type="submit">Mentés</button>
+      ${kod ? '<button type="button" class="veszelyes mu-torles">Munka törlése</button>' : ''}
+      <button type="button" class="button mu-megse">Mégse</button>
+    </div>
+  </form>`;
+  const urlap = hatter.querySelector('form');
+  const zar = () => { hatter.remove(); document.removeEventListener('keydown', esc); };
+  const esc = (ev) => { if (ev.key === 'Escape') zar(); };
+  document.addEventListener('keydown', esc);
+  hatter.addEventListener('click', async (ev) => {
+    if (ev.target === hatter || ev.target.closest('.mu-megse')) { zar(); return; }
+    if (ev.target.closest('.as-uj')) {
+      urlap.querySelector('.anyag-sorok').insertAdjacentHTML('beforeend', anyagSor());
+      urlap.querySelector('.anyag-sor:last-child .as-cikk').focus();
+    } else if (ev.target.closest('.as-torles')) {
+      ev.target.closest('.anyag-sor').remove();
+    } else if (ev.target.closest('.mu-torles')) {
+      hatter.hidden = true;
+      const v = await kerdes({
+        cim: 'Munka törlése',
+        szoveg: `Törlöd a(z) „${m.tetel}” munkát? A már elmentett ajánlatokban a mentett összegük megmarad.`,
+        gombok: [{ felirat: 'Törlés', ertek: 'torles', stilus: 'veszelyes' }, { felirat: 'Vissza', ertek: 'vissza', stilus: 'masodlagos' }],
+      });
+      if (v !== 'torles') { hatter.hidden = false; return; }
+      allapot.sajatMunkak = allapot.sajatMunkak.filter((x) => x.kod !== kod);
+      ment(SAJAT_MUNKA_KULCS, allapot.sajatMunkak);
+      zar();
+      egyebFelepit();
+      frissit();
+    }
+  });
+  urlap.addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    const f = urlap.elements;
+    const tetel = f.tetel.value.trim().replace(/\s+/g, ' ');
+    const egysegar = Number(f.egysegar.value);
+    if (!tetel || !(egysegar >= 0)) return;
+    const anyag = [...urlap.querySelectorAll('.anyag-sor')].map((sor) => ({
+      cikk: sor.querySelector('.as-cikk').value.trim().replace(/\s+/g, ' '),
+      mennyiseg: Number(sor.querySelector('.as-menny').value) || 0,
+      egyseg: sor.querySelector('.as-egyseg').value,
+    })).filter((a) => a.cikk && a.mennyiseg > 0);
+    const adat = { tetel, egyseg: f.egyseg.value, egysegar, megjegyzes: f.megjegyzes.value.trim(), anyag };
+    const ertekek = olvas().egyeb;
+    if (kod) Object.assign(allapot.sajatMunkak.find((x) => x.kod === kod), adat);
+    else allapot.sajatMunkak.push({ kod: ujMunkaKod(tetel), ...adat });
+    ment(SAJAT_MUNKA_KULCS, allapot.sajatMunkak);
+    zar();
+    egyebFelepit(ertekek);
+    frissit();
+  });
+  document.body.append(hatter);
+  urlap.elements.tetel.focus();
+}
+
 // ---- Projekt űrlap ----
 
 function szamMezo(nev, cimke) {
@@ -117,7 +234,7 @@ function ikonozas() {
     const mezo = label.querySelector('input, select');
     const nev = label.querySelector(':scope > span:not(.lepteto)');
     nev?.classList.add('mezo-nev');
-    const ik = MEZO_IKON[mezo?.name];
+    const ik = MEZO_IKON[mezo?.name] ?? (mezo?.name?.startsWith('egyeb.') ? 'kalapacs' : null);
     if (ik) label.insertAdjacentHTML('afterbegin', `<span class="mezo-ikon">${ikon(ik)}</span>`);
   }
   for (const el of document.querySelectorAll('[data-ikon]')) {
@@ -774,6 +891,8 @@ function pillanatkep() {
     pdfMennyiseg: allapot.pdfMennyiseg,
     feltoltesek: allapot.feltoltesek,
     adatok: { ugyfel: adatok.ugyfel, ajanlat: adatok.ajanlat },
+    // a felhasznált egyéb munkák leírása, hogy másik eszközön is megnyitható legyen
+    sajatMunkak: allapot.sajatMunkak.filter((m) => Number(olvas().egyeb?.[m.kod]) > 0),
   };
 }
 
@@ -895,11 +1014,16 @@ function munkaBetoltes(adat, id) {
   allapot.aktualisId = null; // betöltés közben ne mentse a régit az újra
   const ures = uresProjekt();
   const p = adat?.projekt ?? {};
+  // Az ajánlatban használt, de itt még nem ismert egyéb munkák felvétele.
+  const ujMunkak = (adat?.sajatMunkak ?? []).filter((m) => m?.kod && !allapot.sajatMunkak.some((x) => x.kod === m.kod));
+  if (ujMunkak.length) { allapot.sajatMunkak.push(...ujMunkak); ment(SAJAT_MUNKA_KULCS, allapot.sajatMunkak); }
+  egyebFelepit({});
   kitolt({
     ...ures, ...p,
     kiallasok: { ...ures.kiallasok, ...p.kiallasok },
     szerelvenyek: { ...ures.szerelvenyek, ...p.szerelvenyek },
     gerinc: { ...ures.gerinc, ...p.gerinc },
+    egyeb: Object.fromEntries(allapot.sajatMunkak.map((m) => [m.kod, p.egyeb?.[m.kod] ?? 0])),
   });
   allapot.arak = klon(adat?.arak ?? {});
   allapot.plusz = klon(adat?.plusz ?? []);
@@ -1056,7 +1180,7 @@ function ajanlatEsemenyek() {
   // Biztonsági mentés fájlba és visszatöltés
   $('mentes-fajlba').addEventListener('click', () => {
     if (allapot.aktualisId) { const r = allapot.ajanlatok.find((x) => x.id === allapot.aktualisId); if (r) rekordFrissites(r); }
-    const tartalom = exportAdat(allapot.ajanlatok, { vallalkozo: olvasAdatok().vallalkozo, bovitesek: allapot.bovitesek });
+    const tartalom = exportAdat(allapot.ajanlatok, { vallalkozo: olvasAdatok().vallalkozo, bovitesek: allapot.bovitesek, sajatMunkak: allapot.sajatMunkak });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([tartalom], { type: 'application/json' }));
     a.download = `arajanlatok-${maISO()}.json`;
@@ -1082,6 +1206,8 @@ function ajanlatEsemenyek() {
       const kulcs = (b) => `${b.kiallas}|${b.cikk}|${b.egyseg}`;
       const meglevo = new Set(allapot.bovitesek.map(kulcs));
       const ujBovites = (r.beallitasok.bovitesek ?? []).filter((b) => b?.kiallas && !meglevo.has(kulcs(b)));
+      const ujMunka = (r.beallitasok.sajatMunkak ?? []).filter((m) => m?.kod && !allapot.sajatMunkak.some((x) => x.kod === m.kod));
+      if (ujMunka.length) { allapot.sajatMunkak.push(...ujMunka); ment(SAJAT_MUNKA_KULCS, allapot.sajatMunkak); egyebFelepit(); frissit(); }
       if (ujBovites.length) { allapot.bovitesek.push(...ujBovites); konyvtarFrissites(); frissit(); megjelenitPlusz(); }
       ajanlatokMentese();
       megjelenitAjanlatok();
@@ -1136,7 +1262,7 @@ function frissit() {
   $('felar-hsz-sor').hidden = p.hotermelo !== 'hoszivattyu';
   ment(MENTES_KULCS, p);
   try {
-    allapot.munkadij = szamolMunkadij(p, allapot.tabla);
+    allapot.munkadij = szamolMunkadij(p, munkadijTabla());
     $('eredmeny').innerHTML = figyelmeztetesHtml(allapot.munkadij.figyelmeztetesek) + munkadijHtml(allapot.munkadij);
     kiir('sum-munkadij', allapot.munkadij.osszesen ? penz(allapot.munkadij.osszesen) : '–');
   } catch (err) {
@@ -1146,7 +1272,7 @@ function frissit() {
   allapot.projekt = p;
   kitoltesJelolese();
   try {
-    allapot.anyag = gyujtAnyaglista(p, allapot.konyvtar);
+    allapot.anyag = gyujtAnyaglista(p, allapot.konyvtar, allapot.sajatMunkak);
     for (const t of allapot.plusz) {
       if (!(t.mennyiseg > 0)) continue;
       const meglevo = allapot.anyag.sorok.find((s) => tetelKulcs(s) === tetelKulcs(t));
@@ -1192,6 +1318,13 @@ async function indit() {
     return;
   }
   felepit();
+  allapot.sajatMunkak = (betoltMentett(SAJAT_MUNKA_KULCS) ?? []).filter((m) => m?.kod && m?.tetel);
+  egyebFelepit({});
+  $('uj-munka').addEventListener('click', () => munkaSzerkeszto());
+  $('egyeb').addEventListener('click', (ev) => {
+    const b = ev.target.closest('.munka-szerk');
+    if (b) { ev.preventDefault(); munkaSzerkeszto(b.dataset.munka); }
+  });
   const mentett = betoltMentett(MENTES_KULCS);
   if (mentett) kitolt(mentett);
   allapot.arak = betoltMentett(ARAK_KULCS) ?? {};

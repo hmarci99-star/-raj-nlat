@@ -80,3 +80,11 @@ test('e-mail szöveg', () => {
     '1. Cső – 2,5 fm\n\n2. Idom – 3 db (cikkszám: 12345)',
   );
 });
+
+test('egyéb munkához rendelt anyag a mennyiséggel szorozva kerül a listára', () => {
+  const sajat = [{ kod: 'sajat-hocserelo', tetel: 'Hőcserélő csere', anyag: [{ cikk: 'Lemezes hőcserélő', mennyiseg: 1, egyseg: 'db' }, { cikk: 'Tömítés', mennyiseg: 2, egyseg: 'db' }] }];
+  const e = gyujtAnyaglista(projekt({}, { egyeb: { 'sajat-hocserelo': 3 } }), konyvtar, sajat);
+  assert.equal(tetel(e, 'Lemezes hőcserélő').mennyiseg, 3);
+  assert.equal(tetel(e, 'Tömítés').mennyiseg, 6);
+  assert.equal(gyujtAnyaglista(projekt({}), konyvtar, sajat).sorok.length, 0);
+});

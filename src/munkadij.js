@@ -59,6 +59,7 @@ export function uresProjekt() {
     puffer: false,
     felarHoszivattyunal: false,
     szerelvenyek: Object.fromEntries(SZERELVENY_KODOK.map((k) => [k, 0])),
+    egyeb: {}, // saját (egyéb) munkák mennyisége: kód -> mennyiség
   };
 }
 
@@ -90,6 +91,15 @@ export function szamolMunkadij(projekt, tabla) {
 
   // Szerelvények
   for (const kod of SZERELVENY_KODOK) add(kod, projekt.szerelvenyek?.[kod]);
+
+  // Egyéb (saját) munkák: a táblázatba a felületen felvett tételekből kerülnek.
+  for (const [kod, m] of Object.entries(projekt.egyeb ?? {})) {
+    if (!tabla.has(kod)) {
+      if (szam(m) > 0) figyelmeztetesek.push('Egy egyéb munka már nincs a listában, ezért kimaradt.');
+      continue;
+    }
+    add(kod, m);
+  }
 
   // Hőtermelő és kazánház
   const hotermelo = projekt.hotermelo ?? 'nincs';

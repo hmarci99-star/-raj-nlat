@@ -78,3 +78,13 @@ test('külső szerelés folyóméterrel, szerelvények', () => {
   const e = szamolMunkadij(p, tabla);
   assert.equal(e.osszesen, 12 * 3000 + 10 * 6000 + 2 * 20000 + 30000 + 75000);
 });
+
+test('egyéb (saját) munkák: a táblázathoz adva számolódnak, ismeretlen kód kimarad', () => {
+  const t = new Map(tabla);
+  t.set('sajat-hocserelo', { kod: 'sajat-hocserelo', tetel: 'Hőcserélő csere', egyseg: 'db', egysegar: 35000, megjegyzes: '' });
+  const p = projekt({ egyeb: { 'sajat-hocserelo': 2, 'sajat-torolt': 1 } });
+  const e = szamolMunkadij(p, t);
+  assert.equal(sor(e, 'sajat-hocserelo').osszeg, 70000);
+  assert.equal(e.osszesen, 70000);
+  assert.equal(e.figyelmeztetesek.length, 1);
+});
