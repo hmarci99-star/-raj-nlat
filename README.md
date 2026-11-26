@@ -49,7 +49,7 @@ Négy lépés, telefonon alul fülekkel: **Projekt**, **Anyag**, **Árak**, **Aj
 
 ## Kiállás-csomagok szerkesztése
 
-A Projekt lépésben egy kiállás nevére vagy ikonjára koppintva megnyílik az anyagcsomagja (egy kiállásra számolva): a tételek átírhatók, törölhetők, újak vehetők fel, vagy PDF-ből beolvashatók. A változás minden további ajánlatra érvényes ezen az eszközön; az „Eredeti csomag visszaállítása” gombbal visszaáll az alkalmazás csomagja. A módosítások a biztonsági mentésbe és a „Könyvtár letöltése (CSV)” exportba is bekerülnek.
+A Projekt lépésben egy kiállás nevére vagy ikonjára koppintva megnyílik a szerkesztője: a neve átírható (a beépített kiállásoké is), az anyagcsomagja (egy kiállásra számolva) a tételek átírhatók, törölhetők, újak vehetők fel, vagy PDF-ből beolvashatók. A változás minden további ajánlatra érvényes ezen az eszközön; az „Eredeti csomag visszaállítása” gombbal visszaáll az alkalmazás csomagja. A módosítások a biztonsági mentésbe és a „Könyvtár letöltése (CSV)” exportba is bekerülnek.
 
 A Fűtés, a Szerelvények és a Gerinc és külső szerelés kártyán is van „Új …” gomb (Új fűtési tétel, Új szerelvény, Új tétel): az így felvett saját tétel abban a kártyában jelenik meg, és ugyanúgy működik, mint az egyéb munkák (név, egységár, egység, megjegyzés, anyag; a nevére koppintva szerkeszthető, törölhető).
 
