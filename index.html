@@ -209,6 +209,16 @@
     button.veszelyes { background: var(--error); border-color: var(--error); color: #fff; }
     @media (min-width: 761px) { .parbeszed-hatter { place-items: center; } }
 
+    /* ---- Összecsukható mezőlisták (csak a kitöltött sorok látszanak) ---- */
+    .osszecsukhato.csukva > label:not(.marad) { display: none; }
+    .tobb-gomb { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; margin-top: 6px;
+      padding: 7px 10px; background: var(--bg); color: var(--accent); border: 1px dashed var(--line); border-radius: 8px;
+      font-size: .88rem; font-weight: 600; }
+    .tobb-gomb[hidden] { display: none; }
+    .tobb-gomb .nyil { width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor;
+      transform: rotate(45deg) translate(-2px, -2px); }
+    .tobb-gomb[aria-expanded="true"] .nyil { transform: rotate(-135deg) translate(-2px, -2px); }
+
     /* ---- Egyéb munkák ---- */
     .munka-ar { display: block; font-size: .8rem; color: var(--muted); font-weight: 400; }
     .munka-szerk { width: 34px; height: 34px; padding: 0; border-radius: 8px; background: transparent; border: 1px solid var(--line);
@@ -466,7 +476,8 @@
 
       <section class="kartya">
         <h2 data-ikon="csavarkulcs">Szerelvények</h2>
-        <div class="mezolista" id="szerelvenyek"></div>
+        <div class="mezolista osszecsukhato" id="szerelvenyek" data-cim="Szerelvények"></div>
+        <button type="button" class="tobb-gomb" data-lista="szerelvenyek" aria-controls="szerelvenyek"></button>
       </section>
 
       <section class="kartya">
@@ -482,7 +493,8 @@
 
       <section class="kartya">
         <h2 data-ikon="kalapacs">Egyéb munkák</h2>
-        <div class="mezolista" id="egyeb"></div>
+        <div class="mezolista osszecsukhato" id="egyeb" data-cim="Egyéb munkák"></div>
+        <button type="button" class="tobb-gomb" data-lista="egyeb" aria-controls="egyeb"></button>
         <div class="actions"><button type="button" class="kicsi button" id="uj-munka" data-ikon="plusz">Új munka</button></div>
       </section>
     </form>
@@ -620,6 +632,6 @@
   </div>
 </main>
 <div id="nyomtat"></div>
-<script type="module" src="dist/app.js?v=4afef5da5f"></script>
+<script type="module" src="dist/app.js?v=7f86b75f98"></script>
 </body>
 </html>

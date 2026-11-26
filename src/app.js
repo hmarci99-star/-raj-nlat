@@ -98,6 +98,36 @@ function nezetek() {
 
 const kiir = (id, szoveg) => { const el = $(id); if (el) el.textContent = szoveg; };
 
+// ---- Összecsukható mezőlisták ----
+
+// A hosszú listákban (Szerelvények, Egyéb munkák) csukott állapotban csak a kitöltött sorok
+// látszanak. Hogy szerkesztés közben ne tűnjön el egy sor, a becsukáskor kitöltött sorok
+// ("marad") a következő becsukásig láthatók maradnak.
+function listaAllitas(id, csukva) {
+  const lista = $(id);
+  const gomb = document.querySelector(`.tobb-gomb[data-lista="${id}"]`);
+  if (!lista || !gomb) return;
+  const sorok = [...lista.querySelectorAll(':scope > label')];
+  if (csukva) for (const l of sorok) l.classList.toggle('marad', l.classList.contains('kitoltott'));
+  lista.classList.toggle('csukva', csukva);
+  const rejtett = sorok.filter((l) => !l.classList.contains('marad')).length;
+  gomb.hidden = sorok.length === 0 || (csukva && rejtett === 0);
+  gomb.setAttribute('aria-expanded', String(!csukva));
+  const felirat = !csukva ? 'Kevesebb'
+    : rejtett === sorok.length ? `${lista.dataset.cim} megadása (${sorok.length})` : `Továbbiak (${rejtett})`;
+  gomb.innerHTML = `${escape(felirat)}<span class="nyil" aria-hidden="true"></span>`;
+}
+
+function listakCsukasa() {
+  for (const id of ['szerelvenyek', 'egyeb']) listaAllitas(id, true);
+}
+
+// Egy (esetleg rejtett) mező megjelenítése, pl. a hangos kitöltésnél.
+function mezoMutatasa(el) {
+  const lista = el?.closest('.osszecsukhato.csukva');
+  if (lista && !el.closest('label')?.classList.contains('marad')) listaAllitas(lista.id, false);
+}
+
 // ---- Egyéb (saját) munkák ----
 
 // A munkadíj-táblázat a saját munkákkal kiegészítve.
@@ -120,10 +150,12 @@ function egyebFelepit(ertekek = olvas().egyeb) {
       <input type="number" min="0" step="any" name="egyeb.${m.kod}" value="${Number(ertekek?.[m.kod]) > 0 ? ertekek[m.kod] : ''}">
       <button type="button" class="munka-szerk" data-munka="${m.kod}" aria-label="Szerkesztés: ${escape(m.tetel)}">${ikon('ceruza')}</button>
     </label>`).join('');
+  const voltCsukva = $('egyeb').classList.contains('csukva');
   $('egyeb').innerHTML = sorok || '<p class="muted" style="margin:4px 0 0">Itt veheted fel a táblázatban nem szereplő munkákat (pl. hőcserélő csere) saját egységárral. Minden ajánlatnál használhatók.</p>';
   leptetok();
   ikonozas();
   kitoltesJelolese();
+  listaAllitas('egyeb', voltCsukva);
 }
 
 function ujMunkaKod(nev) {
@@ -212,6 +244,7 @@ function munkaSzerkeszto(kod = null) {
     ment(SAJAT_MUNKA_KULCS, allapot.sajatMunkak);
     zar();
     egyebFelepit(ertekek);
+    listaAllitas('egyeb', false); // az új/szerkesztett munka látszódjon
     frissit();
   });
   // Anyagszükséglet beolvasása PDF-ből: a tételek az anyagsorok közé kerülnek (azonos névnél a mennyiség nő).
@@ -1090,6 +1123,7 @@ function munkaBetoltes(adat, id) {
   ajanlatokMentese();
   megjelenitAjanlatAllapot();
   megjelenitAjanlatok();
+  listakCsukasa();
 }
 
 async function ujAjanlat() {
@@ -1472,6 +1506,11 @@ async function indit() {
   megjelenitPlusz();
   megjelenitAjanlatAllapot();
   megjelenitAjanlatok();
+  listakCsukasa();
+  document.addEventListener('click', (ev) => {
+    const g = ev.target.closest('.tobb-gomb');
+    if (g) listaAllitas(g.dataset.lista, g.getAttribute('aria-expanded') === 'true');
+  });
 
   // Hangos árajánlat: végigkérdez, és a válaszokat ugyanúgy írja be, mintha kézzel töltenéd ki.
   const mezoBeallit = (urlap, nev, ertek) => {
@@ -1498,7 +1537,11 @@ async function indit() {
       return { munkadij: a.munkadij.osszesen, anyag: a.anyagBolti, vegosszeg: a.vegosszeg };
     },
     nezet: (nev) => nezetValtas(nev, false),
-    mezoElem: (nev) => form.elements[nev] ?? adatokForm.elements[nev] ?? null,
+    mezoElem: (nev) => {
+      const el = form.elements[nev] ?? adatokForm.elements[nev] ?? null;
+      mezoMutatasa(el);
+      return el;
+    },
   });
 }
 
