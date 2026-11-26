@@ -15,7 +15,7 @@
       --bg: #f3f5f8; --card: #ffffff; --text: #17202b; --muted: #5d6b7b; --line: #dfe4eb;
       --accent: #1f5fbf; --accent-soft: #e8f0fb; --on-accent: #ffffff;
       --warn-bg: #fff4d6; --warn: #7a5600; --error: #c62828; --ok: #2e7d32; --ok-bg: #e3f3e5; --error-bg: #fbe6e6;
-      --radius: 10px; --nav-h: 56px;
+      --radius: 10px; --nav-h: 46px;
     }
     @media (prefers-color-scheme: dark) {
       :root {
@@ -51,16 +51,16 @@
       border-top: 1px solid var(--line); display: flex; justify-content: center;
       padding: 0 env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); }
     .fulek-belso { display: flex; width: 100%; max-width: 760px; }
-    .ful { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+    .ful { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
       height: var(--nav-h); border: 0; background: none; color: var(--muted); cursor: pointer; position: relative;
-      font-size: .74rem; -webkit-tap-highlight-color: transparent; touch-action: manipulation; min-width: 0; }
-    .ful svg { width: 21px; height: 21px; stroke: currentColor; fill: none; stroke-width: 1.8;
+      font-size: .68rem; -webkit-tap-highlight-color: transparent; touch-action: manipulation; min-width: 0; }
+    .ful svg { width: 19px; height: 19px; stroke: currentColor; fill: none; stroke-width: 1.8;
       stroke-linecap: round; stroke-linejoin: round; }
     .ful[aria-current="page"] { color: var(--accent); font-weight: 600; }
     .ful[aria-current="page"]::before { content: ""; position: absolute; top: 0; left: 25%; right: 25%; height: 3px;
       border-radius: 0 0 3px 3px; background: var(--accent); }
     .ful:focus-visible { outline: 2px solid var(--accent); outline-offset: -4px; border-radius: 8px; }
-    .jelveny { position: absolute; top: 5px; left: calc(50% + 8px); min-width: 18px; padding: 0 5px; border-radius: 999px;
+    .jelveny { position: absolute; top: 2px; left: calc(50% + 8px); min-width: 18px; padding: 0 5px; border-radius: 999px;
       background: var(--accent); color: var(--on-accent); font-size: .68rem; font-weight: 700; line-height: 18px;
       text-align: center; font-variant-numeric: tabular-nums; }
     .jelveny:empty { display: none; }
