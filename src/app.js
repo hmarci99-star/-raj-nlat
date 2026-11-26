@@ -888,7 +888,8 @@ function megjelenitAnyag() {
   kiir('jelveny-anyag', e.sorok.length ? String(e.sorok.length) : '');
   const szoveg = anyaglistaSzoveg(e.sorok);
   $('email').href = `mailto:?subject=${encodeURIComponent('Árajánlatkérés – anyaglista')}`
-    + `&body=${encodeURIComponent(levelSzoveg(szoveg))}`;
+    // A levelezők egy része csak a CRLF sortörést tartja meg (RFC 6068), különben egybefolyik a lista.
+    + `&body=${encodeURIComponent(levelSzoveg(szoveg).replace(/\r?\n/g, '\r\n'))}`;
   $('anyag-gombok').hidden = e.sorok.length === 0;
   if (e.sorok.length === 0) {
     $('anyaglista').innerHTML = figyelmeztetesHtml(e.figyelmeztetesek)
@@ -1994,6 +1995,14 @@ async function indit() {
   ajanlatEsemenyek();
 
   form.addEventListener('input', frissit);
+  if (navigator.share) {
+    $('megoszt').hidden = false;
+    $('megoszt').addEventListener('click', async () => {
+      try {
+        await navigator.share({ title: 'Árajánlatkérés – anyaglista', text: levelSzoveg(anyaglistaSzoveg(allapot.anyag.sorok)) });
+      } catch { /* megszakítva */ }
+    });
+  }
   $('masol').addEventListener('click', async () => {
     try {
       await navigator.clipboard.writeText(levelSzoveg(anyaglistaSzoveg(allapot.anyag.sorok)));

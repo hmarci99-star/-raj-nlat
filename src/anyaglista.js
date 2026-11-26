@@ -126,10 +126,26 @@ export function gyujtAnyaglista(projekt, konyvtar, sajatMunkak = [], gerincAnyag
   return { sorok, figyelmeztetesek };
 }
 
-// E-mailbe másolható szöveg a boltnak.
-// Számozott sorok, köztük üres sorral, hogy levélben is jól olvasható legyen.
+// E-mailbe másolható szöveg a boltnak: a tételek csoportokba rendezve (csövek, idomok,
+// lefolyó, fűtés, egyéb), csoporton belül ábécérendben, folyamatos sorszámmal, hogy a
+// bolt a sorszámra hivatkozva válaszolhasson. Csoportok között üres sor.
+export const ANYAG_CSOPORTOK = [
+  { nev: 'Lefolyó', minta: /lefoly|\bka[a-z]{0,2}\b|ágidom|szűkítő|folyóka|bűzzár|szifon/i },
+  { nev: 'Csövek, csőhéjak', minta: /csőhéj|\bcső\b|\bcső[,\s]/i },
+  { nev: 'Idomok, falikorongok', minta: /\b(px|rx\+?)\b|t-idom|toldó|falikorong|könyök|hüvely|közcsavar|fitting/i },
+  { nev: 'Fűtés', minta: /radiátor|kazán|osztó|szivatty|puffer|padlófűt|tágulási|termoszt/i },
+  { nev: 'Szerelvények, egyéb', minta: /./ },
+];
+
+export const anyagCsoport = (cikk) => ANYAG_CSOPORTOK.find((c) => c.minta.test(cikk)).nev;
+
 export function anyaglistaSzoveg(sorok) {
-  return sorok
-    .map((s, i) => `${i + 1}. ${s.cikk} – ${String(s.mennyiseg).replace('.', ',')} ${s.egyseg}`)
-    .join('\n\n');
+  const rend = new Intl.Collator('hu', { numeric: true, sensitivity: 'base' });
+  let n = 0;
+  return ANYAG_CSOPORTOK.map(({ nev }) => {
+    const csoport = sorok.filter((s) => anyagCsoport(s.cikk) === nev).sort((a, b) => rend.compare(a.cikk, b.cikk));
+    if (!csoport.length) return null;
+    return [nev.toLocaleUpperCase('hu'),
+      ...csoport.map((s) => `${++n}. ${s.cikk} – ${String(s.mennyiseg).replace('.', ',')} ${s.egyseg}`)].join('\n');
+  }).filter(Boolean).join('\n\n');
 }

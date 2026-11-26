@@ -116,3 +116,7 @@ Az Ajánlatok lépés alján a „Kinézet” kártyán választható: Kék (ala
 ## Csempés megadás
 
 A Projekt lépésben a kiállások, szerelvények és munkák nagy ikonos csempék: koppintás = +1, a sarokban a − elvesz egyet, hosszan nyomva nyílik a tétel szerkesztője. A folyóméteres tételeknél (gerinc, külső szerelés) a hossz a csempén írható be. A hőtermelő és a kapcsolók a kártyákon maradnak. Az ajánlatkártyák bal szélén színes csík jelzi az állapotot.
+
+## Anyaglista a boltnak
+
+Az e-mailben (és a Másolás / Megosztás gombbal) a tételek csoportokba rendezve mennek: Lefolyó, Csövek és csőhéjak, Idomok és falikorongok, Fűtés, Szerelvények és egyéb. Csoporton belül ábécérendben, folyamatos sorszámmal, így a bolt a sorszámra hivatkozhat. A levél sortörései minden levelezőben megmaradnak. Telefonon a Megosztás gombbal bármilyen alkalmazásba (Gmail, Viber, Messenger…) elküldhető.

@@ -71,14 +71,31 @@ test('a könyvtár nem változik a felülírástól', () => {
   assert.equal(JSON.stringify([...konyvtar]), elotte);
 });
 
-test('e-mail szöveg', () => {
+test('e-mail szöveg: csoportokba rendezve, folyamatos sorszámmal', () => {
   assert.equal(
     anyaglistaSzoveg([
-      { cikk: 'Cső', mennyiseg: 2.5, egyseg: 'fm' },
-      { cikk: 'Idom', mennyiseg: 3, egyseg: 'db' },
+      { cikk: 'Schell Polar II fagybiztos kifolyószelep', mennyiseg: 1, egyseg: 'db' },
+      { cikk: 'Rehau PX 20 T-idom', mennyiseg: 3, egyseg: 'db' },
+      { cikk: 'Rehau Rautitan Stabil cső 16,2x2,6 mm', mennyiseg: 2.5, egyseg: 'fm' },
+      { cikk: 'Pipelife KAEM lefolyócső 50/0,5 m', mennyiseg: 4, egyseg: 'db' },
+      { cikk: 'Kaiflex csőhéj 4x18 mm', mennyiseg: 2.5, egyseg: 'fm' },
+      { cikk: 'Rehau PX 16 toldóhüvely', mennyiseg: 2, egyseg: 'db' },
     ]),
-    '1. Cső – 2,5 fm\n\n2. Idom – 3 db',
+    'LEFOLYÓ\n1. Pipelife KAEM lefolyócső 50/0,5 m – 4 db\n\n'
+    + 'CSÖVEK, CSŐHÉJAK\n2. Kaiflex csőhéj 4x18 mm – 2,5 fm\n3. Rehau Rautitan Stabil cső 16,2x2,6 mm – 2,5 fm\n\n'
+    + 'IDOMOK, FALIKORONGOK\n4. Rehau PX 16 toldóhüvely – 2 db\n5. Rehau PX 20 T-idom – 3 db\n\n'
+    + 'SZERELVÉNYEK, EGYÉB\n6. Schell Polar II fagybiztos kifolyószelep – 1 db',
   );
+});
+
+test('a könyvtár minden tétele értelmes csoportba kerül', async () => {
+  const { anyagCsoport } = await import('../src/anyaglista.js');
+  const cs = (c) => anyagCsoport(c);
+  assert.equal(cs('Rehau Rautitan Stabil cső 20x2,9 mm'), 'Csövek, csőhéjak');
+  assert.equal(cs('Pipelife KAB lefolyóív 50/87,5°'), 'Lefolyó');
+  assert.equal(cs('Pipelife KAR szűkítő 50/32'), 'Lefolyó');
+  assert.equal(cs('Rehau RX+ 16-os falikorong (1/2 col)'), 'Idomok, falikorongok');
+  assert.equal(cs('Grohe Rapid SL WC-tartály (nyomólap nélkül)'), 'Szerelvények, egyéb');
 });
 
 test('egyéb munkához rendelt anyag a mennyiséggel szorozva kerül a listára', () => {
