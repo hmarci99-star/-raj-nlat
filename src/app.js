@@ -163,10 +163,9 @@ const ANYAG_EGYSEGEK = ['db', 'fm', 'pár', 'csomag', 'szett', 'kg', 'tekercs', 
 // Az "Egyéb munkák" sorai a Projekt lépésben. ertekek: a megtartandó mennyiségek (alapból a mostaniak).
 function egyebFelepit(ertekek = olvas().egyeb) {
   const sorok = allapot.sajatMunkak.map((m) => `
-    <label><span>${escape(m.tetel)}<small class="munka-ar">${ft.format(Number(m.egysegar) || 0)} Ft / ${escape(m.egyseg)}${
+    <label data-munka="${m.kod}"><span>${escape(m.tetel)}<small class="munka-ar">${ft.format(Number(m.egysegar) || 0)} Ft / ${escape(m.egyseg)}${
       m.anyag?.length ? ` · ${m.anyag.length} anyag` : ''}</small></span>
       <input type="number" min="0" step="any" name="egyeb.${m.kod}" value="${Number(ertekek?.[m.kod]) > 0 ? ertekek[m.kod] : ''}">
-      <button type="button" class="munka-szerk" data-munka="${m.kod}" aria-label="Szerkesztés: ${escape(m.tetel)}">${ikon('ceruza')}</button>
     </label>`).join('');
   const voltCsukva = $('egyeb').classList.contains('csukva');
   $('egyeb').innerHTML = sorok || '<p class="muted" style="margin:4px 0 0">Itt veheted fel a táblázatban nem szereplő munkákat (pl. hőcserélő csere) saját egységárral. Minden ajánlatnál használhatók.</p>';
@@ -391,14 +390,6 @@ function gerincSzerkeszto(atmero) {
   });
 }
 
-// Ceruza gomb minden szerkeszthető sor végére (fűtés, szerelvények, gerinc és külső szerelés).
-function ceruzak() {
-  for (const label of form.querySelectorAll('#futes-lista > label, #szerelvenyek > label, #gerinc-lista > label')) {
-    if (label.querySelector('.tetel-szerk')) continue;
-    const nev = label.querySelector('.mezo-nev')?.textContent ?? '';
-    label.insertAdjacentHTML('beforeend', `<button type="button" class="munka-szerk tetel-szerk" aria-label="Szerkesztés: ${escape(nev)}">${ikon('ceruza')}</button>`);
-  }
-}
 
 // A szerelvények feliratai a (módosított) munkadíj-táblázat szerint.
 function cimkekFrissitese() {
@@ -608,10 +599,9 @@ const osszesKiallas = () => [...KIALLAS_TIPUSOK, ...allapot.sajatKiallasok];
 // A kiállás-sorok (a saját kiállásokkal). ertekek: a megtartandó mennyiségek.
 function kiallasFelepit(ertekek = olvas().kiallasok) {
   const voltCsukva = $('kiallasok').classList.contains('csukva');
-  $('kiallasok').innerHTML = osszesKiallas().map((t) => `<label><span>${escape(t.nev)}</span>
+  $('kiallasok').innerHTML = osszesKiallas().map((t) => `<label data-kiallas="${escape(t.nev)}"${KIALLAS_TIPUSOK.includes(t) ? '' : ` data-sajat="${t.kod}"`}>
+    <span>${escape(t.nev)}</span>
     <input type="number" min="0" name="kiallasok.${t.kod}" value="${Number(ertekek?.[t.kod]) > 0 ? ertekek[t.kod] : ''}">
-    <button type="button" class="munka-szerk kiallas-szerk" data-kiallas="${escape(t.nev)}"${KIALLAS_TIPUSOK.includes(t) ? '' : ` data-sajat="${t.kod}"`}
-      aria-label="Szerkesztés: ${escape(t.nev)}">${ikon('ceruza')}</button>
   </label>`).join('');
   leptetok();
   ikonozas();
@@ -1782,12 +1772,11 @@ async function indit() {
   allapot.sajatMunkak = (betoltMentett(SAJAT_MUNKA_KULCS) ?? []).filter((m) => m?.kod && m?.tetel);
   egyebFelepit({});
   $('uj-munka').addEventListener('click', () => munkaSzerkeszto());
-  ceruzak();
   cimkekFrissitese();
   // Fűtés, szerelvények, gerinc és külső szerelés: a ceruzára, a névre vagy az ikonra koppintva.
   for (const id of ['futes-lista', 'szerelvenyek', 'gerinc-lista']) {
     $(id).addEventListener('click', async (ev) => {
-      const cel = ev.target.closest('.tetel-szerk, .mezo-nev, .mezo-ikon');
+      const cel = ev.target.closest('.mezo-nev, .mezo-ikon');
       if (!cel) return;
       ev.preventDefault();
       const nev = cel.closest('label').querySelector('input, select').name;
@@ -1803,17 +1792,19 @@ async function indit() {
   }
   // Kiállás anyagcsomagja: a ceruzára, a névre vagy az ikonra koppintva.
   $('kiallasok').addEventListener('click', (ev) => {
-    const cel = ev.target.closest('.kiallas-szerk, .mezo-nev, .mezo-ikon');
+    const cel = ev.target.closest('.mezo-nev, .mezo-ikon');
     if (!cel) return;
     ev.preventDefault();
-    const gomb = cel.closest('label').querySelector('.kiallas-szerk');
-    if (gomb.dataset.sajat) sajatKiallasSzerkeszto(gomb.dataset.sajat);
-    else kiallasSzerkeszto(gomb.dataset.kiallas);
+    const sor = cel.closest('label');
+    if (sor.dataset.sajat) sajatKiallasSzerkeszto(sor.dataset.sajat);
+    else kiallasSzerkeszto(sor.dataset.kiallas);
   });
   $('uj-kiallas').addEventListener('click', () => sajatKiallasSzerkeszto());
   $('egyeb').addEventListener('click', (ev) => {
-    const b = ev.target.closest('.munka-szerk');
-    if (b) { ev.preventDefault(); munkaSzerkeszto(b.dataset.munka); }
+    const cel = ev.target.closest('.mezo-nev, .mezo-ikon');
+    if (!cel) return;
+    ev.preventDefault();
+    munkaSzerkeszto(cel.closest('label').dataset.munka);
   });
   const mentett = betoltMentett(MENTES_KULCS);
   if (mentett) kitolt(mentett);

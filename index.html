@@ -234,7 +234,11 @@
     .munka-szerk { width: 34px; height: 34px; padding: 0; border-radius: 8px; background: transparent; border: 1px solid var(--line);
       color: var(--muted); display: grid; place-items: center; flex: none; }
     .munka-szerk .ikon { width: 17px; height: 17px; }
-    label.modositott .munka-szerk { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+    /* A sor nevére vagy ikonjára koppintva nyílik a szerkesztő; a módosított sor neve mellett kék pont. */
+    #projekt .mezolista .mezo-nev, #projekt .mezolista .mezo-ikon { cursor: pointer; }
+    #projekt .mezolista .mezo-nev:active { opacity: .6; }
+    label.modositott .mezo-nev::after { content: ""; display: inline-block; width: 7px; height: 7px; margin-left: 6px;
+      border-radius: 50%; background: var(--accent); vertical-align: 2px; }
     .munka-urlap { display: grid; gap: 12px; max-height: calc(100vh - 32px); overflow: auto; }
     .munka-urlap .mezo { display: flex; flex-direction: column; gap: 4px; }
     .munka-urlap .mezo > span { font-size: .85rem; color: var(--muted); }
@@ -647,6 +651,6 @@
   </div>
 </main>
 <div id="nyomtat"></div>
-<script type="module" src="dist/app.js?v=0302476fe0"></script>
+<script type="module" src="dist/app.js?v=fe52ecc814"></script>
 </body>
 </html>

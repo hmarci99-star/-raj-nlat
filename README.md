@@ -49,17 +49,17 @@ Négy lépés, telefonon alul fülekkel: **Projekt**, **Anyag**, **Árak**, **Aj
 
 ## Kiállás-csomagok szerkesztése
 
-A Projekt lépésben egy kiállás nevére, ikonjára vagy a mellette lévő ceruzára koppintva megnyílik az anyagcsomagja (egy kiállásra számolva): a tételek átírhatók, törölhetők, újak vehetők fel, vagy PDF-ből beolvashatók. A változás minden további ajánlatra érvényes ezen az eszközön; az „Eredeti csomag visszaállítása” gombbal visszaáll az alkalmazás csomagja. A módosítások a biztonsági mentésbe és a „Könyvtár letöltése (CSV)” exportba is bekerülnek.
+A Projekt lépésben egy kiállás nevére vagy ikonjára koppintva megnyílik az anyagcsomagja (egy kiállásra számolva): a tételek átírhatók, törölhetők, újak vehetők fel, vagy PDF-ből beolvashatók. A változás minden további ajánlatra érvényes ezen az eszközön; az „Eredeti csomag visszaállítása” gombbal visszaáll az alkalmazás csomagja. A módosítások a biztonsági mentésbe és a „Könyvtár letöltése (CSV)” exportba is bekerülnek.
 
-Új kiállás is felvehető (pl. bidé, piszoár): a „Vízszerelési kiállások” kártya „Új kiállás” gombjával, névvel és anyagcsomaggal (kézzel vagy PDF-ből). Ugyanúgy működik, mint a többi kiállás – alapszerelés jár utána, a csomagja az anyaglistára kerül –, a ceruzával átnevezhető, szerkeszthető, törölhető, és bekerül a mentett ajánlatokba és a biztonsági mentésbe.
+Új kiállás is felvehető (pl. bidé, piszoár): a „Vízszerelési kiállások” kártya „Új kiállás” gombjával, névvel és anyagcsomaggal (kézzel vagy PDF-ből). Ugyanúgy működik, mint a többi kiállás – alapszerelés jár utána, a csomagja az anyaglistára kerül –, a nevére koppintva átnevezhető, szerkeszthető, törölhető, és bekerül a mentett ajánlatokba és a biztonsági mentésbe.
 
-A többi sor is szerkeszthető (ceruza, vagy koppintás a névre): a szerelvényeknél, a fűtésnél és a külső szerelésnél a megnevezés az ajánlaton, az egységár, a megjegyzés és a tételhez rendelt anyag (egységenként); a hőtermelőnél a kiválasztott típusé; a gerincnél az 1 fm-re jutó anyag (alapból cső és csőhéj). A módosított sorok ceruzája kiemelve látszik, és mindegyik visszaállítható az eredetire.
+A többi sor is szerkeszthető (koppintás a sor nevére vagy ikonjára): a szerelvényeknél, a fűtésnél és a külső szerelésnél a megnevezés az ajánlaton, az egységár, a megjegyzés és a tételhez rendelt anyag (egységenként); a hőtermelőnél a kiválasztott típusé; a gerincnél az 1 fm-re jutó anyag (alapból cső és csőhéj). A módosított sorok neve mellett kék pont látszik, és mindegyik visszaállítható az eredetire.
 
 A Projekt lépés fő pontjai (kiállások, fűtés, szerelvények, gerinc és külső szerelés, egyéb munkák) összecsukhatók: csukva csak a kitöltött sorok látszanak, a „Továbbiak” / „… megadása” gombbal nyílik a többi.
 
 ## Egyéb munkák
 
-A Projekt lépés „Egyéb munkák” kártyáján az „Új munka” gombbal a táblázatban nem szereplő munka vehető fel (pl. hőcserélő csere): megnevezés, egységár, egység, megjegyzés az ajánlaton, és ha kell, a munkához tartozó anyag (egy munkára számolva). Ezután minden ajánlatnál ott van a többi sor között; a mennyiség szerint beleszámít a munkadíjba, az anyag pedig felkerül az anyaglistára. A ceruza gombbal szerkeszthető vagy törölhető. Az „Anyag PDF-ből” gombbal egy PDF (anyagszükséglet vagy bolti ajánlat) tételei – megnevezés, mennyiség, egység – egyszerre bekerülnek a munka anyagai közé; azonos nevű tételnél a mennyiség összeadódik. Az eszközön tárolódik, és bekerül a biztonsági mentésbe; a mentett ajánlat a benne használt munkák leírását is megőrzi.
+A Projekt lépés „Egyéb munkák” kártyáján az „Új munka” gombbal a táblázatban nem szereplő munka vehető fel (pl. hőcserélő csere): megnevezés, egységár, egység, megjegyzés az ajánlaton, és ha kell, a munkához tartozó anyag (egy munkára számolva). Ezután minden ajánlatnál ott van a többi sor között; a mennyiség szerint beleszámít a munkadíjba, az anyag pedig felkerül az anyaglistára. A nevére koppintva szerkeszthető vagy törölhető. Az „Anyag PDF-ből” gombbal egy PDF (anyagszükséglet vagy bolti ajánlat) tételei – megnevezés, mennyiség, egység – egyszerre bekerülnek a munka anyagai közé; azonos nevű tételnél a mennyiség összeadódik. Az eszközön tárolódik, és bekerül a biztonsági mentésbe; a mentett ajánlat a benne használt munkák leírását is megőrzi.
 
 ## Ajánlatok és profit
 
