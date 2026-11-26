@@ -401,7 +401,9 @@ function gerincSzerkeszto(atmero) {
     modositott: Boolean(allapot.gerincAnyag[atmero]),
     torzs: `<div class="mezo">${anyagSzerkesztoHtml(allapot.gerincAnyag[atmero] ?? gerincAlapAnyag(atmero))}</div>`,
     mentes: (urlap) => {
-      allapot.gerincAnyag[atmero] = anyagSorokOlvasasa(urlap);
+      const uj = anyagSorokOlvasasa(urlap);
+      if (azonosCsomag(uj, gerincAlapAnyag(atmero))) delete allapot.gerincAnyag[atmero];
+      else allapot.gerincAnyag[atmero] = uj;
       ment(GERINC_ANYAG_KULCS, allapot.gerincAnyag);
       return true;
     },
@@ -438,7 +440,8 @@ function modositottJeloles() {
     if (el.name.startsWith('kiallasok.')) {
       const nev = osszesKiallas().find((t) => `kiallasok.${t.kod}` === el.name)?.nev;
       const kod = el.name.split('.')[1];
-      mod = Boolean(allapot.konyvtarFelulirasok[nev]) || allapot.bovitesek.some((b) => b.kiallas === nev) || Boolean(allapot.kiallasNevek[kod]);
+      const beepitett = KIALLAS_TIPUSOK.some((t) => t.kod === kod);
+      mod = beepitett && (Boolean(allapot.konyvtarFelulirasok[nev]) || allapot.bovitesek.some((b) => b.kiallas === nev) || Boolean(allapot.kiallasNevek[kod]));
     } else if (el.name.startsWith('gerinc.')) {
       mod = Boolean(allapot.gerincAnyag[el.name.split('.')[1]]);
     } else if (!el.name.startsWith('egyeb.')) {
@@ -500,11 +503,35 @@ function sajatKiallasSzerkeszto(kod = null) {
   });
 }
 
+// Két anyaglista azonos-e (név, mennyiség, egység; sorrendtől függetlenül).
+function azonosCsomag(a = [], b = []) {
+  const kulcs = (l) => l.map((t) => `${String(t.cikk).trim()}|${Number(t.mennyiseg)}|${t.egyseg}`).sort().join('\n');
+  return kulcs(a) === kulcs(b);
+}
+
+// A beépített kiállás eredeti csomagja (az alkalmazás könyvtára szerint).
+const eredetiCsomag = (nev) => allapot.alapKonyvtar.get(nev) ?? [];
+
+// A változtatás nélkül elmentett (az eredetivel azonos) felülírások törlése, hogy ne jelölje módosítottnak.
+function feleslegesFelulirasokTorlese() {
+  let valtozott = false;
+  for (const t of KIALLAS_TIPUSOK) {
+    const f = allapot.konyvtarFelulirasok[t.nev];
+    if (f && azonosCsomag(f, eredetiCsomag(t.nev))) { delete allapot.konyvtarFelulirasok[t.nev]; valtozott = true; }
+  }
+  for (const atmero of Object.keys(allapot.gerincAnyag)) {
+    if (azonosCsomag(allapot.gerincAnyag[atmero], gerincAlapAnyag(atmero))) { delete allapot.gerincAnyag[atmero]; valtozott = true; }
+  }
+  if (valtozott) { ment(KONYVTAR_FELULIR_KULCS, allapot.konyvtarFelulirasok); ment(GERINC_ANYAG_KULCS, allapot.gerincAnyag); }
+  return valtozott;
+}
+
 // Egy kiállás anyagcsomagjának szerkesztése (pl. WC-tartály). Minden további ajánlatra érvényes.
 function kiallasSzerkeszto(nev) {
   const sorok = allapot.konyvtar.get(nev) ?? [];
   const kod = KIALLAS_TIPUSOK.find((t) => t.nev === nev)?.kod;
-  const felulirt = Boolean(allapot.konyvtarFelulirasok[nev]) || allapot.bovitesek.some((b) => b.kiallas === nev) || Boolean(allapot.kiallasNevek[kod]);
+  const felulirt = Boolean(allapot.konyvtarFelulirasok[nev] && !azonosCsomag(allapot.konyvtarFelulirasok[nev], eredetiCsomag(nev)))
+    || allapot.bovitesek.some((b) => b.kiallas === nev) || Boolean(allapot.kiallasNevek[kod]);
   const hatter = document.createElement('div');
   hatter.className = 'parbeszed-hatter';
   hatter.innerHTML = `<form class="parbeszed munka-urlap" role="dialog" aria-modal="true" aria-labelledby="ks-cim">
@@ -561,9 +588,17 @@ function kiallasSzerkeszto(nev) {
     }
     if (ujNev === nev) delete allapot.kiallasNevek[kod];
     else allapot.kiallasNevek[kod] = ujNev;
-    allapot.konyvtarFelulirasok[nev] = anyagSorokOlvasasa(urlap);
-    // a korábbi "Könyvtárba…" bővítések ennél a kiállásnál már a csomag részei
-    allapot.bovitesek = allapot.bovitesek.filter((b) => b.kiallas !== nev);
+    const ujCsomag = anyagSorokOlvasasa(urlap);
+    if (azonosCsomag(ujCsomag, allapot.konyvtar.get(nev) ?? [])) {
+      // a csomag nem változott: a meglévő állapot marad (nem lesz belőle "módosított")
+    } else if (azonosCsomag(ujCsomag, eredetiCsomag(nev))) {
+      delete allapot.konyvtarFelulirasok[nev];
+      allapot.bovitesek = allapot.bovitesek.filter((b) => b.kiallas !== nev);
+    } else {
+      allapot.konyvtarFelulirasok[nev] = ujCsomag;
+      // a korábbi "Könyvtárba…" bővítések ennél a kiállásnál már a csomag részei
+      allapot.bovitesek = allapot.bovitesek.filter((b) => b.kiallas !== nev);
+    }
     kesz();
   });
   anyagPdfBekotes(urlap);
@@ -1887,6 +1922,7 @@ async function indit() {
   allapot.konyvtarFelulirasok = betoltMentett(KONYVTAR_FELULIR_KULCS) ?? {};
   allapot.munkadijFelulirasok = betoltMentett(MUNKADIJ_FELULIR_KULCS) ?? {};
   allapot.gerincAnyag = betoltMentett(GERINC_ANYAG_KULCS) ?? {};
+  if (feleslegesFelulirasokTorlese()) konyvtarFrissites();
   cimkekFrissitese(); // a mentett átnevezésekkel
   allapot.konyvtar = felulirtKonyvtar(bovitettKonyvtar(allapot.alapKonyvtar, allapot.bovitesek), allapot.konyvtarFelulirasok);
   pluszEsemenyek();
