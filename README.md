@@ -147,3 +147,15 @@ A Projekt lépés tetején a „Foglalási link” gombbal az ügyfélnek már a
 ## Másképp írt tételnevek
 
 Új tétel beírásakor (plusz tétel, kiállás- és munkaanyag) a mező felajánlja a már ismert neveket, és ha a beírt név egy meglévőhöz hasonlít, alatta megjelenik: „Már van hasonló a listában…” a meglévő névvel. Rákoppintva a mező a pontos nevet és egységet veszi át, így a tétel a meglévővel összeadódik, nem lesz kétszer a listán. A hasonlóságnál a méretnek egyeznie kell („20-as” ≈ „20x2,9”, „16-os” ≈ „16,2x2,6”, de „20” ≠ „25”), a szavak sorrendje, a kis-nagybetű, az ékezet és a ragozás mindegy („Rehau 20-as cső” ≈ „Rehau Rautitan Stabil cső 20x2,9 mm”). Ismert nevek: a kiállás-könyvtár, a plusz tételek, a munkák és a gerinc anyaga, valamint a korábbi árajánlatok tételei.
+
+## AI anyagjavaslat
+
+Az Anyag lépésben az „AI anyagjavaslat” kártya a kiállások, munkák, a mostani anyaglista és (ha megadod) a munka rövid leírása alapján javasolja, mi hiányzik vagy miből kevés. A javaslatok bepipálva jönnek, a mennyiség átírható, a „Kijelöltek felvétele” a plusz tételek közé teszi őket. Ismert tételnél a pontos meglévő nevet használja, így összeadódik a listán lévővel. Az ügyfél neve, címe, elérhetősége nem megy ki. Minden kérés alján látszik a becsült ára.
+
+A kérés a saját Cloudflare Workereden megy át (`worker/ai-javaslat.js`), az Anthropic API-kulcs csak ott van titkosan tárolva; az appban csak a Worker címe és egy jelszó van (csak a telefonon, a biztonsági mentésbe nem kerül). A Worker csak az app oldaláról és a helyes jelszóval fogad kérést, és csak a Claude Opus 5.5 vagy Sonnet 5.5 modellt hívja.
+
+Beállítás egyszer:
+1. platform.claude.com: egyenleg feltöltése, havi költési limit, API-kulcs létrehozása.
+2. dash.cloudflare.com → Workers & Pages → Create → Worker („Hello World”) → név pl. `ai-javaslat` → Deploy → Edit code: a `worker/ai-javaslat.js` tartalmát bemásolni, Deploy.
+3. A Worker Settings → Variables and Secrets: `ANTHROPIC_API_KEY` (Secret, az API-kulcs) és `APP_JELSZO` (Secret, saját jelszó).
+4. Az appban: Anyag → AI anyagjavaslat → Beállítás: a Worker címe (`https://ai-javaslat.<fiók>.workers.dev`) és a jelszó.

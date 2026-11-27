@@ -127,6 +127,15 @@
       padding: 10px 14px; border-radius: var(--radius); background: var(--warn-bg); color: var(--warn); font-weight: 600; }
     .mentes-sav-gombok { display: flex; gap: 6px; }
     .rejtett-lista { display: flex; flex-direction: column; gap: 4px; }
+    .ai-lista { list-style: none; padding: 0; margin: 10px 0; display: grid; gap: 6px; }
+    .ai-lista li { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; align-items: start; padding: 8px 10px;
+      border: 1px solid var(--line); border-radius: var(--radius); }
+    .ai-lista li input[type=checkbox] { margin-top: 3px; width: 20px; height: 20px; }
+    .ai-nev { font-weight: 600; overflow-wrap: anywhere; }
+    .ai-menny { display: flex; align-items: center; gap: 6px; grid-column: 2; }
+    .ai-menny input { width: 80px; }
+    .ai-indok { grid-column: 2; color: var(--muted); font-size: .82rem; }
+    .ai-cimke { font-size: .7rem; font-weight: 700; padding: 1px 6px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); margin-left: 4px; white-space: nowrap; }
     .nev-javaslat { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 4px 0 8px; padding: 8px 10px;
       border-radius: var(--radius); background: var(--accent-soft); font-size: .82rem; }
     .nev-javaslat > span { flex-basis: 100%; color: var(--muted); }
@@ -665,6 +674,16 @@
       <p id="anyag-becsles" class="anyag-becsles" hidden></p>
       <div id="anyaglista"><p class="muted">Betöltés…</p></div>
     </section>
+    <section class="kartya" id="ai-kartya">
+      <h2 data-ikon="szikra">AI anyagjavaslat</h2>
+      <p class="megj" style="margin-top:0">Az AI átnézi a kiállásokat, a munkákat és az anyaglistát, és javasolja, mi hiányzik vagy miből kevés.
+        Az ügyfél neve, címe és elérhetősége nem megy ki.</p>
+      <label class="mezo"><span>A munka rövid leírása (nem kötelező, diktálható)</span>
+        <textarea id="ai-leiras" rows="3" placeholder="Pl. panel fürdőszoba, kád helyett zuhanykabin, a gerincet is cseréljük, a mosógép a konyhába kerül"></textarea></label>
+      <div class="actions"><button type="button" id="ai-keres" data-ikon="szikra">Javaslat kérése</button>
+        <button type="button" class="kicsi button" id="ai-beallitas">Beállítás</button></div>
+      <div id="ai-eredmeny" aria-live="polite"></div>
+    </section>
     <section class="kartya">
       <div id="plusz"></div>
     </section>
@@ -831,6 +850,6 @@
   </div>
 </main>
 <div id="nyomtat"></div>
-<script type="module" src="dist/app.js?v=f01b2a6fbd"></script>
+<script type="module" src="dist/app.js?v=1ea626b33a"></script>
 </body>
 </html>
