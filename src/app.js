@@ -3,7 +3,7 @@ import { KIALLAS_TIPUSOK, SZERELVENY_KODOK, HOTERMELOK, szamolMunkadij, uresProj
 import { parseKonyvtar, gyujtAnyaglista, anyaglistaSzoveg, gerincAlapAnyag } from './anyaglista.js';
 import { boltValaszBeolvasas, ajanlat, tetelKulcs, parseSzam, nemTetelNev, anyagListaBeolvasas } from './arak.js';
 import { bovitettKonyvtar, bennVanAzAlapban, konyvtarCsv, felulirtKonyvtar } from './konyvtar.js';
-import { ugyfelAjanlatHtml, belsoOsszesitoHtml, fajlnev, ugyfelLevel, mailtoLink, naptarLink, foglalasiLinkHibas } from './sablonok.js';
+import { ugyfelAjanlatHtml, belsoOsszesitoHtml, fajlnev, ugyfelLevel, mailtoLink, naptarLink, foglalasiLinkHibas, foglalasUzenet } from './sablonok.js';
 import { pdfSzoveg } from './pdfszoveg.js';
 import { diktaltTetelek, vanDiktalas, diktalas } from './diktalas.js';
 import { hangosModInit } from './hangosfelulet.js';
@@ -1646,6 +1646,81 @@ function ajanlatSorok() {
 }
 
 // Az "E-mail az ügyfélnek" gomb címe: előre megírt levél az ügyfél címére.
+// ---- Foglalási link küldése az ügyfélnek (még ajánlat előtt, a felméréshez) ----
+
+function foglalasKuldes() {
+  const adatok = olvasAdatok();
+  const link = (adatok.vallalkozo.foglalas ?? '').trim();
+  const jo = /^https?:\/\//.test(link) && !foglalasiLinkHibas(link);
+  const hatter = document.createElement('div');
+  hatter.className = 'parbeszed-hatter';
+  const uzenet = jo ? foglalasUzenet(adatok.vallalkozo, adatok.ugyfel.nev) : '';
+  hatter.innerHTML = `<form class="parbeszed munka-urlap" role="dialog" aria-modal="true" aria-labelledby="fk-cim">
+    <h2 id="fk-cim">Foglalási link küldése</h2>
+    ${jo ? `<p class="muted" style="margin:0">Az ügyfél a linken kiválaszt egy szabad időpontot, és az bekerül a naptáradba. Az üzenet átírható.</p>
+      <label class="mezo"><span>Üzenet</span><textarea name="uzenet" rows="8">${escape(uzenet)}</textarea></label>
+      <div class="foglalas-gombok">
+        ${navigator.share ? '<button type="button" data-fk="megoszt" data-ikon="level">Megosztás (Viber, Messenger…)</button>' : ''}
+        <a class="button" data-fk="sms" href="#" data-ikon="level">SMS</a>
+        <a class="button" data-fk="email" href="#" data-ikon="level">E-mail</a>
+        <button type="button" class="button" data-fk="masol" data-ikon="masol">Másolás</button>
+      </div>
+      <p class="muted fk-uzenet" aria-live="polite" style="margin:0"></p>`
+    : `<p style="margin:0">${link ? '<strong>Ez a link a naptárad saját szerkesztőoldala</strong>, az ügyfél nem tudja megnyitni.' : 'Még nincs megadva a foglalási link.'}
+        A Google Naptárban a foglalási naptárnál a <strong>„Megosztás”</strong> alatt találod a nyilvános linket (pl. https://calendar.app.google/…). Másold ide:</p>
+      <label class="mezo"><span>Időpontfoglalási link</span><input name="link" type="url" inputmode="url" required placeholder="https://calendar.app.google/…"></label>`}
+    <div class="parbeszed-gombok">
+      ${jo ? '' : '<button type="submit">Mentés</button>'}
+      <button type="button" class="button mu-megse">${jo ? 'Bezárás' : 'Mégse'}</button>
+    </div>
+  </form>`;
+  const urlap = hatter.querySelector('form');
+  const zar = () => { hatter.remove(); document.removeEventListener('keydown', esc); };
+  const esc = (ev) => { if (ev.key === 'Escape') zar(); };
+  document.addEventListener('keydown', esc);
+  const szoveg = () => urlap.elements.uzenet?.value ?? '';
+  const linkek = () => {
+    const sms = urlap.querySelector('[data-fk="sms"]');
+    if (!sms) return;
+    sms.href = `sms:?&body=${encodeURIComponent(szoveg())}`;
+    urlap.querySelector('[data-fk="email"]').href = `mailto:${encodeURIComponent(adatok.ugyfel.email || '')}?subject=${encodeURIComponent('Időpontfoglalás – felmérés')}`
+      + `&body=${encodeURIComponent(szoveg().replace(/\r?\n/g, '\r\n'))}`;
+  };
+  linkek();
+  urlap.addEventListener('input', linkek);
+  hatter.addEventListener('click', async (ev) => {
+    if (ev.target === hatter || ev.target.closest('.mu-megse')) { zar(); return; }
+    const g = ev.target.closest('[data-fk]');
+    if (!g) return;
+    if (g.dataset.fk === 'megoszt') {
+      try { await navigator.share({ text: szoveg() }); } catch { /* megszakítva */ }
+    } else if (g.dataset.fk === 'masol') {
+      try {
+        await navigator.clipboard.writeText(szoveg());
+        urlap.querySelector('.fk-uzenet').textContent = 'Vágólapra másolva.';
+      } catch { urlap.querySelector('.fk-uzenet').textContent = 'A másolás nem sikerült.'; }
+    }
+  });
+  urlap.addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    const uj = urlap.elements.link.value.trim();
+    if (foglalasiLinkHibas(uj)) {
+      urlap.elements.link.setCustomValidity('Ez a naptár saját szerkesztőoldala. A foglalási naptár „Megosztás” gombja alatti linket másold be.');
+      urlap.elements.link.reportValidity();
+      urlap.elements.link.addEventListener('input', () => urlap.elements.link.setCustomValidity(''), { once: true });
+      return;
+    }
+    adatokForm.elements['vallalkozo.foglalas'].value = uj;
+    ment(ADATOK_KULCS, olvasAdatok());
+    ugyfelEmailFrissites();
+    zar();
+    foglalasKuldes();
+  });
+  document.body.append(hatter);
+  ikonozas();
+  urlap.querySelector('textarea, input')?.focus();
+}
+
 // "Google Naptárba" gomb és a foglalási link ellenőrzése.
 function naptarFrissites() {
   const adatok = olvasAdatok();
@@ -2307,6 +2382,7 @@ async function indit() {
     if (g) rejtettVisszaallitas(g.closest('.kartya'));
   });
   csempekInit(form);
+  document.addEventListener('click', (ev) => { if (ev.target.closest('[data-foglalas-kuldes]')) foglalasKuldes(); });
   const mentett = betoltMentett(MENTES_KULCS);
   if (mentett) kitolt(mentett);
   allapot.arak = betoltMentett(ARAK_KULCS) ?? {};

@@ -188,6 +188,9 @@
     .nezet-leiras { margin: -6px 2px 0; color: var(--muted); font-size: .85rem; }
     .nezet-fej { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
     .nezet-fej-szoveg { min-width: 0; display: grid; gap: 10px; }
+    .fej-gombok { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+    .foglalas-gombok { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .foglalas-gombok > * { justify-content: center; text-align: center; }
     .nezet-fej .nezet-leiras { margin: -6px 2px 0; overflow-wrap: anywhere; }
     .nezet-fej .nezet-leiras:empty { display: none; }
     .nezet-fej > button { flex: none; }
@@ -573,7 +576,10 @@
         <h2 class="nezet-cim">Projekt</h2>
         <p class="nezet-leiras" id="projekt-ajanlat-nev"></p>
       </div>
-      <button type="button" class="kicsi" data-ajanlat-muvelet="uj" data-ikon="plusz">Új ajánlat</button>
+      <div class="fej-gombok">
+        <button type="button" class="kicsi button" data-foglalas-kuldes data-ikon="naptar">Foglalási link</button>
+        <button type="button" class="kicsi" data-ajanlat-muvelet="uj" data-ikon="plusz">Új ajánlat</button>
+      </div>
     </div>
     <form id="projekt" class="nezet">
       <section class="kartya">
@@ -820,6 +826,6 @@
   </div>
 </main>
 <div id="nyomtat"></div>
-<script type="module" src="dist/app.js?v=a2902a93e1"></script>
+<script type="module" src="dist/app.js?v=1c4d555b98"></script>
 </body>
 </html>

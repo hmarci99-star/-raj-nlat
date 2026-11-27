@@ -223,5 +223,19 @@ export function naptarLink(adatok, vegosszeg = 0) {
   return `https://calendar.google.com/calendar/render?${p.toString()}`;
 }
 
+// Rövid üzenet az ügyfélnek a foglalási linkkel (SMS, Viber, e-mail).
+export function foglalasUzenet(vallalkozo = {}, ugyfelNev = '') {
+  const v = vallalkozo;
+  return [
+    `${ugyfelNev ? `Kedves ${ugyfelNev}!` : 'Szia!'}`,
+    '',
+    `Ezen a linken tudsz időpontot választani a felméréshez: ${(v.foglalas ?? '').trim()}`,
+    'A kiválasztott időpont automatikusan bekerül a naptáramba, és e-mailben visszaigazolást kapsz.',
+    '',
+    'Üdv,',
+    ...[v.nev, v.telefon].filter(Boolean),
+  ].join('\n');
+}
+
 // A Google Naptár szerkesztőoldalának címe (nem nyilvános foglalási link)?
 export const foglalasiLinkHibas = (link) => /calendar\.google\.com\/calendar\/(u\/\d+\/)?r\b/.test(link ?? '');
