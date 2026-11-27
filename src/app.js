@@ -9,6 +9,7 @@ import { diktaltTetelek, vanDiktalas, diktalas } from './diktalas.js';
 import { hangosModInit } from './hangosfelulet.js';
 import { ikon, MEZO_IKON } from './ikonok.js';
 import { csempekInit, csempekFrissit } from './elrendezes.js';
+import { hasonloNevek } from './nevek.js';
 import { osszevetes, memoriaRogzit, dragulasok, dragulasJel, becsles, mentesEsedekes } from './boltok.js';
 import {
   ALLAPOTOK, SZUROK, allapotAdat, osszesites, szur, evek, profit, ujAzonosito, javasoltAllapot, exportAdat, importAdat,
@@ -1647,6 +1648,74 @@ function ajanlatSorok() {
 }
 
 // Az "E-mail az ügyfélnek" gomb címe: előre megírt levél az ügyfél címére.
+// ---- Ismert tételnevek: javaslat gépeléskor, hogy ugyanaz a tétel ne legyen kétféle néven ----
+
+// Minden név, ami már előfordult: könyvtár, plusz tételek, munkák és gerinc anyaga, anyaglista, ármemória.
+function ismertNevek() {
+  const m = new Map();
+  const add = (cikk, egyseg) => { if (cikk && !m.has(cikk)) m.set(cikk, egyseg || 'db'); };
+  for (const s of allapot.anyag?.sorok ?? []) add(s.cikk, s.egyseg);
+  for (const sorok of allapot.konyvtar?.values() ?? []) for (const s of sorok) add(s.cikk, s.egyseg);
+  for (const t of allapot.plusz) add(t.cikk, t.egyseg);
+  for (const mu of allapot.sajatMunkak) for (const a of mu.anyag ?? []) add(a.cikk, a.egyseg);
+  for (const f of Object.values(allapot.munkadijFelulirasok)) for (const a of f?.anyag ?? []) add(a.cikk, a.egyseg);
+  for (const sorok of Object.values(allapot.gerincAnyag)) for (const a of sorok ?? []) add(a.cikk, a.egyseg);
+  for (const k of Object.keys(allapot.armemoria)) { const [c, e] = k.split('|'); add(c, e); }
+  return m;
+}
+
+function nevJavaslatBekotes() {
+  const lista = document.createElement('datalist');
+  lista.id = 'ismert-nevek';
+  document.body.append(lista);
+  const mezo = (el) => el?.matches?.('.as-cikk, #plusz-uj-cikk');
+  const javaslatHely = (el) => el.closest('.anyag-sor') ?? el.closest('form');
+  // Fókuszra: a böngésző saját listája (gépelés közben szűkül).
+  document.addEventListener('focusin', (ev) => {
+    if (!mezo(ev.target)) return;
+    lista.innerHTML = [...ismertNevek().keys()].sort((a, b) => a.localeCompare(b, 'hu')).map((n) => `<option value="${escape(n)}">`).join('');
+    ev.target.setAttribute('list', 'ismert-nevek');
+  });
+  let idozito = null;
+  document.addEventListener('input', (ev) => {
+    if (!mezo(ev.target)) return;
+    clearTimeout(idozito);
+    const el = ev.target;
+    idozito = setTimeout(() => {
+      const hely = javaslatHely(el);
+      let doboz = hely.nextElementSibling?.classList.contains('nev-javaslat') ? hely.nextElementSibling : null;
+      const ismertek = ismertNevek();
+      const talalat = hasonloNevek(el.value, [...ismertek.keys()]);
+      if (!talalat.length) { doboz?.remove(); return; }
+      if (!doboz) {
+        doboz = document.createElement('div');
+        doboz.className = 'nev-javaslat';
+        hely.after(doboz);
+      }
+      doboz.innerHTML = `<span>Már van hasonló a listában, így írd, hogy egynek számítson:</span>
+        ${talalat.map((n) => `<button type="button" class="kicsi button" data-nev="${escape(n)}" data-egyseg="${escape(ismertek.get(n))}">${escape(n)}</button>`).join('')}`;
+      doboz.javaslatMezo = el;
+    }, 250);
+  });
+  document.addEventListener('click', (ev) => {
+    const b = ev.target.closest('.nev-javaslat [data-nev]');
+    if (!b) return;
+    ev.preventDefault();
+    const doboz = b.closest('.nev-javaslat');
+    const el = doboz.javaslatMezo;
+    if (!el) return;
+    el.value = b.dataset.nev;
+    // Az egység is igazodjon a meglévőhöz (különben két külön tétel lenne: db és fm).
+    const egysegMezo = el.closest('.anyag-sor')?.querySelector('.as-egyseg') ?? (el.id === 'plusz-uj-cikk' ? $('plusz-uj-egyseg') : null);
+    if (egysegMezo && b.dataset.egyseg) {
+      if (![...egysegMezo.options].some((o) => o.value === b.dataset.egyseg)) egysegMezo.append(new Option(b.dataset.egyseg));
+      egysegMezo.value = b.dataset.egyseg;
+    }
+    doboz.remove();
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+}
+
 // ---- Foglalási link küldése az ügyfélnek (még ajánlat előtt, a felméréshez) ----
 
 function foglalasKuldes() {
@@ -2408,6 +2477,7 @@ async function indit() {
     if (g) rejtettVisszaallitas(g.closest('.kartya'));
   });
   csempekInit(form);
+  nevJavaslatBekotes();
   document.addEventListener('click', (ev) => { if (ev.target.closest('[data-foglalas-kuldes]')) foglalasKuldes(); });
   const mentett = betoltMentett(MENTES_KULCS);
   if (mentett) kitolt(mentett);
