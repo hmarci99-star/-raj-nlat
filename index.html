@@ -103,6 +103,28 @@
       background: color-mix(in srgb, var(--on-accent) 25%, transparent); color: var(--on-accent); font-weight: 700; line-height: 26px; }
     .csempe-fm { display: flex; align-items: center; gap: 4px; font-size: .75rem; }
     .csempe-fm input { width: 58px; padding: 3px 5px; text-align: center; color: var(--text); background: var(--bg); }
+
+    /* ---- Boltok összevetése, ármemória, mentés emlékeztető ---- */
+    .info-doboz { background: var(--accent-soft); border-radius: var(--radius); padding: 10px 14px; margin-bottom: 12px; }
+    .info-doboz p { margin: 0 0 6px; }
+    .anyag-becsles { margin: 8px 0 0; font-size: .9rem; }
+    .dragulas { color: var(--error); font-size: .75rem; font-weight: 700; }
+    .bolt-kartyak { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin: 10px 0; }
+    .bolt-kartya { border: 1px solid var(--line); border-radius: var(--radius); padding: 10px; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+    .bolt-kartya.alap { background: var(--bg); }
+    .bolt-kartya .bolt-nev { width: 100%; font-weight: 600; padding: 4px 6px; }
+    .bolt-osszeg { font-size: 1.1rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .bolt-kartya .muted { font-size: .78rem; }
+    .bolt-kartya .actions { margin-top: auto; padding-top: 6px; flex-wrap: nowrap; gap: 6px; }
+    .bolt-kartya .actions button:first-child { flex: 1; }
+    .ok-szoveg { color: var(--ok); font-weight: 600; }
+    .tabla-gorgeto { overflow-x: auto; }
+    .bolt-tabla td.legolcsobb { color: var(--ok); font-weight: 700; background: var(--ok-bg); }
+    .bolt-tabla th, .bolt-tabla td { white-space: nowrap; }
+    .bolt-tabla td:first-child { white-space: normal; min-width: 140px; }
+    .mentes-sav { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 12px;
+      padding: 10px 14px; border-radius: var(--radius); background: var(--warn-bg); color: var(--warn); font-weight: 600; }
+    .mentes-sav-gombok { display: flex; gap: 6px; }
     * { box-sizing: border-box; }
     [hidden] { display: none !important; }
     html { -webkit-text-size-adjust: 100%; }
@@ -532,6 +554,11 @@
 </nav>
 
 <main>
+  <div id="mentes-emlekezteto" class="mentes-sav" role="status" hidden>
+    <span id="mentes-emlekezteto-szoveg"></span>
+    <span class="mentes-sav-gombok"><button type="button" class="kicsi" id="mentes-most">Mentés most</button>
+      <button type="button" class="kicsi button" id="mentes-kesobb">Később</button></span>
+  </div>
   <!-- 1. Projekt -->
   <div class="nezet" id="nezet-projekt">
     <div class="nezet-fej">
@@ -617,6 +644,7 @@
         <button type="button" id="masol" class="button" data-ikon="masol">Másolás</button>
         <span id="masol-uzenet" class="muted" aria-live="polite"></span>
       </div>
+      <p id="anyag-becsles" class="anyag-becsles" hidden></p>
       <div id="anyaglista"><p class="muted">Betöltés…</p></div>
     </section>
     <section class="kartya">
@@ -651,6 +679,15 @@
           <div class="actions"><button type="button" id="beolvas" class="kicsi">Beolvasás</button></div>
           <div id="beolvasas-eredmeny" aria-live="polite"></div>
         </details>
+      </section>
+      <div id="ar-becsles" class="info-doboz" hidden></div>
+      <section class="kartya">
+        <h2 data-ikon="cimke">Boltok összevetése</h2>
+        <p class="megj" style="margin-top:0">Tölts fel más boltok árajánlatát is (bruttó beszerzési ár). Tételenként megmutatja, hol a legolcsóbb, és egy gombbal átveheted az árakat.</p>
+        <div class="actions"><label class="button kicsi fajl-gomb-kicsi" for="pdf-masik-bolt" data-ikon="feltolt">Másik bolt PDF</label>
+          <input type="file" id="pdf-masik-bolt" accept="application/pdf,.pdf" class="rejtett-fajl"></div>
+        <div id="bolt-uzenet" aria-live="polite"></div>
+        <div id="bolt-osszevetes"></div>
       </section>
       <section class="kartya">
         <h2 data-ikon="cimke">Egységárak <span class="muted">kézzel is javítható</span></h2>
@@ -762,6 +799,6 @@
   </div>
 </main>
 <div id="nyomtat"></div>
-<script type="module" src="dist/app.js?v=58157e1fe4"></script>
+<script type="module" src="dist/app.js?v=778c58ce7c"></script>
 </body>
 </html>

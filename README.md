@@ -120,3 +120,15 @@ A Projekt lépésben a kiállások, szerelvények és munkák nagy ikonos csemp�
 ## Anyaglista a boltnak
 
 Az e-mailben (és a Másolás / Megosztás gombbal) a tételek csoportokba rendezve mennek: Lefolyó, Csövek és csőhéjak, Idomok és falikorongok, Fűtés, Szerelvények és egyéb. Csoporton belül ábécérendben, folyamatos sorszámmal, így a bolt a sorszámra hivatkozhat. A levél sortörései minden levelezőben megmaradnak. Telefonon a Megosztás gombbal bármilyen alkalmazásba (Gmail, Viber, Messenger…) elküldhető.
+
+## Boltok összevetése
+
+Az Árak lépésben a „Másik bolt PDF” gombbal más boltok árajánlata is feltölthető (bruttó beszerzési ár). Boltonként látszik az összeg és hogy hány tételre adott árat, a közös tételekre vetített összeg (tisztességes összevetés), tételenként pedig zölddel a legolcsóbb. „Ezt használom”: az adott bolt árai lesznek a beszerzési árak; „Legolcsóbb árak átvétele”: tételenként a legolcsóbb. Az eredeti beszerzési árak ilyenkor külön oszlopban megmaradnak, így vissza lehet állni rájuk. A boltok az ajánlattal együtt mentődnek.
+
+## Ármemória
+
+Az alkalmazás megjegyzi a beolvasott és kézzel beírt árakat. Új bolti PDF-nél kiírja a legalább 15%-kal drágult tételeket (régi → új ár), az ártáblázatban pedig ▲ jelzi őket. Ha egy tételnek még nincs ára, de korábbról ismert, az Anyag lépésnél becsült anyagköltséget mutat, az Árak lépésnél pedig a „Korábbi árak beírása” gombbal kitölthetők. Az ármemória a biztonsági mentésbe is bekerül.
+
+## Biztonsági mentés emlékeztető
+
+Ha van mentett ajánlat, és 7 napja (vagy még soha) nem készült biztonsági mentés, az oldal tetején sárga sáv szól („Mentés most” / „Később” – 3 napra elhalasztja). Telefonon a mentés a megosztás menüt nyitja meg, így a fájl a Fájlokba, iCloudba, Google Drive-ba vagy e-mailbe menthető. Az alkalmazás tartós tárhelyet is kér a böngészőtől, hogy az adatokat ne törölje magától.

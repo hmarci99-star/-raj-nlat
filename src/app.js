@@ -9,12 +9,17 @@ import { diktaltTetelek, vanDiktalas, diktalas } from './diktalas.js';
 import { hangosModInit } from './hangosfelulet.js';
 import { ikon, MEZO_IKON } from './ikonok.js';
 import { csempekInit, csempekFrissit } from './elrendezes.js';
+import { osszevetes, memoriaRogzit, dragulasok, dragulasJel, becsles, mentesEsedekes } from './boltok.js';
 import {
   ALLAPOTOK, SZUROK, allapotAdat, osszesites, szur, evek, profit, ujAzonosito, javasoltAllapot, exportAdat, importAdat,
 } from './ajanlatok.js';
 
 const MENTES_KULCS = 'arajanlat.projekt';
 const ARAK_KULCS = 'arajanlat.arak';
+const BOLTOK_KULCS = 'arajanlat.boltok';
+const ARMEMORIA_KULCS = 'arajanlat.armemoria';
+const MENTES_IDO_KULCS = 'arajanlat.utolso-mentes';
+const MENTES_HALASZT_KULCS = 'arajanlat.mentes-halasztva';
 const ADATOK_KULCS = 'arajanlat.adatok';
 const PLUSZ_KULCS = 'arajanlat.plusz';
 const PDF_MENNY_KULCS = 'arajanlat.pdf-mennyiseg';
@@ -37,6 +42,8 @@ const $ = (id) => document.getElementById(id);
 const form = $('projekt');
 
 const allapot = {
+  boltok: [], // más boltok árajánlatai összevetéshez: [{ id, nev, fajl, arak: { kulcs: egységár }, datum }]
+  armemoria: {}, // korábban látott árak: { kulcs: { bolti, kedvezmenyes, datum, elozo } }
   tabla: null,
   alapKonyvtar: null,
   konyvtar: null,
@@ -936,6 +943,11 @@ document.addEventListener('click', async (ev) => {
 const arMezo = (kulcs, mezo, ertek) => `<input type="text" inputmode="decimal" class="ar"
   data-kulcs="${escape(kulcs)}" data-mezo="${mezo}" value="${ertek ?? ''}" aria-label="${mezo === 'bolti' ? 'Bolti ár' : 'Kedvezményes ár'}">`;
 
+const dragJelHtml = (k, mezo, ar) => {
+  const d = dragulasJel(allapot.armemoria[k], mezo, ar);
+  return d ? `<div class="dragulas" title="korábban ${penz(d.elozo)}">▲ ${Math.round(d.arany * 100)}%</div>` : '';
+};
+
 // Csak akkor rajzolja újra, ha a tételek változtak, hogy gépelés közben ne vesszen el a fókusz.
 function megjelenitArTabla(kenyszer = false) {
   const sorok = allapot.anyag.sorok;
@@ -954,8 +966,8 @@ function megjelenitArTabla(kenyszer = false) {
         return `<tr>
           <td>${escape(s.cikk)}<div class="muted">${ft.format(s.mennyiseg)} ${escape(s.egyseg)}${s.listaMennyiseg !== undefined
             ? ` (PDF szerint; lista: ${ft.format(s.listaMennyiseg)})` : ''}</div></td>
-          <td class="num">${arMezo(k, 'bolti', ar.bolti)}</td>
-          <td class="num">${arMezo(k, 'kedvezmenyes', ar.kedvezmenyes)}</td>
+          <td class="num">${arMezo(k, 'bolti', ar.bolti)}${dragJelHtml(k, 'bolti', ar.bolti)}</td>
+          <td class="num">${arMezo(k, 'kedvezmenyes', ar.kedvezmenyes)}${dragJelHtml(k, 'kedvezmenyes', ar.kedvezmenyes)}</td>
         </tr>`;
       }).join('')}</tbody>
     </table>`);
@@ -990,8 +1002,11 @@ function arakAtvetele(szoveg, mezo, fajl = '') {
     const s = allapot.anyag.sorok.find((x) => tetelKulcs(x) === k);
     return { cikk: s.cikk, egyseg: s.egyseg, lista: s.listaMennyiseg ?? s.mennyiseg, pdf: m };
   });
+  const ujArak = Object.fromEntries([...arak, ...jeloltek.map((j) => [tetelKulcs(j), j.ar])]);
+  const dragult = dragulasok(allapot.armemoria, ujArak);
   for (const [k, ar] of arak) arBeiras(k, ar);
   for (const [k, m] of mennyisegek) allapot.pdfMennyiseg[k] = m;
+  armemoriaRogzites(ujArak);
   for (const j of jeloltek) pluszHozzaad({ ...j, forras: 'pdf' }, true);
   ment(ARAK_KULCS, allapot.arak);
   ment(PDF_MENNY_KULCS, allapot.pdfMennyiseg);
@@ -1021,6 +1036,9 @@ function arakAtvetele(szoveg, mezo, fajl = '') {
   if (eltero.length) reszek.push(`<details class="reszlet"><summary>Eltérő mennyiség (${eltero.length})</summary>
     <ul class="jeloltek">${eltero.map((e) => `<li><span><strong>${escape(e.cikk)}</strong><br>
       <span class="muted">PDF: ${ft.format(e.pdf)} ${escape(e.egyseg)}, a lista szerint ${ft.format(e.lista)}</span></span></li>`).join('')}</ul></details>`);
+  if (dragult.length) reszek.push(`<details class="reszlet dragult"><summary>Drágult tételek (${dragult.length})</summary>
+    <ul class="jeloltek">${dragult.map((d) => `<li><span><strong>${escape(cikkNev(d.kulcs))}</strong><br>
+      <span class="muted">${MEZO_NEV[d.mezo]}: ${penz(d.regi)} → ${penz(d.uj)} (<span class="dragulas">+${Math.round(d.arany * 100)}%</span>)${d.datum ? `, előző: ${escape(datumRovid(d.datum))}` : ''}</span></span></li>`).join('')}</ul></details>`);
   if (nemIllesztett.length) reszek.push(`<details class="reszlet"><summary>Nem értelmezett sorok (${nemIllesztett.length})</summary>
     <ul class="nem-illesztett">${nemIllesztett.map((s) => `<li>${escape(s)}</li>`).join('')}</ul></details>`);
   return reszek.join('') + eltavolitGomb(forras);
@@ -1070,6 +1088,201 @@ function arBeiras(kulcs, ar) {
   const uj = { ...allapot.arak[kulcs] };
   for (const [m, v] of Object.entries(ar)) if (v !== null && v !== undefined) uj[m] = v;
   allapot.arak[kulcs] = uj;
+}
+
+const cikkNev = (kulcs) => allapot.anyag.sorok.find((s) => tetelKulcs(s) === kulcs)?.cikk
+  ?? allapot.plusz.find((t) => tetelKulcs(t) === kulcs)?.cikk ?? kulcs.split('|')[0];
+
+function armemoriaRogzites(arak, datum = maISO()) {
+  const uj = memoriaRogzit(allapot.armemoria, arak, datum);
+  if (uj === allapot.armemoria) return;
+  allapot.armemoria = uj;
+  ment(ARMEMORIA_KULCS, allapot.armemoria);
+}
+
+// Becsült anyagköltség a korábbi árakból, és a hiányzó árak kitöltése belőlük.
+function becslesAdat() {
+  const sorok = allapot.anyag.sorok.map((s) => ({ kulcs: tetelKulcs(s), mennyiseg: s.mennyiseg }));
+  return becsles(sorok, allapot.arak, allapot.armemoria, 'bolti');
+}
+
+function megjelenitBecsles() {
+  const b = becslesAdat();
+  const n = allapot.anyag.sorok.length;
+  const anyagEl = $('anyag-becsles');
+  if (anyagEl) {
+    anyagEl.hidden = !n || (b.jelenlegi === 0 && b.korabbi === 0);
+    anyagEl.innerHTML = `Becsült anyagköltség (bolti): <strong>~${penz(b.osszeg)}</strong>
+      <span class="muted">· ${b.jelenlegi + b.korabbi}/${n} tételre van ár${b.korabbi ? `, ebből ${b.korabbi} korábbi ajánlatból` : ''}</span>`;
+  }
+  const arEl = $('ar-becsles');
+  if (!arEl) return;
+  const potolhato = allapot.anyag.sorok.filter((s) => {
+    const k = tetelKulcs(s);
+    const m = allapot.armemoria[k];
+    return m && ['bolti', 'kedvezmenyes'].some((f) => !Number.isFinite(allapot.arak[k]?.[f]) && Number.isFinite(m[f]));
+  }).length;
+  arEl.hidden = potolhato === 0;
+  arEl.innerHTML = potolhato ? `<p><strong>${potolhato} tételnek</strong> nincs még ára, de korábbról ismert.
+    Becsült anyagköltség a korábbi árakkal: <strong>~${penz(b.osszeg)}</strong> (bolti).</p>
+    <div class="actions kicsi-gombok"><button type="button" class="kicsi button" id="korabbi-arak">Korábbi árak beírása</button></div>` : '';
+}
+
+function korabbiArakBeirasa() {
+  for (const s of allapot.anyag.sorok) {
+    const k = tetelKulcs(s);
+    const m = allapot.armemoria[k];
+    if (!m) continue;
+    const ar = { ...allapot.arak[k] };
+    for (const f of ['bolti', 'kedvezmenyes']) if (!Number.isFinite(ar[f]) && Number.isFinite(m[f])) ar[f] = m[f];
+    allapot.arak[k] = ar;
+  }
+  ment(ARAK_KULCS, allapot.arak);
+  megjelenitArTabla(true);
+  megjelenitKimenetek();
+}
+
+// ---- Más boltok összevetése ----
+
+function boltOszlopok() {
+  const kedv = Object.fromEntries(Object.entries(allapot.arak).map(([k, a]) => [k, a?.kedvezmenyes]));
+  return [{ nev: 'Jelenlegi beszerzési ár', arak: kedv }, ...allapot.boltok];
+}
+
+function megjelenitBoltok() {
+  const hol = $('bolt-osszevetes');
+  if (!hol) return;
+  if (!allapot.boltok.length) { hol.innerHTML = ''; return; }
+  const sorok = allapot.anyag.sorok.map((s) => ({ kulcs: tetelKulcs(s), cikk: s.cikk, mennyiseg: s.mennyiseg, egyseg: s.egyseg }));
+  const oszl = boltOszlopok();
+  const e = osszevetes(sorok, oszl);
+  const jelenlegi = e.osszesek[0];
+  const nyeres = jelenlegi.osszeg - e.legolcsobbOsszeg;
+  const kartyak = e.osszesek.map((o, i) => `<div class="bolt-kartya${i === 0 ? ' alap' : ''}">
+      ${i === 0 ? `<strong>${escape(o.nev)}</strong>` : `<input class="bolt-nev" data-bolt="${allapot.boltok[i - 1].id}" value="${escape(o.nev)}" aria-label="Bolt neve">`}
+      <div class="bolt-osszeg">${penz(o.osszeg)}</div>
+      <div class="muted">${o.db}/${sorok.length} tétel${e.kozosDb && e.osszesek.length > 1 ? ` · közös ${e.kozosDb} tétel: ${penz(o.kozosOsszeg)}` : ''}</div>
+      ${i === 0 ? '' : `<div class="actions kicsi-gombok">
+        <button type="button" class="kicsi button" data-bolt-hasznal="${allapot.boltok[i - 1].id}">Ezt használom</button>
+        <button type="button" class="kicsi button" data-bolt-torol="${allapot.boltok[i - 1].id}" aria-label="Eltávolítás: ${escape(o.nev)}">×</button></div>`}
+    </div>`).join('');
+  const fej = oszl.map((o, i) => `<th class="num">${escape(i === 0 ? 'Jelenlegi' : o.nev)}</th>`).join('');
+  const tabla = e.tetelek.filter((t) => t.arak.some((a) => a !== null)).map((t) => `<tr>
+      <td>${escape(t.cikk)}<div class="muted">${ft.format(t.mennyiseg)} ${escape(t.egyseg)}</div></td>
+      ${t.arak.map((a, i) => `<td class="num${t.legolcsobb[i] ? ' legolcsobb' : ''}">${a === null ? '–' : ft.format(a)}</td>`).join('')}
+    </tr>`).join('');
+  hol.innerHTML = `<div class="bolt-kartyak">${kartyak}</div>
+    <p>Ha minden tételt a legolcsóbb helyről veszel: <strong>${penz(e.legolcsobbOsszeg)}</strong> (${e.legolcsobbDb} tétel)${
+      nyeres > 0 && jelenlegi.db ? `, <span class="ok-szoveg">${penz(nyeres)}-tal kevesebb</span>, mint a jelenlegi beszerzési áron` : ''}.</p>
+    <div class="actions kicsi-gombok"><button type="button" class="kicsi" id="legolcsobb-arak">Legolcsóbb árak átvétele</button></div>
+    ${lenyilo('boltok-tabla', `Tételenként (${e.tetelek.filter((t) => t.arak.some((a) => a !== null)).length})`, 'egységár, bruttó', `
+      <div class="tabla-gorgeto"><table class="bolt-tabla"><thead><tr><th>Cikk</th>${fej}</tr></thead><tbody>${tabla}</tbody></table></div>`)}`;
+}
+
+// Mielőtt egy másik bolt árai felülírják a beszerzési árakat, a mostaniak külön oszlopba
+// kerülnek ("Eredeti beszerzési ár"), így az összevetésben megmaradnak és visszaállíthatók.
+function eredetiArakMegorzese() {
+  if (allapot.boltok.some((b) => b.id === 'eredeti')) return;
+  const arak = Object.fromEntries(Object.entries(allapot.arak).map(([k, a]) => [k, a?.kedvezmenyes]).filter(([, v]) => v > 0));
+  if (!Object.keys(arak).length) return;
+  allapot.boltok.unshift({ id: 'eredeti', nev: allapot.feltoltesek.kedvezmenyes?.fajl?.replace(/\.pdf$/i, '') || 'Eredeti beszerzési ár', arak, datum: maISO() });
+  ment(BOLTOK_KULCS, allapot.boltok);
+}
+
+function boltArakAtvetele(arak) {
+  const lista = new Set(allapot.anyag.sorok.map(tetelKulcs));
+  const atvett = {};
+  for (const [k, v] of Object.entries(arak)) {
+    if (!lista.has(k) || !(v > 0)) continue;
+    allapot.arak[k] = { ...allapot.arak[k], kedvezmenyes: v };
+    atvett[k] = { kedvezmenyes: v };
+  }
+  ment(ARAK_KULCS, allapot.arak);
+  armemoriaRogzites(atvett);
+  megjelenitArTabla(true);
+  megjelenitKimenetek();
+  return Object.keys(atvett).length;
+}
+
+async function boltPdfFeltoltes(fajl) {
+  const uz = $('bolt-uzenet');
+  uz.innerHTML = `<p class="muted">${escape(fajl.name)} beolvasása…</p>`;
+  try {
+    const szoveg = await pdfSzoveg(fajl);
+    if (!szoveg.trim()) { uz.innerHTML = '<p class="warn">Ebben a PDF-ben nincs kiolvasható szöveg.</p>'; return; }
+    const listaSorok = allapot.anyag.sorok.map((s) => (s.listaMennyiseg !== undefined ? { ...s, mennyiseg: s.listaMennyiseg } : s));
+    const { arak } = boltValaszBeolvasas(szoveg, listaSorok, 'kedvezmenyes');
+    const boltArak = Object.fromEntries([...arak].map(([k, a]) => [k, a.kedvezmenyes]).filter(([, v]) => v > 0));
+    if (!Object.keys(boltArak).length) { uz.innerHTML = '<p class="warn">Egy listatétel árát sem találtam ebben a PDF-ben.</p>'; return; }
+    const nev = fajl.name.replace(/\.pdf$/i, '').replace(/[_-]+/g, ' ').trim().slice(0, 40) || 'Másik bolt';
+    allapot.boltok.push({ id: `b${Date.now().toString(36)}`, nev, fajl: fajl.name, arak: boltArak, datum: maISO() });
+    ment(BOLTOK_KULCS, allapot.boltok);
+    uz.innerHTML = `<p><strong>${Object.keys(boltArak).length} tétel</strong> ára beolvasva (${escape(fajl.name)}). A bolt nevét lent átírhatod.</p>`;
+    megjelenitBoltok();
+  } catch (err) {
+    uz.innerHTML = `<p class="error">A PDF nem olvasható be: ${escape(err.message)}</p>`;
+  }
+}
+
+function boltEsemenyek() {
+  $('pdf-masik-bolt').addEventListener('change', (ev) => {
+    const fajl = ev.target.files?.[0];
+    ev.target.value = '';
+    if (fajl) boltPdfFeltoltes(fajl);
+  });
+  $('bolt-osszevetes').addEventListener('change', (ev) => {
+    const b = allapot.boltok.find((x) => x.id === ev.target.dataset?.bolt);
+    if (!b) return;
+    b.nev = ev.target.value.trim() || b.nev;
+    ment(BOLTOK_KULCS, allapot.boltok);
+    megjelenitBoltok();
+  });
+  $('bolt-osszevetes').addEventListener('click', async (ev) => {
+    const hasznal = ev.target.closest('[data-bolt-hasznal]');
+    const torol = ev.target.closest('[data-bolt-torol]');
+    if (hasznal) {
+      const b = allapot.boltok.find((x) => x.id === hasznal.dataset.boltHasznal);
+      eredetiArakMegorzese();
+      const n = boltArakAtvetele(b.arak);
+      kiir('bolt-uzenet', `${n} tétel beszerzési ára átírva (${b.nev}).`);
+    } else if (torol) {
+      const b = allapot.boltok.find((x) => x.id === torol.dataset.boltTorol);
+      const v = await kerdes({ cim: 'Eltávolítod?', szoveg: `${b.nev} árai kikerülnek az összevetésből. A már átvett beszerzési árak maradnak.`,
+        gombok: [{ felirat: 'Mégse', ertek: 'nem', stilus: 'masodlagos' }, { felirat: 'Eltávolítás', ertek: 'igen', stilus: 'veszelyes' }] });
+      if (v !== 'igen') return;
+      allapot.boltok = allapot.boltok.filter((x) => x.id !== b.id);
+      ment(BOLTOK_KULCS, allapot.boltok);
+      megjelenitBoltok();
+    } else if (ev.target.closest('#legolcsobb-arak')) {
+      eredetiArakMegorzese();
+      const legolcsobb = {};
+      for (const s of allapot.anyag.sorok) {
+        const k = tetelKulcs(s);
+        const arak = allapot.boltok.map((b) => b.arak[k]).filter((v) => v > 0);
+        const most = allapot.arak[k]?.kedvezmenyes;
+        if (arak.length && (!Number.isFinite(most) || Math.min(...arak) < most)) legolcsobb[k] = Math.min(...arak);
+      }
+      const n = boltArakAtvetele(legolcsobb);
+      kiir('bolt-uzenet', n ? `${n} tételnél olcsóbb beszerzési ár lett beírva.` : 'A jelenlegi beszerzési árak már a legolcsóbbak.');
+    }
+  });
+}
+
+// ---- Biztonsági mentés emlékeztető ----
+
+const szamKulcs = (k) => { try { return Number(localStorage.getItem(k)) || 0; } catch { return 0; } };
+
+function mentesEmlekezteto() {
+  const sav = $('mentes-emlekezteto');
+  if (!sav) return;
+  const utolso = szamKulcs(MENTES_IDO_KULCS);
+  const esedekes = mentesEsedekes({ vanAdat: allapot.ajanlatok.length > 0, utolso, halasztva: szamKulcs(MENTES_HALASZT_KULCS) });
+  sav.hidden = !esedekes;
+  if (esedekes) {
+    kiir('mentes-emlekezteto-szoveg', utolso
+      ? `Az utolsó biztonsági mentés ${Math.floor((Date.now() - utolso) / 86400000)} napja készült.`
+      : 'Még nem készült biztonsági mentés az ajánlatokról.');
+  }
 }
 
 function jeloltHtml(j) {
@@ -1364,6 +1577,8 @@ function ugyfelEmailFrissites() {
 }
 
 function megjelenitKimenetek() {
+  megjelenitBecsles();
+  megjelenitBoltok();
   if (!allapot.munkadij) return;
   const a = ajanlat(allapot.munkadij, ajanlatSorok(), allapot.arak);
   ugyfelEmailFrissites();
@@ -1434,6 +1649,7 @@ function pillanatkep() {
     plusz: allapot.plusz,
     pdfMennyiseg: allapot.pdfMennyiseg,
     feltoltesek: allapot.feltoltesek,
+    boltok: allapot.boltok,
     adatok: { ugyfel: adatok.ugyfel, ajanlat: adatok.ajanlat },
     // a felhasznált egyéb munkák leírása, hogy másik eszközön is megnyitható legyen
     sajatMunkak: allapot.sajatMunkak.filter((m) => Number(olvas().egyeb?.[m.kod]) > 0),
@@ -1582,6 +1798,8 @@ function munkaBetoltes(adat, id) {
   allapot.plusz = klon(adat?.plusz ?? []);
   allapot.pdfMennyiseg = klon(adat?.pdfMennyiseg ?? {});
   allapot.feltoltesek = klon(adat?.feltoltesek ?? {});
+  allapot.boltok = klon(adat?.boltok ?? []);
+  $('bolt-uzenet').innerHTML = '';
   allapot.diktalt = [];
   const vallalkozo = olvasAdatok().vallalkozo;
   const ugyfel = { nev: '', cim: '', munkaHelye: '', email: '', ...adat?.adatok?.ugyfel };
@@ -1592,7 +1810,7 @@ function munkaBetoltes(adat, id) {
   $('eredmeny-kedvezmenyes').innerHTML = feltoltesAllapotHtml('kedvezmenyes');
   $('beolvasas-eredmeny').innerHTML = feltoltesAllapotHtml('szoveg');
   for (const [k, v] of [[ARAK_KULCS, allapot.arak], [PLUSZ_KULCS, allapot.plusz], [PDF_MENNY_KULCS, allapot.pdfMennyiseg],
-    [FELTOLTES_KULCS, allapot.feltoltesek], [ADATOK_KULCS, olvasAdatok()]]) ment(k, v);
+    [FELTOLTES_KULCS, allapot.feltoltesek], [BOLTOK_KULCS, allapot.boltok], [ADATOK_KULCS, olvasAdatok()]]) ment(k, v);
   frissit();
   megjelenitPlusz();
   megjelenitArTabla(true);
@@ -1735,15 +1953,27 @@ function ajanlatEsemenyek() {
   $('mentes-fajlba').addEventListener('click', () => {
     if (allapot.aktualisId) { const r = allapot.ajanlatok.find((x) => x.id === allapot.aktualisId); if (r) rekordFrissites(r); }
     const tartalom = exportAdat(allapot.ajanlatok, { vallalkozo: olvasAdatok().vallalkozo, bovitesek: allapot.bovitesek, sajatMunkak: allapot.sajatMunkak, konyvtarFelulirasok: allapot.konyvtarFelulirasok,
-      munkadijFelulirasok: allapot.munkadijFelulirasok, gerincAnyag: allapot.gerincAnyag, sajatKiallasok: allapot.sajatKiallasok, kiallasNevek: allapot.kiallasNevek, kiallasArak: allapot.kiallasArak });
+      munkadijFelulirasok: allapot.munkadijFelulirasok, gerincAnyag: allapot.gerincAnyag, sajatKiallasok: allapot.sajatKiallasok, kiallasNevek: allapot.kiallasNevek, kiallasArak: allapot.kiallasArak, armemoria: allapot.armemoria });
+    const nev = `arajanlatok-${maISO()}.json`;
+    const kesz = () => {
+      try { localStorage.setItem(MENTES_IDO_KULCS, String(Date.now())); localStorage.removeItem(MENTES_HALASZT_KULCS); } catch { /* nem kötelező */ }
+      kiir('mentes-uzenet', `${allapot.ajanlatok.length} ajánlat elmentve fájlba.`);
+      mentesEmlekezteto();
+    };
+    // Telefonon a megosztás menüből a Fájlokba, iCloudba, Google Drive-ba vagy e-mailbe menthető.
+    const fajl = typeof File === 'function' ? new File([tartalom], nev, { type: 'application/json' }) : null;
+    if (fajl && navigator.canShare?.({ files: [fajl] }) && matchMedia('(pointer: coarse)').matches) {
+      navigator.share({ files: [fajl], title: 'Árajánlatok – biztonsági mentés' }).then(kesz).catch(() => {});
+      return;
+    }
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([tartalom], { type: 'application/json' }));
-    a.download = `arajanlatok-${maISO()}.json`;
+    a.download = nev;
     document.body.append(a);
     a.click();
     a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 10000);
-    kiir('mentes-uzenet', `${allapot.ajanlatok.length} ajánlat elmentve fájlba.`);
+    kesz();
   });
   $('betoltes-fajlbol').addEventListener('change', async (ev) => {
     const fajl = ev.target.files?.[0];
@@ -1775,6 +2005,10 @@ function ajanlatEsemenyek() {
       for (const [k, v] of Object.entries(r.beallitasok.kiallasNevek ?? {})) if (!allapot.kiallasNevek[k]) allapot.kiallasNevek[k] = v;
       ment(KIALLAS_NEV_KULCS, allapot.kiallasNevek);
       for (const [k, v] of Object.entries(r.beallitasok.kiallasArak ?? {})) if (allapot.kiallasArak[k] === undefined) allapot.kiallasArak[k] = v;
+      for (const [k, v] of Object.entries(r.beallitasok.armemoria ?? {})) {
+        if (!allapot.armemoria[k] || String(v?.datum) > String(allapot.armemoria[k].datum)) allapot.armemoria[k] = v;
+      }
+      ment(ARMEMORIA_KULCS, allapot.armemoria);
       ment(KIALLAS_AR_KULCS, allapot.kiallasArak);
       kiallasFelepit();
       cimkekFrissitese();
@@ -1971,6 +2205,7 @@ async function indit() {
   const mentett = betoltMentett(MENTES_KULCS);
   if (mentett) kitolt(mentett);
   allapot.arak = betoltMentett(ARAK_KULCS) ?? {};
+  allapot.boltok = (betoltMentett(BOLTOK_KULCS) ?? []).filter((b) => b?.id && b?.arak);
   // A PDF-ből korábban tévesen felvett összesítő sorok (nettó/bruttó végösszeg, ÁFA…) törlése.
   allapot.plusz = (betoltMentett(PLUSZ_KULCS) ?? [])
     .filter((t) => t?.cikk && t?.egyseg)
@@ -1993,6 +2228,16 @@ async function indit() {
   allapot.aktualisId = betoltMentett(AKTUALIS_KULCS);
   if (!allapot.ajanlatok.some((a) => a.id === allapot.aktualisId)) allapot.aktualisId = null;
   ajanlatEsemenyek();
+  // Ármemória: ha még üres, a mentett ajánlatok áraiból (régebbitől az újabb felé) és a mostaniakból.
+  allapot.armemoria = betoltMentett(ARMEMORIA_KULCS) ?? {};
+  if (!Object.keys(allapot.armemoria).length) {
+    for (const r of [...allapot.ajanlatok].sort((a, b) => String(a.modositva).localeCompare(String(b.modositva)))) {
+      armemoriaRogzites(r.adat?.arak ?? {}, String(r.modositva ?? '').slice(0, 10) || maISO());
+    }
+    armemoriaRogzites(allapot.arak);
+  }
+  mentesEmlekezteto();
+  navigator.storage?.persist?.().catch(() => {});
 
   form.addEventListener('input', frissit);
   if (navigator.share) {
@@ -2030,6 +2275,17 @@ async function indit() {
     el.classList.toggle('hibas', el.value.trim() !== '' && Number.isNaN(n));
     ment(ARAK_KULCS, allapot.arak);
     megjelenitKimenetek();
+  });
+  $('ar-tabla').addEventListener('change', (ev) => {
+    const k = ev.target.dataset?.kulcs;
+    if (k && allapot.arak[k]) armemoriaRogzites({ [k]: allapot.arak[k] });
+  });
+  $('ar-szakasz').addEventListener('click', (ev) => { if (ev.target.closest('#korabbi-arak')) korabbiArakBeirasa(); });
+  boltEsemenyek();
+  $('mentes-most').addEventListener('click', () => { nezetValtas('ajanlatok'); $('mentes-fajlba').click(); });
+  $('mentes-kesobb').addEventListener('click', () => {
+    try { localStorage.setItem(MENTES_HALASZT_KULCS, String(Date.now() + 3 * 86400000)); } catch { /* nem kötelező */ }
+    mentesEmlekezteto();
   });
   $('ar-szakasz').addEventListener('click', (ev) => {
     const b = ev.target.closest('.feltoltes-torles');
