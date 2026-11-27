@@ -1,0 +1,26 @@
+Kód,Tétel,Egység,Egységár (Ft),Megjegyzés
+radiator_kiallas,Radiátor kiállás kiépítése (aljzatbetonba),db,45000,Mérettől és távolságtól független
+radiator_felszereles,Radiátor felszerelés és bekötés (festés után),db,5000,
+padlofutes_kor,Padlófűtés kör,kör,50000,Tacker rendszerlemez lefektetésével együtt
+viz_alapszereles,Vízszerelés alapszerelés (házon belüli lefolyóval),kiállás,45000,
+kulso_viz,Külső vízbekötés,fm,3000,Ásás nélkül
+kulso_szennyviz,Külső szennyvízszerelés,fm,6000,Ásás nélkül
+wc,WC felszerelés,db,20000,
+mosdo_sima,"Mosdó, sima, falra rögzített",db,20000,Csapteleppel együtt
+mosdo_butoros,"Mosdó, bútoros",db,30000,Csapteleppel együtt
+mosdo_dupla,"Mosdó, dupla",db,50000,Csapteleppel együtt
+csaptelep,Csaptelep szerelés (falra vagy pultra),db,15000,"Zuhany, kád, mosogató"
+zuhanycsaptelep_sullyesztett,"Zuhanycsaptelep, süllyesztett",db,40000,
+mosogep_bekotes,"Mosógép, mosogatógép bekötés",db,8000,
+zuhanykabin_konnyu,"Zuhanykabin, könnyű",db,50000,"Egyszerű, keretes sarokkabin"
+zuhanykabin_kozepes,"Zuhanykabin, közepes",db,75000,"Nagyobb, üvegfalas, tolóajtós"
+zuhanykabin_nehez,"Zuhanykabin, nehéz",db,100000,"Hidromasszázs, gőz, elektronikus funkciók"
+kad_hagyomanyos,"Fürdőkád, hagyományos (előfalazott)",db,40000,
+kad_elolapos,"Fürdőkád, előlapos",db,60000,
+bojler_egyszeru,"Bojler, egyszerű villanybojler",db,30000,
+bojler_futesrol,"Bojler, fűtésről üzemelt vagy cirkulációs",db,50000,
+gazkazan,Gázkazán gépészet,db,150000,Csak radiátoros vagy csak padlófűtéses körrel
+vegyes_kazan,Vegyes tüzelésű kazán gépészet,db,220000,Csak radiátoros vagy csak padlófűtéses körrel
+hoszivattyu,Hőszivattyús gépészet,db,240000,A puffer és a hidraulikai váltó benne van
+felar_vegyes_kor,Felár: radiátoros és padlófűtéses kör is van,db,60000,A kazánházi gépészet díjához jön
+puffer,Puffertartály beépítése (vegyes tüzelésű kazánhoz),db,80000,

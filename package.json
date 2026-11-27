@@ -1,0 +1,13 @@
+{
+  "name": "arajanlat",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "build": "node scripts/build.mjs",
+    "start": "npx --yes serve -l 3000 ."
+  },
+  "devDependencies": {
+    "esbuild": "0.24.2"
+  }
+}
