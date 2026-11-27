@@ -27,11 +27,24 @@ test('worker: csak engedett modellt hív, strukturált kimenettel', async () => 
       content: [{ type: 'text', text: '{"javaslatok":[],"megjegyzes":""}' }] }));
   };
   try {
-    const v = await worker.fetch(keres('https://hmarci99-star.github.io', { jelszo: 'titok', modell: 'valami-drága', projekt: ['WC-tartály: 1'] }), env);
+    const sema = { type: 'object', properties: { javaslatok: { type: 'array', items: { type: 'string' } } }, required: ['javaslatok'], additionalProperties: false };
+    const v = await worker.fetch(keres('https://hmarci99-star.github.io', {
+      jelszo: 'titok', modell: 'valami-drága', erofeszites: 'max', rendszer: 'R', uzenet: 'U', sema,
+      kepek: [{ media_type: 'image/jpeg', data: 'AAAA' }],
+    }), env);
     assert.equal(v.status, 200);
     assert.equal(kuldott.model, 'claude-opus-5-5');
-    assert.equal(kuldott.output_config.format.type, 'json_schema');
-    assert.deepEqual(await v.json(), { javaslatok: [], megjegyzes: '', modell: 'claude-opus-5-5', tokenek: {} });
+    assert.equal(kuldott.output_config.effort, 'medium'); // a "max" nem engedett
+    assert.deepEqual(kuldott.output_config.format, { type: 'json_schema', schema: sema });
+    assert.equal(kuldott.system, 'R');
+    assert.deepEqual(kuldott.messages[0].content.map((b) => b.type), ['image', 'text']);
+    assert.deepEqual(await v.json(), { eredmeny: { javaslatok: [], megjegyzes: '' }, modell: 'claude-opus-5-5', tokenek: {}, verzio: 2 });
+    // régi app (rendszer/uzenet nélkül): érthető hibaüzenet
+    const r = await worker.fetch(keres('https://hmarci99-star.github.io', { jelszo: 'titok' }), env);
+    assert.equal(r.status, 400);
+    // ismeretlen képformátum
+    const k = await worker.fetch(keres('https://hmarci99-star.github.io', { jelszo: 'titok', rendszer: 'R', uzenet: 'U', sema, kepek: [{ media_type: 'text/html', data: 'x' }] }), env);
+    assert.equal(k.status, 400);
   } finally { globalThis.fetch = eredeti; }
 });
 

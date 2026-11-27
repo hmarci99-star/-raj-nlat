@@ -152,6 +152,8 @@ A Projekt lépés tetején a „Foglalási link” gombbal az ügyfélnek már a
 
 Az Anyag lépésben az „AI anyagjavaslat” kártya a kiállások, munkák, a mostani anyaglista és (ha megadod) a munka rövid leírása alapján javasolja, mi hiányzik vagy miből kevés. A javaslatok bepipálva jönnek, a mennyiség átírható, a „Kijelöltek felvétele” a plusz tételek közé teszi őket. Ismert tételnél a pontos meglévő nevet használja, így összeadódik a listán lévővel. Az ügyfél neve, címe, elérhetősége nem megy ki. Minden kérés alján látszik a becsült ára.
 
+Pontosság: az AI megkapja a kiállások anyagcsomagjait (ezeket teljesnek kell tekintenie), a munkák és a gerinc anyagát, a használt rendszereket és márkákat (pl. Rehau PX, Pipelife KAEM) és az ismert tételneveket; csak ezeket a rendszereket használhatja. Minden javaslatnál jelzi, hogy „biztosan kell” vagy „talán”; a „talán” javaslatok alapból nincsenek bepipálva. A hasonló nevű javaslatot az app a meglévő pontos névre és egységre írja át. Ami bepipálatlan marad, azt megjegyzi, és legközelebb nem javasolja (a Beállításnál elfelejthető). A szakmai utasítás az appban van, így finomításához a Workert nem kell cserélni.
+
 A kérés a saját Cloudflare Workereden megy át (`worker/ai-javaslat.js`), az Anthropic API-kulcs csak ott van titkosan tárolva; az appban csak a Worker címe és egy jelszó van (csak a telefonon, a biztonsági mentésbe nem kerül). A Worker csak az app oldaláról és a helyes jelszóval fogad kérést, és csak a Claude Opus 5.5 vagy Sonnet 5.5 modellt hívja.
 
 Beállítás egyszer:

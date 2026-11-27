@@ -10,6 +10,7 @@ import { hangosModInit } from './hangosfelulet.js';
 import { ikon, MEZO_IKON } from './ikonok.js';
 import { csempekInit, csempekFrissit } from './elrendezes.js';
 import { hasonloNevek } from './nevek.js';
+import { AI_RENDSZER, AI_SEMA, aiUzenet, aiUtofeldolgozas } from './ai.js';
 import { osszevetes, memoriaRogzit, dragulasok, dragulasJel, becsles, mentesEsedekes } from './boltok.js';
 import {
   ALLAPOTOK, SZUROK, allapotAdat, osszesites, szur, evek, profit, ujAzonosito, javasoltAllapot, exportAdat, importAdat,
@@ -21,6 +22,7 @@ const BOLTOK_KULCS = 'arajanlat.boltok';
 const REJTETT_KULCS = 'arajanlat.rejtett-tetelek';
 const FOGLALAS_SABLON_KULCS = 'arajanlat.foglalas-sablon';
 const AI_KULCS = 'arajanlat.ai'; // { url, jelszo, modell } – csak ezen az eszközön, a mentésbe nem kerül
+const AI_ELUTASITOTT_KULCS = 'arajanlat.ai-elutasitott'; // a be nem pipált javaslatok neve, hogy ne jöjjenek újra
 const ARMEMORIA_KULCS = 'arajanlat.armemoria';
 const MENTES_IDO_KULCS = 'arajanlat.utolso-mentes';
 const MENTES_HALASZT_KULCS = 'arajanlat.mentes-halasztva';
@@ -1734,19 +1736,24 @@ function aiBeallitasAblak(utana) {
     torzs: `<label class="mezo"><span>Worker címe</span><input name="url" type="url" inputmode="url" required
         placeholder="https://ai-javaslat.….workers.dev" value="${escape(b.url)}"></label>
       <label class="mezo"><span>Jelszó</span><input name="jelszo" type="password" required autocomplete="off" value="${escape(b.jelszo)}"></label>
-      <label class="mezo"><span>Modell</span><select name="modell">${AI_MODELLEK.map((m) => `<option value="${m.kod}"${m.kod === b.modell ? ' selected' : ''}>${escape(m.nev)}</option>`).join('')}</select></label>`,
+      <label class="mezo"><span>Modell</span><select name="modell">${AI_MODELLEK.map((m) => `<option value="${m.kod}"${m.kod === b.modell ? ' selected' : ''}>${escape(m.nev)}</option>`).join('')}</select></label>
+      ${aiElutasitott().length ? `<label class="check"><input type="checkbox" name="felejt"><span>Elutasított javaslatok elfelejtése (${aiElutasitott().length}) – újra javasolhatja őket</span></label>` : ''}`,
     mentes: (urlap) => {
       const url = urlap.elements.url.value.trim().replace(/\/$/, '');
       if (!/^https:\/\//.test(url)) { urlap.elements.url.setCustomValidity('https:// kezdetű cím kell.'); urlap.elements.url.reportValidity(); return false; }
       ment(AI_KULCS, { url, jelszo: urlap.elements.jelszo.value, modell: urlap.elements.modell.value });
+      if (urlap.elements.felejt?.checked) ment(AI_ELUTASITOTT_KULCS, []);
       setTimeout(() => utana?.(), 0);
       return true;
     },
   });
 }
 
-// A kéréshez csak a munka adatai mennek: kitöltött tételek, anyaglista, ismert tételnevek, leírás.
+const aiElutasitott = () => (betoltMentett(AI_ELUTASITOTT_KULCS) ?? []).filter((x) => typeof x === 'string');
+
+// A kéréshez csak a munka adatai mennek: kitöltött tételek, csomagok, anyaglista, ismert tételnevek, leírás.
 function aiKeresAdat() {
+  const p = olvas();
   const projekt = [];
   for (const label of form.querySelectorAll('.mezolista > label')) {
     const el = label.querySelector('input, select');
@@ -1758,12 +1765,26 @@ function aiKeresAdat() {
     else if (Number(el.value) > 0) projekt.push(`${nev}: ${el.value}`);
   }
   if (form.elements.puffer?.checked) projekt.push('Puffertartály: igen');
-  return {
+  const csomagok = osszesKiallas().filter((t) => Number(p.kiallasok?.[t.kod]) > 0)
+    .map((t) => ({ nev: kiallasCimke(t.nev), db: Number(p.kiallasok[t.kod]), anyag: allapot.konyvtar.get(t.nev) ?? [] }));
+  const munkak = (allapot.munkadij?.sorok ?? []).map((m) => ({
+    nev: m.tetel, mennyiseg: m.mennyiseg, egyseg: m.egyseg,
+    anyag: allapot.munkadijFelulirasok[m.kod]?.anyag ?? allapot.sajatMunkak.find((x) => x.kod === m.kod)?.anyag ?? [],
+  })).filter((m) => m.anyag.length);
+  for (const at of ['16', '20']) {
+    if (Number(p.gerinc?.[at]) > 0) munkak.push({ nev: `Gerinc ${at}-os cső`, mennyiseg: Number(p.gerinc[at]), egyseg: 'fm', anyag: allapot.gerincAnyag[at] ?? gerincAlapAnyag(at) });
+  }
+  const adat = {
     leiras: $('ai-leiras').value,
     projekt,
+    csomagok,
+    munkak,
     anyaglista: allapot.anyag.sorok.map((s) => ({ cikk: s.cikk, mennyiseg: s.mennyiseg, egyseg: s.egyseg })),
     ismertNevek: [...ismertNevek()].slice(0, 500).map(([cikk, egyseg]) => ({ cikk, egyseg })),
+    elutasitott: aiElutasitott(),
   };
+  // A régi (1.) Worker-változat ezekből a mezőkből dolgozik; az újabb a rendszer/uzenet/sema mezőket használja.
+  return { ...adat, rendszer: AI_RENDSZER, uzenet: aiUzenet(adat), sema: AI_SEMA, erofeszites: 'high' };
 }
 
 async function aiJavaslatKeres() {
@@ -1789,11 +1810,13 @@ async function aiJavaslatKeres() {
       hol.innerHTML = `<p class="error">${escape(adat.hiba ?? `HTTP ${v.status}`)}</p>${v.status === 401 ? '<p class="muted">Ellenőrizd a jelszót a Beállításnál.</p>' : ''}`;
       return;
     }
-    allapot.aiJavaslatok = (adat.javaslatok ?? []).filter((j) => j?.cikk && Number(j.mennyiseg) > 0);
+    const e = adat.eredmeny ?? adat; // a régi Worker közvetlenül adja vissza
+    allapot.aiJavaslatok = aiUtofeldolgozas(e.javaslatok, ismertNevek(), aiElutasitott());
+    allapot.aiRegiWorker = !adat.verzio;
     const m = AI_MODELLEK.find((x) => adat.modell?.startsWith(x.kod)) ?? AI_MODELLEK.find((x) => x.kod === b.modell);
     const t = adat.tokenek ?? {};
     const koltseg = m ? ((t.input_tokens ?? 0) * m.ar[0] + (t.output_tokens ?? 0) * m.ar[1]) / 1e6 * FT_PER_DOLLAR : 0;
-    megjelenitAiJavaslat(adat.megjegyzes, koltseg);
+    megjelenitAiJavaslat(e.megjegyzes, koltseg);
   } catch (err) {
     hol.innerHTML = `<p class="error">${err.name === 'AbortError' ? 'Túl sokáig tartott, próbáld újra.' : `Nem sikerült elérni a Workert: ${escape(err.message)}`}</p>
       <p class="muted">Nézd meg a Worker címét a Beállításnál, és hogy van-e internet.</p>`;
@@ -1807,14 +1830,16 @@ function megjelenitAiJavaslat(megjegyzes, koltseg) {
   const lista = allapot.aiJavaslatok ?? [];
   $('ai-eredmeny').innerHTML = `${megjegyzes ? `<p>${escape(megjegyzes)}</p>` : ''}
     ${lista.length ? `<ul class="ai-lista">${lista.map((j, i) => `<li>
-        <input type="checkbox" checked data-ai-i="${i}" aria-label="Felvétel: ${escape(j.cikk)}">
-        <span class="ai-nev">${escape(j.cikk)}${j.ismert ? '<span class="ai-cimke">már ismert tétel</span>' : '<span class="ai-cimke">új tétel</span>'}</span>
+        <input type="checkbox"${j.biztos === 'biztos' ? ' checked' : ''} data-ai-i="${i}" aria-label="Felvétel: ${escape(j.cikk)}">
+        <span class="ai-nev">${escape(j.cikk)}${j.biztos === 'biztos' ? '<span class="ai-cimke">biztosan kell</span>' : '<span class="ai-cimke ai-talan">talán</span>'}${j.ismert ? '' : '<span class="ai-cimke">új tétel</span>'}</span>
         <span class="ai-menny"><input type="number" min="0" step="any" data-ai-menny="${i}" value="${j.mennyiseg}" aria-label="Mennyiség"> ${escape(j.egyseg)}</span>
         <span class="ai-indok">${escape(j.indok ?? '')}</span>
       </li>`).join('')}</ul>
+      <p class="muted" style="font-size:.78rem;margin:0">A „talán” javaslatok nincsenek bepipálva. Ami bepipálatlan marad, azt az AI legközelebb nem javasolja.</p>
       <div class="actions"><button type="button" id="ai-felvesz">Kijelöltek felvétele</button></div>`
       : '<p class="ok-szoveg">Az AI szerint nem hiányzik semmi a listáról.</p>'}
-    ${koltseg ? `<p class="muted" style="font-size:.78rem">A kérés becsült ára: kb. ${Math.max(1, Math.round(koltseg))} Ft.</p>` : ''}`;
+    ${koltseg ? `<p class="muted" style="font-size:.78rem">A kérés becsült ára: kb. ${Math.max(1, Math.round(koltseg))} Ft.</p>` : ''}
+    ${allapot.aiRegiWorker ? '<p class="warn" style="font-size:.82rem">A Cloudflare Worker még a régi kódot futtatja, ezért a javaslatok pontatlanabbak. Cseréld le a Worker kódját az új változatra.</p>' : ''}`;
 }
 
 function aiEsemenyek() {
@@ -1823,14 +1848,20 @@ function aiEsemenyek() {
   $('ai-eredmeny').addEventListener('click', (ev) => {
     if (!ev.target.closest('#ai-felvesz')) return;
     let n = 0;
+    const elutasitott = aiElutasitott();
     for (const doboz of $('ai-eredmeny').querySelectorAll('[data-ai-i]')) {
-      if (!doboz.checked) continue;
+      if (!doboz.checked) {
+        const j = allapot.aiJavaslatok[Number(doboz.dataset.aiI)];
+        if (j && !elutasitott.includes(j.cikk)) elutasitott.push(j.cikk);
+        continue;
+      }
       const j = allapot.aiJavaslatok[Number(doboz.dataset.aiI)];
       const menny = Number($('ai-eredmeny').querySelector(`[data-ai-menny="${doboz.dataset.aiI}"]`).value) || 0;
       if (!j || !(menny > 0)) continue;
       pluszHozzaad({ cikk: j.cikk.trim(), mennyiseg: menny, egyseg: j.egyseg || 'db' });
       n += 1;
     }
+    ment(AI_ELUTASITOTT_KULCS, elutasitott.slice(-200));
     frissit();
     megjelenitPlusz();
     megjelenitArTabla(true);

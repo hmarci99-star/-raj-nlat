@@ -1,79 +1,25 @@
-// AI anyagjavaslat – Cloudflare Worker (köztes szerver).
+// AI köztes szerver – Cloudflare Worker (2. változat).
 //
-// Ezt a fájlt kell bemásolni a Cloudflare-ben a Worker szerkesztőjébe (Workers & Pages → a worker → Edit code).
+// Ezt a fájlt kell bemásolni a Cloudflare-ben a Worker szerkesztőjébe (Workers & Pages → a worker → Edit code → Deploy).
 // A titkok a Worker beállításai között vannak (Settings → Variables and Secrets), NEM ebben a fájlban:
 //   ANTHROPIC_API_KEY  – az Anthropic API-kulcs (Secret)
 //   APP_JELSZO         – saját jelszó, ugyanezt kell beírni az appban (Secret)
 //   ENGEDETT_OLDAL     – (nem kötelező) az app címe, alapból https://hmarci99-star.github.io
 //
-// A Worker csak az engedett oldalról és a helyes jelszóval fogad kérést, és csak a két engedett
-// modellt hívja. A kulcs soha nem kerül ki a böngészőbe.
+// A Worker csak az engedett oldalról és a helyes jelszóval fogad kérést, csak a két engedett modellt hívja,
+// és korlátozza a kérés méretét és a képek számát. A kulcs soha nem kerül ki a böngészőbe.
+// A szakmai utasításokat (mit kérdezzen az AI) az app küldi, így azok finomításához ezt a fájlt nem kell cserélni.
 //
 // A Cloudflare szerkesztőjében nincs csomagkezelő, ezért itt közvetlen HTTP-hívás megy az
 // Anthropic Messages API-ra (az SDK-t nem lehet ide betenni).
 
+const VERZIO = 2;
 const MODELLEK = ['claude-opus-5-5', 'claude-sonnet-5-5'];
 const ALAP_MODELL = 'claude-opus-5-5';
-const MAX_KERES = 200_000; // bájt
-
-const RENDSZER = `Magyar víz-, gáz- és fűtésszerelő vállalkozó árajánlat-készítő alkalmazásában dolgozol.
-A feladatod: a munka leírása, a megadott kiállások / szerelvények / munkák és a már meglévő anyaglista alapján
-javasolni, milyen anyag HIÁNYZIK még a listáról, vagy miből kevés.
-
-Szabályok:
-- Csak a hiányzó vagy kevés tételeket add vissza. Amit a lista már tartalmaz megfelelő mennyiségben, azt ne.
-- Ha egy tétel szerepel az "Ismert tételnevek" között, PONTOSAN azt a nevet és egységet használd (különben
-  a lista kétszer számolná). Ha a listán már van, de kevés, a hiányzó mennyiséget add meg (nem az összeset).
-- Új tételnél a magyar szakmai, kereskedelmi megnevezést használd méretekkel (pl. "Rehau PX 20 könyök"),
-  a meglévő tételek stílusában és márkáival, ha van rá minta.
-- Reális, rendelhető mennyiségek és egységek (db, fm, pár, csomag, szett, kg, tekercs).
-- Az indok legyen rövid (egy mondat), szakmai: miért kell.
-- Ne javasolj szerszámot, munkadíjat, szolgáltatást; csak beépülő anyagot és szerelési segédanyagot.
-- Ha bizonytalan vagy (pl. a leírásból nem derül ki a méret), írd bele az indokba.
-- A "megjegyzes" mezőbe 1-3 rövid mondatban írd az általános észrevételt (vagy hagyd üresen).
-- Ha minden rendben van, üres listát adj.`;
-
-const SEMA = {
-  type: 'object',
-  properties: {
-    javaslatok: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          cikk: { type: 'string' },
-          mennyiseg: { type: 'number' },
-          egyseg: { type: 'string' },
-          indok: { type: 'string' },
-          ismert: { type: 'boolean', description: 'igaz, ha a név az ismert tételnevek egyike' },
-        },
-        required: ['cikk', 'mennyiseg', 'egyseg', 'indok', 'ismert'],
-        additionalProperties: false,
-      },
-    },
-    megjegyzes: { type: 'string' },
-  },
-  required: ['javaslatok', 'megjegyzes'],
-  additionalProperties: false,
-};
-
-const felsorol = (sorok) => (sorok?.length ? sorok.map((s) => `- ${s}`).join('\n') : '(nincs)');
-
-function uzenetSzoveg(k) {
-  const lista = (k.anyaglista ?? []).map((s) => `${s.cikk} – ${s.mennyiseg} ${s.egyseg}`);
-  const ismert = (k.ismertNevek ?? []).map((s) => `${s.cikk} [${s.egyseg}]`);
-  return `A munka leírása (a szerelő szavaival):
-${String(k.leiras ?? '').trim() || '(nincs leírás)'}
-
-Megadott kiállások, szerelvények, munkák (mennyiséggel):
-${felsorol(k.projekt)}
-
-A mostani anyaglista:
-${felsorol(lista)}
-
-Ismert tételnevek (ezeket használd pontosan, ha illik):
-${felsorol(ismert)}`;
-}
+const EROFESZITES = ['low', 'medium', 'high'];
+const KEPTIPUSOK = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+const MAX_KERES = 12_000_000; // bájt (képekkel együtt)
+const MAX_KEP = 6;
 
 const corsFejlec = (origin) => ({
   'Access-Control-Allow-Origin': origin,
@@ -111,12 +57,24 @@ export default {
       return valasz({ hiba: 'A Workerben nincs beállítva az ANTHROPIC_API_KEY vagy az APP_JELSZO.' }, 500, origin);
     }
     const nyers = await request.text();
-    if (nyers.length > MAX_KERES) return valasz({ hiba: 'Túl nagy kérés.' }, 413, origin);
+    if (nyers.length > MAX_KERES) return valasz({ hiba: 'Túl nagy kérés (túl sok vagy túl nagy kép).' }, 413, origin);
     let k;
     try { k = JSON.parse(nyers); } catch { return valasz({ hiba: 'Hibás kérés.' }, 400, origin); }
     if (!egyezik(k.jelszo ?? '', env.APP_JELSZO)) return valasz({ hiba: 'Hibás jelszó.' }, 401, origin);
+    if (typeof k.rendszer !== 'string' || typeof k.uzenet !== 'string' || !k.sema || typeof k.sema !== 'object') {
+      return valasz({ hiba: 'Ehhez a Workerhez frissebb app kell (rendszer, uzenet, sema hiányzik).', verzio: VERZIO }, 400, origin);
+    }
+    const kepek = Array.isArray(k.kepek) ? k.kepek : [];
+    if (kepek.length > MAX_KEP) return valasz({ hiba: `Legfeljebb ${MAX_KEP} kép küldhető egyszerre.` }, 400, origin);
+    for (const kep of kepek) {
+      if (!KEPTIPUSOK.includes(kep?.media_type) || typeof kep?.data !== 'string') return valasz({ hiba: 'Ismeretlen képformátum.' }, 400, origin);
+    }
 
     const modell = MODELLEK.includes(k.modell) ? k.modell : ALAP_MODELL;
+    const tartalom = [
+      ...kepek.map((kep) => ({ type: 'image', source: { type: 'base64', media_type: kep.media_type, data: kep.data } })),
+      { type: 'text', text: k.uzenet },
+    ];
     const api = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -130,9 +88,12 @@ export default {
         model: modell,
         max_tokens: 16000,
         fallbacks: 'default',
-        output_config: { effort: 'medium', format: { type: 'json_schema', schema: SEMA } },
-        system: RENDSZER,
-        messages: [{ role: 'user', content: uzenetSzoveg(k) }],
+        output_config: {
+          effort: EROFESZITES.includes(k.erofeszites) ? k.erofeszites : 'medium',
+          format: { type: 'json_schema', schema: k.sema },
+        },
+        system: k.rendszer,
+        messages: [{ role: 'user', content: tartalom }],
       }),
     });
     const adat = await api.json().catch(() => null);
@@ -141,10 +102,10 @@ export default {
       return valasz({ hiba: `Az AI szolgáltatás hibát adott: ${ok}` }, 502, origin);
     }
     if (adat.stop_reason === 'refusal') return valasz({ hiba: 'Az AI ezt a kérést nem válaszolta meg.' }, 502, origin);
-    if (adat.stop_reason === 'max_tokens') return valasz({ hiba: 'A válasz túl hosszú lett, próbáld rövidebb leírással.' }, 502, origin);
+    if (adat.stop_reason === 'max_tokens') return valasz({ hiba: 'A válasz túl hosszú lett, próbáld kevesebb adattal.' }, 502, origin);
     const szoveg = (adat.content ?? []).filter((b) => b.type === 'text').map((b) => b.text).join('');
     let eredmeny;
     try { eredmeny = JSON.parse(szoveg); } catch { return valasz({ hiba: 'Az AI válasza nem értelmezhető.' }, 502, origin); }
-    return valasz({ ...eredmeny, modell: adat.model, tokenek: adat.usage }, 200, origin);
+    return valasz({ eredmeny, modell: adat.model, tokenek: adat.usage, verzio: VERZIO }, 200, origin);
   },
 };
