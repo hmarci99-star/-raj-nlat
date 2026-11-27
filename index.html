@@ -125,6 +125,12 @@
     .mentes-sav { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 12px;
       padding: 10px 14px; border-radius: var(--radius); background: var(--warn-bg); color: var(--warn); font-weight: 600; }
     .mentes-sav-gombok { display: flex; gap: 6px; }
+    fieldset.idopont { border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 12px 10px; margin: 10px 0; min-width: 0; }
+    fieldset.idopont legend { font-weight: 600; padding: 0 4px; }
+    .idopont-racs { display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; align-items: end; }
+    .idopont-racs .idopont-kezdes { grid-column: 1 / -1; grid-row: 1; }
+    .idopont-racs input, .idopont-racs select { width: 100%; min-width: 0; }
+    a.button[aria-disabled="true"] { opacity: .5; pointer-events: none; }
     * { box-sizing: border-box; }
     [hidden] { display: none !important; }
     html { -webkit-text-size-adjust: 100%; }
@@ -223,7 +229,7 @@
     .lepes:last-child { border-radius: 0 8px 8px 0; border-left: none; }
     .lepes:active { background: var(--accent-soft); }
     .lepes:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; position: relative; }
-    input[type=number], input[type=text], input[type=date], input[type=tel], input[type=email], input:not([type]), select, textarea {
+    input[type=number], input[type=text], input[type=date], input[type=datetime-local], input[type=url], input[type=search], input[type=tel], input[type=email], input:not([type]), select, textarea {
       padding: 6px 8px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg); color: var(--text); }
     input[type=number] { width: 80px; text-align: right; }
     input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 0; border-color: var(--accent); }
@@ -719,6 +725,17 @@
         </div>
         <label class="mezo"><span>Megjegyzés az ajánlaton</span><textarea name="ajanlat.megjegyzes" rows="3"
           placeholder="Pl. az ásás és a burkolás nem része az ajánlatnak."></textarea></label>
+        <fieldset class="idopont">
+          <legend>Időpont a naptárba</legend>
+          <div class="idopont-racs">
+            <label class="mezo"><span>Mi lesz?</span><select name="ajanlat.idopontTipus">
+              <option value="felmeres">Felmérés</option><option value="kivitelezes">Kivitelezés</option></select></label>
+            <label class="mezo idopont-kezdes"><span>Kezdés</span><input type="datetime-local" name="ajanlat.idopont"></label>
+            <label class="mezo"><span id="idotartam-cimke">Hány óra?</span><input type="number" min="0" step="0.5" name="ajanlat.idotartam" placeholder="1"></label>
+          </div>
+          <div class="actions kicsi-gombok"><a id="naptar-link" class="button kicsi" href="#" target="_blank" rel="noopener" data-ikon="naptar" aria-disabled="true">Google Naptárba</a>
+            <span class="muted" id="naptar-tipp">Adj meg kezdést, és egy koppintással bekerül a naptáradba.</span></div>
+        </fieldset>
         <details>
           <summary>Saját adataim (vállalkozó)</summary>
           <label class="mezo"><span>Név</span><input name="vallalkozo.nev" autocomplete="organization"></label>
@@ -726,6 +743,9 @@
           <label class="mezo"><span>Adószám</span><input name="vallalkozo.adoszam" autocomplete="off"></label>
           <label class="mezo"><span>Telefon</span><input name="vallalkozo.telefon" type="tel" autocomplete="tel"></label>
           <label class="mezo"><span>E-mail</span><input name="vallalkozo.email" type="email" autocomplete="email"></label>
+          <label class="mezo"><span>Időpontfoglalási link (Google Naptár)</span><input name="vallalkozo.foglalas" type="url" inputmode="url"
+            autocomplete="off" placeholder="https://calendar.app.google/…"></label>
+          <p class="megj" id="foglalas-tipp">Ha megadod, az ügyfélnek küldött levélbe és az ajánlat PDF-be bekerül, és az ügyfél maga foglalhat időpontot.</p>
         </details>
       </form>
     </section>
@@ -799,6 +819,6 @@
   </div>
 </main>
 <div id="nyomtat"></div>
-<script type="module" src="dist/app.js?v=778c58ce7c"></script>
+<script type="module" src="dist/app.js?v=8fd861fc2e"></script>
 </body>
 </html>

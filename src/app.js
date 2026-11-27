@@ -3,7 +3,7 @@ import { KIALLAS_TIPUSOK, SZERELVENY_KODOK, HOTERMELOK, szamolMunkadij, uresProj
 import { parseKonyvtar, gyujtAnyaglista, anyaglistaSzoveg, gerincAlapAnyag } from './anyaglista.js';
 import { boltValaszBeolvasas, ajanlat, tetelKulcs, parseSzam, nemTetelNev, anyagListaBeolvasas } from './arak.js';
 import { bovitettKonyvtar, bennVanAzAlapban, konyvtarCsv, felulirtKonyvtar } from './konyvtar.js';
-import { ugyfelAjanlatHtml, belsoOsszesitoHtml, fajlnev, ugyfelLevel, mailtoLink } from './sablonok.js';
+import { ugyfelAjanlatHtml, belsoOsszesitoHtml, fajlnev, ugyfelLevel, mailtoLink, naptarLink, foglalasiLinkHibas } from './sablonok.js';
 import { pdfSzoveg } from './pdfszoveg.js';
 import { diktaltTetelek, vanDiktalas, diktalas } from './diktalas.js';
 import { hangosModInit } from './hangosfelulet.js';
@@ -1569,7 +1569,27 @@ function ajanlatSorok() {
 }
 
 // Az "E-mail az ügyfélnek" gomb címe: előre megírt levél az ügyfél címére.
+// "Google Naptárba" gomb és a foglalási link ellenőrzése.
+function naptarFrissites() {
+  const adatok = olvasAdatok();
+  const kivitelezes = adatok.ajanlat.idopontTipus === 'kivitelezes';
+  kiir('idotartam-cimke', kivitelezes ? 'Hány nap?' : 'Hány óra?');
+  const osszeg = allapot.munkadij ? ajanlat(allapot.munkadij, ajanlatSorok(), allapot.arak).vegosszeg : 0;
+  const link = naptarLink(adatok, osszeg);
+  const a = $('naptar-link');
+  a.href = link ?? '#';
+  a.setAttribute('aria-disabled', String(!link));
+  kiir('naptar-tipp', link ? `${kivitelezes ? 'Egész napos esemény' : 'Időpont'}, címmel és az ajánlat adataival.` : 'Adj meg kezdést, és egy koppintással bekerül a naptáradba.');
+  const hibas = foglalasiLinkHibas(adatok.vallalkozo.foglalas);
+  const tipp = $('foglalas-tipp');
+  tipp.classList.toggle('warn', hibas);
+  tipp.textContent = hibas
+    ? 'Ez a naptárad saját szerkesztőoldala, az ügyfél nem tudja megnyitni. A foglalási naptárnál a „Megosztás” (vagy „Foglalási oldal megnyitása”) alatti linket másold ide, pl. https://calendar.app.google/…'
+    : 'Ha megadod, az ügyfélnek küldött levélbe és az ajánlat PDF-be bekerül, és az ügyfél maga foglalhat időpontot.';
+}
+
 function ugyfelEmailFrissites() {
+  naptarFrissites();
   if (!allapot.munkadij) return;
   const level = ugyfelLevel(ajanlat(allapot.munkadij, ajanlatSorok(), allapot.arak), olvasAdatok());
   $('email-ugyfel').href = mailtoLink(level);
@@ -1803,7 +1823,7 @@ function munkaBetoltes(adat, id) {
   allapot.diktalt = [];
   const vallalkozo = olvasAdatok().vallalkozo;
   const ugyfel = { nev: '', cim: '', munkaHelye: '', email: '', ...adat?.adatok?.ugyfel };
-  const ajanlatAdat = { szam: '', datum: maISO(), ervenyesNap: 15, megjegyzes: '', ...adat?.adatok?.ajanlat };
+  const ajanlatAdat = { szam: '', datum: maISO(), ervenyesNap: 15, megjegyzes: '', idopontTipus: 'felmeres', idopont: '', idotartam: '', ...adat?.adatok?.ajanlat };
   kitoltAdatok({ vallalkozo, ugyfel, ajanlat: ajanlatAdat });
   $('bolt-valasz').value = '';
   $('eredmeny-bolti').innerHTML = feltoltesAllapotHtml('bolti');

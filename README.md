@@ -132,3 +132,9 @@ Az alkalmazás megjegyzi a beolvasott és kézzel beírt árakat. Új bolti PDF-
 ## Biztonsági mentés emlékeztető
 
 Ha van mentett ajánlat, és 7 napja (vagy még soha) nem készült biztonsági mentés, az oldal tetején sárga sáv szól („Mentés most” / „Később” – 3 napra elhalasztja). Telefonon a mentés a megosztás menüt nyitja meg, így a fájl a Fájlokba, iCloudba, Google Drive-ba vagy e-mailbe menthető. Az alkalmazás tartós tárhelyet is kér a böngészőtől, hogy az adatokat ne törölje magától.
+
+## Naptár és időpontfoglalás
+
+Az Ajánlat lépésben („Időpont a naptárba”) megadható a felmérés vagy a kivitelezés kezdete és hossza (felmérésnél óra, kivitelezésnél nap). A „Google Naptárba” gomb a Google Naptárban előre kitöltött eseményt nyit (ügyfél, cím, ajánlatszám, végösszeg, megjegyzés); csak menteni kell. Bejelentkezés és beállítás nem kell hozzá.
+
+A „Saját adataim” alatt megadható a Google Naptár időpontfoglalási oldalának nyilvános linkje (pl. https://calendar.app.google/…). Ha meg van adva, az ügyfélnek küldött levélbe és az ajánlat PDF-be bekerül, így az ügyfél maga foglalhat időpontot. Ha a naptár saját szerkesztőoldalának címét másolod be, az alkalmazás figyelmeztet, és nem teszi a levélbe.

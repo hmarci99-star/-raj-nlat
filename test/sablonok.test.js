@@ -69,3 +69,29 @@ test('e-mail az ügyfélnek: címzett, tárgy, összesítés, érvényesség, al
   assert.equal(decodeURIComponent(m.split('&body=')[1]), l.szoveg);
   assert.match(ugyfelLevel(a, {}).szoveg, /^Tisztelt Megrendelő!/);
 });
+
+test('Google Naptár link: felmérés időpontra, kivitelezés egész napos', async () => {
+  const { naptarLink, foglalasiLinkHibas } = await import('../src/sablonok.js');
+  const adatok = { ugyfel: { nev: 'Kiss Anna', cim: 'Szeged, Fő u. 1.' }, ajanlat: { idopontTipus: 'felmeres', idopont: '2026-12-03T16:30', idotartam: 1.5, szam: 'A-12' } };
+  const u = new URL(naptarLink(adatok, 1250000));
+  assert.equal(u.searchParams.get('text'), 'Felmérés – Kiss Anna');
+  assert.equal(u.searchParams.get('dates'), '20261203T163000/20261203T180000');
+  assert.equal(u.searchParams.get('ctz'), 'Europe/Budapest');
+  assert.equal(u.searchParams.get('location'), 'Szeged, Fő u. 1.');
+  assert.match(u.searchParams.get('details'), /Végösszeg: 1\s250\s000 Ft/);
+  const k = new URL(naptarLink({ ...adatok, ajanlat: { idopontTipus: 'kivitelezes', idopont: '2026-12-30T07:00', idotartam: 3 } }));
+  assert.equal(k.searchParams.get('dates'), '20261230/20270102');
+  assert.equal(k.searchParams.get('ctz'), null);
+  assert.equal(naptarLink({ ajanlat: {} }), null);
+  assert.ok(foglalasiLinkHibas('https://calendar.google.com/calendar/u/0/r/appointment?hl=hu&pli=1'));
+  assert.ok(!foglalasiLinkHibas('https://calendar.app.google/AbC123'));
+});
+
+test('foglalási link az ügyfél levelében és PDF-jében, a hibás szerkesztőoldal-link nem', async () => {
+  const { ugyfelLevel, ugyfelAjanlatHtml } = await import('../src/sablonok.js');
+  const jo = { vallalkozo: { nev: 'Szerelő', foglalas: 'https://calendar.app.google/AbC123' }, ugyfel: {}, ajanlat: {} };
+  assert.match(ugyfelLevel(a, jo).szoveg, /Időpontot itt foglalhat.*calendar\.app\.google\/AbC123/);
+  const rossz = { ...jo, vallalkozo: { foglalas: 'https://calendar.google.com/calendar/u/0/r/appointment' } };
+  assert.doesNotMatch(ugyfelLevel(a, rossz).szoveg, /foglalhat/);
+  assert.match(ugyfelAjanlatHtml(a, jo), /Időpontfoglalás/);
+});

@@ -91,6 +91,7 @@ export function ugyfelAjanlatHtml(a, adatok) {
       <p class="ny-afa">Alanyi adómentes, az árak ÁFA-t nem tartalmaznak.</p>
       ${a.anyag.length && adatok.ajanlat?.datum ? `<p class="ny-megj">Az anyagárak a ${escape(datumToldalekkal(adatok.ajanlat.datum, 'i'))} bolti árak.</p>` : ''}
       ${megjegyzes ? `<p class="ny-szabad">${escape(megjegyzes).replace(/\n/g, '<br>')}</p>` : ''}
+      ${foglalas(adatok.vallalkozo) ? `<p class="ny-szabad">Időpontfoglalás: <a href="${escape(foglalas(adatok.vallalkozo))}">${escape(foglalas(adatok.vallalkozo))}</a></p>` : ''}
       <footer class="ny-alairas"><div>${escape(adatok.vallalkozo?.nev)}</div></footer>
       </div>
     </article>`;
@@ -143,6 +144,12 @@ export function fajlnev(tipus, adatok) {
 
 // E-mail az ügyfélnek: tárgy és szöveg (a PDF-et a felhasználó csatolja).
 // a: az ajanlat() eredménye, adatok: { vallalkozo, ugyfel, ajanlat }
+// A vállalkozó nyilvános időpontfoglalási linkje (csak http(s), és nem a naptár szerkesztőoldala).
+const foglalas = (v) => {
+  const link = (v?.foglalas ?? '').trim();
+  return /^https?:\/\//.test(link) && !/calendar\.google\.com\/calendar\/(u\/\d+\/)?r\b/.test(link) ? link : '';
+};
+
 export function ugyfelLevel(a, adatok) {
   const { vallalkozo: v = {}, ugyfel: u = {}, ajanlat: aj = {} } = adatok;
   const f = (x) => `${ft.format(Math.round(x ?? 0)).replace(/ /g, ' ')} Ft`;
@@ -159,6 +166,7 @@ export function ugyfelLevel(a, adatok) {
     `Fizetendő végösszeg: ${f(a.vegosszeg)}`,
     'Alanyi adómentes, az árak ÁFA-t nem tartalmaznak.',
     ...(ervenyes ? ['', `Az ajánlat ${datumToldalekkal(ervenyes, 'ig')} érvényes.`] : []),
+    ...(foglalas(v) ? ['', `Időpontot itt foglalhat (felmérés, egyeztetés): ${foglalas(v)}`] : []),
     '',
     'Ha bármilyen kérdése van, keressen bizalommal.',
     '',
@@ -174,3 +182,46 @@ export function ugyfelLevel(a, adatok) {
 
 export const mailtoLink = ({ cimzett, targy, szoveg }) =>
   `mailto:${encodeURIComponent(cimzett).replace(/%40/g, '@')}?subject=${encodeURIComponent(targy)}&body=${encodeURIComponent(szoveg)}`;
+
+// ---- Naptár ----
+
+// Google Naptár "esemény létrehozása" link (bejelentkezés és beállítás nélkül működik).
+// ajanlat: { idopontTipus: 'felmeres' | 'kivitelezes', idopont: 'ÉÉÉÉ-HH-NNTÓÓ:PP', idotartam }
+// Felmérés: időpontra, órában (alapból 1). Kivitelezés: egész napos, napokban (alapból 1).
+export function naptarLink(adatok, vegosszeg = 0) {
+  const { ugyfel: u = {}, ajanlat: aj = {} } = adatok;
+  const m = /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2}))?/.exec(aj.idopont ?? '');
+  if (!m) return null;
+  const kivitelezes = aj.idopontTipus === 'kivitelezes';
+  const hossz = Number(aj.idotartam) > 0 ? Number(aj.idotartam) : 1;
+  const ketjegy = (n) => String(n).padStart(2, '0');
+  const nap = (d) => `${d.getUTCFullYear()}${ketjegy(d.getUTCMonth() + 1)}${ketjegy(d.getUTCDate())}`;
+  let datumok;
+  if (kivitelezes) {
+    const kezd = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+    const vege = new Date(kezd.getTime() + Math.ceil(hossz) * 86400000); // a vége nem számít bele
+    datumok = `${nap(kezd)}/${nap(vege)}`;
+  } else {
+    // Helyi (budapesti) idő: a ctz paraméter mondja meg a naptárnak, így nincs időzóna-átszámítás.
+    const kezd = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +(m[4] ?? 8), +(m[5] ?? 0)));
+    const vege = new Date(kezd.getTime() + hossz * 3600000);
+    const ido = (d) => `${nap(d)}T${ketjegy(d.getUTCHours())}${ketjegy(d.getUTCMinutes())}00`;
+    datumok = `${ido(kezd)}/${ido(vege)}`;
+  }
+  const hely = u.munkaHelye || u.cim || '';
+  const cim = `${kivitelezes ? 'Kivitelezés' : 'Felmérés'} – ${u.nev || 'ügyfél'}`;
+  const reszletek = [
+    u.nev && `Ügyfél: ${u.nev}`,
+    u.email && `E-mail: ${u.email}`,
+    hely && `Cím: ${hely}`,
+    aj.szam && `Ajánlat: ${aj.szam}`,
+    vegosszeg > 0 && `Végösszeg: ${ft.format(Math.round(vegosszeg))} Ft`,
+    aj.megjegyzes && `\n${aj.megjegyzes}`,
+  ].filter(Boolean).join('\n');
+  const p = new URLSearchParams({ action: 'TEMPLATE', text: cim, dates: datumok, details: reszletek, location: hely });
+  if (!kivitelezes) p.set('ctz', 'Europe/Budapest');
+  return `https://calendar.google.com/calendar/render?${p.toString()}`;
+}
+
+// A Google Naptár szerkesztőoldalának címe (nem nyilvános foglalási link)?
+export const foglalasiLinkHibas = (link) => /calendar\.google\.com\/calendar\/(u\/\d+\/)?r\b/.test(link ?? '');
