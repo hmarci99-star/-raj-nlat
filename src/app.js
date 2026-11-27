@@ -17,6 +17,7 @@ import {
 const MENTES_KULCS = 'arajanlat.projekt';
 const ARAK_KULCS = 'arajanlat.arak';
 const BOLTOK_KULCS = 'arajanlat.boltok';
+const REJTETT_KULCS = 'arajanlat.rejtett-tetelek';
 const ARMEMORIA_KULCS = 'arajanlat.armemoria';
 const MENTES_IDO_KULCS = 'arajanlat.utolso-mentes';
 const MENTES_HALASZT_KULCS = 'arajanlat.mentes-halasztva';
@@ -42,6 +43,7 @@ const $ = (id) => document.getElementById(id);
 const form = $('projekt');
 
 const allapot = {
+  rejtett: [], // a listából eltávolított beépített tételek mezőnevei (pl. 'szerelvenyek.mosdo_dupla')
   boltok: [], // más boltok árajánlatai összevetéshez: [{ id, nev, fajl, arak: { kulcs: egységár }, datum }]
   armemoria: {}, // korábban látott árak: { kulcs: { bolti, kedvezmenyes, datum, elozo } }
   tabla: null,
@@ -311,9 +313,67 @@ function mezoKod(nev) {
   return MEZO_KOD[nev] ?? null;
 }
 
+// ---- Beépített tételek eltávolítása a listából (visszaállítható) ----
+
+async function tetelElrejtese(mezo, nev) {
+  const v = await kerdes({
+    cim: 'Törlés a listából',
+    szoveg: `A(z) „${nev}” nem jelenik meg többé a listában (minden további ajánlatnál). A kártya alján az „Eltávolított tételek” gombbal bármikor visszaállítható.`,
+    gombok: [{ felirat: 'Törlés', ertek: 'igen', stilus: 'veszelyes' }, { felirat: 'Vissza', ertek: 'vissza', stilus: 'masodlagos' }],
+  });
+  if (v !== 'igen') return false;
+  const el = form.elements[mezo];
+  if (el && Number(el.value) > 0) el.value = '';
+  if (!allapot.rejtett.includes(mezo)) allapot.rejtett.push(mezo);
+  ment(REJTETT_KULCS, allapot.rejtett);
+  frissit();
+  return true;
+}
+
+// A rejtett tételek sorai eltűnnek (így a csempék közül is), és kártyánként
+// megjelenik az „Eltávolított tételek (n)” gomb a visszaállításhoz.
+function rejtettAlkalmaz() {
+  for (const label of form.querySelectorAll('.mezolista > label')) {
+    const el = label.querySelector('input, select');
+    // Ha egy (pl. régebbi) ajánlatban mégis van mennyisége, látszik, hogy ne számoljon láthatatlanul.
+    label.hidden = Boolean(el?.name && allapot.rejtett.includes(el.name) && !(Number(el.value) > 0));
+  }
+  for (const kartya of form.querySelectorAll('.kartya')) {
+    const rejtettek = [...kartya.querySelectorAll('.mezolista > label[hidden]')];
+    let gomb = kartya.querySelector('.rejtett-gomb');
+    if (!rejtettek.length) { gomb?.remove(); continue; }
+    if (!gomb) {
+      gomb = document.createElement('button');
+      gomb.type = 'button';
+      gomb.className = 'kicsi button rejtett-gomb';
+      (kartya.querySelector('.actions') ?? kartya).append(gomb);
+    }
+    gomb.textContent = `Eltávolított tételek (${rejtettek.length})`;
+  }
+}
+
+function rejtettVisszaallitas(kartya) {
+  const sorok = [...kartya.querySelectorAll('.mezolista > label[hidden]')].map((l) => {
+    const nevEl = l.querySelector('.mezo-nev')?.cloneNode(true);
+    nevEl?.querySelector('small')?.remove();
+    return { mezo: l.querySelector('input, select').name, nev: (nevEl?.textContent ?? '').trim() };
+  });
+  szerkesztoAblak({
+    cim: 'Eltávolított tételek',
+    leiras: 'Pipáld be, amelyiket vissza szeretnéd tenni a listába.',
+    torzs: `<div class="rejtett-lista">${sorok.map((r) => `<label class="check"><input type="checkbox" name="vissza" value="${escape(r.mezo)}"><span>${escape(r.nev)}</span></label>`).join('')}</div>`,
+    mentes: (urlap) => {
+      const vissza = [...urlap.querySelectorAll('[name="vissza"]:checked')].map((x) => x.value);
+      allapot.rejtett = allapot.rejtett.filter((m) => !vissza.includes(m));
+      ment(REJTETT_KULCS, allapot.rejtett);
+      return true;
+    },
+  });
+}
+
 // Egy szerkesztőablak váza (cím, magyarázat, mezők, Mentés / Visszaállítás / Mégse).
 // mentes(urlap) és visszaallitas() a gombokhoz; a mezők HTML-je a torzs.
-function szerkesztoAblak({ cim, leiras, torzs, modositott, mentes, visszaallitas, torles }) {
+function szerkesztoAblak({ cim, leiras, torzs, modositott, mentes, visszaallitas, torles, elrejtes }) {
   const hatter = document.createElement('div');
   hatter.className = 'parbeszed-hatter';
   hatter.innerHTML = `<form class="parbeszed munka-urlap" role="dialog" aria-modal="true" aria-labelledby="sz-cim">
@@ -324,6 +384,7 @@ function szerkesztoAblak({ cim, leiras, torzs, modositott, mentes, visszaallitas
       <button type="submit">Mentés</button>
       ${modositott ? '<button type="button" class="button ks-alap">Eredeti visszaállítása</button>' : ''}
       ${torles ? `<button type="button" class="veszelyes sz-torles">${escape(torles.felirat)}</button>` : ''}
+      ${elrejtes ? '<button type="button" class="veszelyes sz-elrejt">Törlés a listából</button>' : ''}
       <button type="button" class="button mu-megse">Mégse</button>
     </div>
   </form>`;
@@ -332,6 +393,12 @@ function szerkesztoAblak({ cim, leiras, torzs, modositott, mentes, visszaallitas
   const esc = (ev) => { if (ev.key === 'Escape') zar(); };
   document.addEventListener('keydown', esc);
   const utana = () => { zar(); cimkekFrissitese(); frissit(); megjelenitPlusz(); megjelenitArTabla(true); };
+  hatter.addEventListener('click', async (ev) => {
+    if (!elrejtes || !ev.target.closest('.sz-elrejt')) return;
+    hatter.hidden = true;
+    if (await tetelElrejtese(elrejtes.mezo, elrejtes.nev)) zar();
+    else hatter.hidden = false;
+  });
   hatter.addEventListener('click', async (ev) => {
     if (!torles || !ev.target.closest('.sz-torles')) return;
     hatter.hidden = true;
@@ -375,7 +442,9 @@ function tetelSzerkeszto(kod) {
   if (!alap) return;
   const f = allapot.munkadijFelulirasok[kod] ?? {};
   const most = munkadijTabla().get(kod);
+  const mezoNev = [...form.elements].find((el) => el.name && el.type === 'number' && mezoKod(el.name) === kod)?.name;
   szerkesztoAblak({
+    elrejtes: mezoNev ? { mezo: mezoNev, nev: most?.tetel ?? alap.tetel } : null,
     cim: alap.tetel,
     leiras: 'A változás minden további ajánlatra érvényes ezen az eszközön.',
     modositott: Boolean(allapot.munkadijFelulirasok[kod]),
@@ -412,6 +481,7 @@ function tetelSzerkeszto(kod) {
 // A gerinc anyaga 1 folyóméterre (alapból a cső és a csőhéj).
 function gerincSzerkeszto(atmero) {
   szerkesztoAblak({
+    elrejtes: { mezo: `gerinc.${atmero}`, nev: `Gerinc, ${atmero}-${atmero === '20' ? 'as' : 'os'} cső` },
     cim: `Gerinc, ${atmero}-${atmero === '20' ? 'as' : 'os'} cső – anyag`,
     leiras: '1 folyóméter gerincre számolva. A változás minden további ajánlatra érvényes ezen az eszközön.',
     modositott: Boolean(allapot.gerincAnyag[atmero]),
@@ -581,6 +651,7 @@ function kiallasSzerkeszto(nev) {
     <div class="parbeszed-gombok">
       <button type="submit">Mentés</button>
       ${felulirt ? '<button type="button" class="button ks-alap">Eredeti visszaállítása</button>' : ''}
+      <button type="button" class="veszelyes ks-elrejt">Törlés a listából</button>
       <button type="button" class="button mu-megse">Mégse</button>
     </div>
   </form>`;
@@ -588,6 +659,12 @@ function kiallasSzerkeszto(nev) {
   const zar = () => { hatter.remove(); document.removeEventListener('keydown', esc); };
   const esc = (ev) => { if (ev.key === 'Escape') zar(); };
   document.addEventListener('keydown', esc);
+  hatter.addEventListener('click', async (ev) => {
+    if (!ev.target.closest('.ks-elrejt')) return;
+    hatter.hidden = true;
+    if (await tetelElrejtese(`kiallasok.${kod}`, kiallasCimke(nev))) zar();
+    else hatter.hidden = false;
+  });
   const kesz = () => {
     konyvtarFrissites();
     ment(KIALLAS_NEV_KULCS, allapot.kiallasNevek);
@@ -1973,7 +2050,7 @@ function ajanlatEsemenyek() {
   $('mentes-fajlba').addEventListener('click', () => {
     if (allapot.aktualisId) { const r = allapot.ajanlatok.find((x) => x.id === allapot.aktualisId); if (r) rekordFrissites(r); }
     const tartalom = exportAdat(allapot.ajanlatok, { vallalkozo: olvasAdatok().vallalkozo, bovitesek: allapot.bovitesek, sajatMunkak: allapot.sajatMunkak, konyvtarFelulirasok: allapot.konyvtarFelulirasok,
-      munkadijFelulirasok: allapot.munkadijFelulirasok, gerincAnyag: allapot.gerincAnyag, sajatKiallasok: allapot.sajatKiallasok, kiallasNevek: allapot.kiallasNevek, kiallasArak: allapot.kiallasArak, armemoria: allapot.armemoria });
+      munkadijFelulirasok: allapot.munkadijFelulirasok, gerincAnyag: allapot.gerincAnyag, sajatKiallasok: allapot.sajatKiallasok, kiallasNevek: allapot.kiallasNevek, kiallasArak: allapot.kiallasArak, armemoria: allapot.armemoria, rejtett: allapot.rejtett });
     const nev = `arajanlatok-${maISO()}.json`;
     const kesz = () => {
       try { localStorage.setItem(MENTES_IDO_KULCS, String(Date.now())); localStorage.removeItem(MENTES_HALASZT_KULCS); } catch { /* nem kötelező */ }
@@ -2029,6 +2106,8 @@ function ajanlatEsemenyek() {
         if (!allapot.armemoria[k] || String(v?.datum) > String(allapot.armemoria[k].datum)) allapot.armemoria[k] = v;
       }
       ment(ARMEMORIA_KULCS, allapot.armemoria);
+      for (const m of r.beallitasok.rejtett ?? []) if (typeof m === 'string' && !allapot.rejtett.includes(m)) allapot.rejtett.push(m);
+      ment(REJTETT_KULCS, allapot.rejtett);
       ment(KIALLAS_AR_KULCS, allapot.kiallasArak);
       kiallasFelepit();
       cimkekFrissitese();
@@ -2096,6 +2175,7 @@ function frissit() {
   allapot.projekt = p;
   kitoltesJelolese();
   modositottJeloles();
+  rejtettAlkalmaz();
   csempekFrissit();
   try {
     allapot.anyag = gyujtAnyaglista(p, allapot.konyvtar, allapot.sajatMunkak, allapot.gerincAnyag, allapot.sajatKiallasok);
@@ -2220,6 +2300,11 @@ async function indit() {
     if (!cel) return;
     ev.preventDefault();
     munkaSzerkeszto(cel.closest('label').dataset.munka);
+  });
+  allapot.rejtett = (betoltMentett(REJTETT_KULCS) ?? []).filter((x) => typeof x === 'string');
+  form.addEventListener('click', (ev) => {
+    const g = ev.target.closest('.rejtett-gomb');
+    if (g) rejtettVisszaallitas(g.closest('.kartya'));
   });
   csempekInit(form);
   const mentett = betoltMentett(MENTES_KULCS);
@@ -2378,7 +2463,7 @@ async function indit() {
     el.dispatchEvent(new Event('input', { bubbles: true }));
   };
   hangosModInit({
-    projekt: () => olvas(),
+    projekt: () => ({ ...olvas(), rejtett: allapot.rejtett }),
     mezoBeallit: (nev, ertek) => mezoBeallit(form, nev, ertek),
     adatBeallit: (nev, ertek) => mezoBeallit(adatokForm, nev, ertek),
     pluszFelvesz: (tetelek) => {

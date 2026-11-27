@@ -24,6 +24,7 @@ function tetelek() {
   const lista = [];
   for (const kartya of form.querySelectorAll('.kartya')) {
     for (const label of kartya.querySelectorAll('.mezolista > label')) {
+      if (label.hidden) continue;
       const input = label.querySelector('input[type=number]');
       if (!input) continue;
       const nevEl = label.querySelector('.mezo-nev')?.cloneNode(true);

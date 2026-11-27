@@ -287,6 +287,7 @@ export function kovetkezoIndex(i, p, ertek, megvalaszolt = new Set()) {
     const kj = KERDESEK[j];
     if (kj.id === 'plusz-mondd' || kj.id === 'plusz-meg') continue; // csak a "plusz-van" ágon
     if (kj.feltetel && !kj.feltetel(p)) continue;
+    if (kj.tipus !== 'valasztas' && kj.mezo && p?.rejtett?.includes(kj.mezo)) continue; // a listából eltávolított tétel
     if (kj.mezo && megvalaszolt.has(kj.mezo)) continue;
     return j;
   }
@@ -298,6 +299,7 @@ export function elozoIndex(i, p) {
     const kj = KERDESEK[j];
     if (kj.id === 'plusz-mondd' || kj.id === 'plusz-meg') continue;
     if (kj.feltetel && !kj.feltetel(p)) continue;
+    if (kj.tipus !== 'valasztas' && kj.mezo && p?.rejtett?.includes(kj.mezo)) continue; // a listából eltávolított tétel
     return j;
   }
   return 0;

@@ -117,6 +117,9 @@ Az Ajánlatok lépés alján a „Kinézet” kártyán választható: Kék (ala
 
 A Projekt lépésben a kiállások, szerelvények és munkák nagy ikonos csempék: koppintás = +1, a sarokban a − elvesz egyet, hosszan nyomva nyílik a tétel szerkesztője. A folyóméteres tételeknél (gerinc, külső szerelés) a hossz a csempén írható be. A hőtermelő és a kapcsolók a kártyákon maradnak. Az ajánlatkártyák bal szélén színes csík jelzi az állapotot.
 
+
+Bármelyik beépített tétel (kiállás, fűtési tétel, szerelvény, gerinc, külső szerelés) eltávolítható a listából: hosszan nyomva a csempét megnyílik a szerkesztője, ott „Törlés a listából”. A kártya alján megjelenik az „Eltávolított tételek (n)” gomb, ahol bepipálva bármelyik visszaállítható. Az eltávolított tételre a hangos mód sem kérdez rá; ha egy régebbi ajánlatban mégis van mennyisége, a csempe megjelenik. A saját (új) tételeknél a szerkesztőben a „Törlés” végleg törli őket. Az eltávolítások a biztonsági mentésbe is bekerülnek.
+
 ## Anyaglista a boltnak
 
 Az e-mailben (és a Másolás / Megosztás gombbal) a tételek csoportokba rendezve mennek: Lefolyó, Csövek és csőhéjak, Idomok és falikorongok, Fűtés, Szerelvények és egyéb. Csoporton belül ábécérendben, folyamatos sorszámmal, így a bolt a sorszámra hivatkozhat. A levél sortörései minden levelezőben megmaradnak. Telefonon a Megosztás gombbal bármilyen alkalmazásba (Gmail, Viber, Messenger…) elküldhető.

@@ -112,3 +112,11 @@ test('kérdés szövege és alapérték a már beírt értékkel', () => {
   assert.match(kerdesSzoveg(k('radiator'), p), /Most 5 van/);
   assert.equal(alapErtek(k('radiator'), p), 5);
 });
+
+test('hangos mód: a listából eltávolított tételre nem kérdez rá', async () => {
+  const { KERDESEK, kovetkezoIndex } = await import('../src/hangos.js');
+  const i = KERDESEK.findIndex((k) => k.mezo === 'kiallasok.mosdo');
+  const p = { ...uresProjekt(), rejtett: ['kiallasok.konyha'] };
+  const j = kovetkezoIndex(i, p);
+  assert.notEqual(KERDESEK[j].mezo, 'kiallasok.konyha');
+});
