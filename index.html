@@ -87,20 +87,20 @@
     .ajanlat-kartya[data-csoport="elfogadva"] { --cs: var(--ok); }
     .ajanlat-kartya[data-csoport="elutasitva"] { --cs: var(--error); }
     /* Csempék */
-    .csempe-racs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 4px 0 10px; }
-    .csempe { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
-      min-height: 84px; padding: 12px 4px 8px; border: 1px solid var(--line); border-radius: 12px; background: var(--card);
-      text-align: center; font-size: .78rem; line-height: 1.15; cursor: pointer; user-select: none; -webkit-user-select: none;
+    .csempe-racs { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 6px; margin: 4px 0 10px; }
+    .csempe { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+      min-height: 62px; padding: 8px 3px 6px; border: 1px solid var(--line); border-radius: 10px; background: var(--card);
+      text-align: center; font-size: .7rem; line-height: 1.12; cursor: pointer; user-select: none; -webkit-user-select: none;
       -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
     .csempe:active { transform: scale(.97); }
-    .csempe .csempe-ikon { width: 28px; height: 28px; color: var(--accent); stroke: currentColor; fill: none; stroke-width: 1.7;
+    .csempe .csempe-ikon { width: 22px; height: 22px; color: var(--accent); stroke: currentColor; fill: none; stroke-width: 1.7;
       stroke-linecap: round; stroke-linejoin: round; }
     .csempe.van { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
     .csempe.van .csempe-ikon { color: var(--on-accent); }
-    .csempe-nev { overflow-wrap: anywhere; }
-    .csempe-db { position: absolute; top: 5px; right: 8px; font-weight: 800; font-size: .95rem; }
-    .csempe-minusz { position: absolute; top: 4px; left: 4px; width: 26px; height: 26px; padding: 0; border: 0; border-radius: 50%;
-      background: color-mix(in srgb, var(--on-accent) 25%, transparent); color: var(--on-accent); font-weight: 700; line-height: 26px; }
+    .csempe-nev { overflow-wrap: break-word; hyphens: auto; -webkit-hyphens: auto; max-width: 100%; }
+    .csempe-db { position: absolute; top: 3px; right: 6px; font-weight: 800; font-size: .85rem; }
+    .csempe-minusz { position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 50%;
+      background: color-mix(in srgb, var(--on-accent) 25%, transparent); color: var(--on-accent); font-weight: 700; line-height: 24px; }
     .csempe-fm { display: flex; align-items: center; gap: 4px; font-size: .75rem; }
     .csempe-fm input { width: 58px; padding: 3px 5px; text-align: center; color: var(--text); background: var(--bg); }
 
