@@ -97,12 +97,13 @@ export function vanDiktalas() {
 
 // Egy menetnyi diktálás. Visszaad egy leállító függvényt.
 // esemenyek: { kozben(szoveg), kesz(szoveg), hiba(uzenet), vege() }
-export function diktalas(esemenyek) {
+// folyamatos: hosszabb, szünetekkel tagolt szöveghez (nem áll le az első szünetnél; a Leállítás gomb zárja le).
+export function diktalas(esemenyek, { folyamatos = false } = {}) {
   const Felismero = window.SpeechRecognition || window.webkitSpeechRecognition;
   const f = new Felismero();
   f.lang = 'hu-HU';
   f.interimResults = true;
-  f.continuous = false;
+  f.continuous = folyamatos;
   f.maxAlternatives = 1;
   let vegleges = '';
   f.onresult = (ev) => {

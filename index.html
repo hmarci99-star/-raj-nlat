@@ -136,6 +136,11 @@
     .ai-menny input { width: 80px; }
     .ai-indok { grid-column: 2; color: var(--muted); font-size: .82rem; }
     .ai-cimke { font-size: .7rem; font-weight: 700; padding: 1px 6px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); margin-left: 4px; white-space: nowrap; }
+    .vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    .ai-leiras-fej { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 6px; }
+    .ai-leiras-fej label { color: var(--muted); font-size: .9rem; }
+    #ai-diktal[aria-pressed="true"] { background: var(--error); border-color: var(--error); color: #fff; }
+    #ai-diktal-allapot { margin: 4px 0 0; font-size: .82rem; }
     .ai-cimke.ai-talan { background: var(--warn-bg); color: var(--warn); }
     .nev-javaslat { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 4px 0 8px; padding: 8px 10px;
       border-radius: var(--radius); background: var(--accent-soft); font-size: .82rem; }
@@ -679,7 +684,10 @@
       <h2 data-ikon="szikra">AI anyagjavaslat</h2>
       <p class="megj" style="margin-top:0">Az AI átnézi a kiállásokat, a munkákat és az anyaglistát, és javasolja, mi hiányzik vagy miből kevés.
         Az ügyfél neve, címe és elérhetősége nem megy ki.</p>
-      <label class="mezo"><span>A munka rövid leírása (nem kötelező, diktálható)</span>
+      <div class="ai-leiras-fej"><label for="ai-leiras">A munka rövid leírása (nem kötelező)</label>
+        <button type="button" class="kicsi button" id="ai-diktal" aria-pressed="false" hidden data-ikon="mikrofon">Diktálás</button></div>
+      <p id="ai-diktal-allapot" class="muted" aria-live="polite" hidden></p>
+      <label class="mezo"><span class="vh">A munka rövid leírása</span>
         <textarea id="ai-leiras" rows="3" placeholder="Pl. panel fürdőszoba, kád helyett zuhanykabin, a gerincet is cseréljük, a mosógép a konyhába kerül"></textarea></label>
       <div class="actions"><button type="button" id="ai-keres" data-ikon="szikra">Javaslat kérése</button>
         <button type="button" class="kicsi button" id="ai-beallitas">Beállítás</button></div>
@@ -851,6 +859,6 @@
   </div>
 </main>
 <div id="nyomtat"></div>
-<script type="module" src="dist/app.js?v=8ae4a115f8"></script>
+<script type="module" src="dist/app.js?v=661c7a0453"></script>
 </body>
 </html>

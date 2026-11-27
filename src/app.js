@@ -1842,7 +1842,42 @@ function megjelenitAiJavaslat(megjegyzes, koltseg) {
     ${allapot.aiRegiWorker ? '<p class="warn" style="font-size:.82rem">A Cloudflare Worker még a régi kódot futtatja, ezért a javaslatok pontatlanabbak. Cseréld le a Worker kódját az új változatra.</p>' : ''}`;
 }
 
+// A munka leírásának diktálása: a felismert szöveg a meglévő után kerül; a Leállítás gomb zárja le.
+function aiDiktalasBekotes() {
+  const gomb = $('ai-diktal');
+  const mezo = $('ai-leiras');
+  const allapotEl = $('ai-diktal-allapot');
+  if (!vanDiktalas()) return; // a billentyűzet mikrofonja továbbra is használható
+  gomb.hidden = false;
+  let leallit = null;
+  const felirat = (fut) => {
+    gomb.setAttribute('aria-pressed', String(fut));
+    gomb.lastChild.textContent = fut ? 'Leállítás' : 'Diktálás';
+  };
+  gomb.addEventListener('click', () => {
+    if (leallit) { leallit(); return; }
+    const elotte = mezo.value.trim();
+    const nagy = (s) => (s ? s[0].toLocaleUpperCase('hu') + s.slice(1) : s);
+    const osszefuz = (s) => [elotte, nagy(s)].filter(Boolean).join(elotte && !/[.!?]$/.test(elotte) ? '. ' : ' ');
+    allapotEl.hidden = false;
+    allapotEl.textContent = 'Hallgatlak… mondd el a munkát, pl. „panel fürdőszoba, kád helyett zuhanykabin, a gerincet is cseréljük”. A végén nyomd meg a Leállítás gombot.';
+    try {
+      leallit = diktalas({
+        kozben: (s) => { mezo.value = osszefuz(s); },
+        kesz: (s) => { mezo.value = osszefuz(s); allapotEl.textContent = 'Kész. Átírhatod, vagy kérheted a javaslatot.'; },
+        hiba: (u) => { allapotEl.textContent = u; },
+        vege: () => { leallit = null; felirat(false); if (/Hallgatlak/.test(allapotEl.textContent)) allapotEl.hidden = true; },
+      }, { folyamatos: true });
+      felirat(true);
+    } catch (err) {
+      leallit = null;
+      allapotEl.textContent = `A diktálás nem indult el: ${err.message}`;
+    }
+  });
+}
+
 function aiEsemenyek() {
+  aiDiktalasBekotes();
   $('ai-keres').addEventListener('click', aiJavaslatKeres);
   $('ai-beallitas').addEventListener('click', () => aiBeallitasAblak());
   $('ai-eredmeny').addEventListener('click', (ev) => {
