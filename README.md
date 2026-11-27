@@ -142,4 +142,4 @@ Az Ajánlat lépésben („Időpont a naptárba”) megadható a felmérés vagy
 
 A „Saját adataim” alatt megadható a Google Naptár időpontfoglalási oldalának nyilvános linkje (pl. https://calendar.app.google/…). Ha meg van adva, az ügyfélnek küldött levélbe és az ajánlat PDF-be bekerül, így az ügyfél maga foglalhat időpontot. Ha a naptár saját szerkesztőoldalának címét másolod be, az alkalmazás figyelmeztet, és nem teszi a levélbe.
 
-A Projekt lépés tetején a „Foglalási link” gombbal az ügyfélnek már az ajánlat előtt (a felméréshez) elküldhető a link: kész, átírható üzenet („Szia! Ezen a linken tudsz időpontot választani a felméréshez: …”), Megosztás (Viber, Messenger, WhatsApp…), SMS, E-mail vagy Másolás. Ha még nincs megadva a link, ott is beírható.
+A Projekt lépés tetején a „Foglalási link” gombbal az ügyfélnek már az ajánlat előtt (a felméréshez) elküldhető a link: kész, átírható, magázó üzenet („Az alábbi linken kiválaszthatja az Önnek megfelelő időpontot a helyszíni felméréshez: …”), Megosztás (Viber, Messenger, WhatsApp…), SMS, E-mail vagy Másolás. Ha még nincs megadva a link, ott is beírható.

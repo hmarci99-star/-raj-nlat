@@ -99,8 +99,8 @@ test('foglalási link az ügyfél levelében és PDF-jében, a hibás szerkeszt�
 test('foglalási üzenet az ügyfélnek', async () => {
   const { foglalasUzenet } = await import('../src/sablonok.js');
   const u = foglalasUzenet({ nev: 'Szerelő Sanyi', telefon: '+36 30 123 4567', foglalas: 'https://calendar.app.google/AbC' }, 'Kiss Anna');
-  assert.match(u, /^Kedves Kiss Anna!/);
-  assert.match(u, /időpontot választani a felméréshez: https:\/\/calendar\.app\.google\/AbC/);
+  assert.match(u, /^Tisztelt Kiss Anna!/);
+  assert.match(u, /időpontot a helyszíni felméréshez: https:\/\/calendar\.app\.google\/AbC/);
   assert.match(u, /Szerelő Sanyi\n\+36 30 123 4567$/);
-  assert.match(foglalasUzenet({ foglalas: 'x' }), /^Szia!/);
+  assert.match(foglalasUzenet({ foglalas: 'x' }), /^Jó napot kívánok!/);
 });

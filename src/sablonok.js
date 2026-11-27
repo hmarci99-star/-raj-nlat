@@ -227,12 +227,12 @@ export function naptarLink(adatok, vegosszeg = 0) {
 export function foglalasUzenet(vallalkozo = {}, ugyfelNev = '') {
   const v = vallalkozo;
   return [
-    `${ugyfelNev ? `Kedves ${ugyfelNev}!` : 'Szia!'}`,
+    ugyfelNev ? `Tisztelt ${ugyfelNev}!` : 'Jó napot kívánok!',
     '',
-    `Ezen a linken tudsz időpontot választani a felméréshez: ${(v.foglalas ?? '').trim()}`,
-    'A kiválasztott időpont automatikusan bekerül a naptáramba, és e-mailben visszaigazolást kapsz.',
+    `Az alábbi linken kiválaszthatja az Önnek megfelelő időpontot a helyszíni felméréshez: ${(v.foglalas ?? '').trim()}`,
+    'A foglalásról e-mailben visszaigazolást kap.',
     '',
-    'Üdv,',
+    'Üdvözlettel:',
     ...[v.nev, v.telefon].filter(Boolean),
   ].join('\n');
 }
