@@ -34,3 +34,10 @@ test('worker: csak engedett modellt hív, strukturált kimenettel', async () => 
     assert.deepEqual(await v.json(), { javaslatok: [], megjegyzes: '', modell: 'claude-opus-5-5', tokenek: {} });
   } finally { globalThis.fetch = eredeti; }
 });
+
+test('worker: a böngésző előkérésére (OPTIONS) CORS-fejlécekkel válaszol', async () => {
+  const v = await worker.fetch(new Request('https://x.workers.dev/', { method: 'OPTIONS', headers: { Origin: 'https://hmarci99-star.github.io' } }), env);
+  assert.equal(v.status, 204);
+  assert.equal(v.headers.get('Access-Control-Allow-Origin'), 'https://hmarci99-star.github.io');
+  assert.match(v.headers.get('Access-Control-Allow-Headers'), /Content-Type/);
+});

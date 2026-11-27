@@ -75,16 +75,18 @@ Ismert tételnevek (ezeket használd pontosan, ha illik):
 ${felsorol(ismert)}`;
 }
 
+const corsFejlec = (origin) => ({
+  'Access-Control-Allow-Origin': origin,
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Max-Age': '86400',
+  Vary: 'Origin',
+});
+
 function valasz(body, status, origin) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: {
-      'Content-Type': 'application/json; charset=utf-8',
-      'Access-Control-Allow-Origin': origin,
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-      Vary: 'Origin',
-    },
+    headers: { 'Content-Type': 'application/json; charset=utf-8', ...corsFejlec(origin) },
   });
 }
 
@@ -102,7 +104,8 @@ export default {
     const engedett = (env.ENGEDETT_OLDAL || 'https://hmarci99-star.github.io').replace(/\/$/, '');
     const origin = request.headers.get('Origin') || '';
     if (origin !== engedett) return new Response('Nem engedélyezett.', { status: 403 });
-    if (request.method === 'OPTIONS') return valasz({}, 204, origin);
+    // Előkérés (a böngésző küldés előtt engedélyt kér): törzs nélküli 204-es válasz.
+    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsFejlec(origin) });
     if (request.method !== 'POST') return valasz({ hiba: 'Csak POST.' }, 405, origin);
     if (!env.ANTHROPIC_API_KEY || !env.APP_JELSZO) {
       return valasz({ hiba: 'A Workerben nincs beállítva az ANTHROPIC_API_KEY vagy az APP_JELSZO.' }, 500, origin);
