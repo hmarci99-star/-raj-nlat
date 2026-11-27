@@ -104,3 +104,15 @@ test('foglalási üzenet az ügyfélnek', async () => {
   assert.match(u, /Szerelő Sanyi\n\+36 30 123 4567$/);
   assert.match(foglalasUzenet({ foglalas: 'x' }), /^Jó napot kívánok!/);
 });
+
+test('saját foglalási üzenet: sablonná alakítás és visszatöltés más ügyfélre', async () => {
+  const { foglalasSablonba, foglalasSablonbol } = await import('../src/sablonok.js');
+  const link = 'https://calendar.app.google/AbC';
+  const atirt = `Tisztelt Kiss Anna!\n\nKérem, itt foglaljon időpontot: ${link}\nKöszönöm!`;
+  const sablon = foglalasSablonba(atirt, link, 'Kiss Anna');
+  assert.equal(sablon, 'Tisztelt {nev}!\n\nKérem, itt foglaljon időpontot: {link}\nKöszönöm!');
+  assert.equal(foglalasSablonbol(sablon, 'https://x.y/z', 'Nagy Béla'), 'Tisztelt Nagy Béla!\n\nKérem, itt foglaljon időpontot: https://x.y/z\nKöszönöm!');
+  assert.match(foglalasSablonbol(sablon, link, ''), /^Jó napot kívánok!/);
+  // név nélkül írt szöveg: a "Jó napot kívánok!" megszólítás névre cserélhető marad
+  assert.equal(foglalasSablonba(`Jó napot kívánok!\n${link}`, link, ''), 'Tisztelt {nev}!\n{link}');
+});

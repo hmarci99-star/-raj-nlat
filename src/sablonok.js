@@ -237,5 +237,23 @@ export function foglalasUzenet(vallalkozo = {}, ugyfelNev = '') {
   ].join('\n');
 }
 
+// Saját (átírt) foglalási üzenet: a sablonban {link} és {nev} helyettesítő áll.
+// Név nélkül a {nev}-et tartalmazó rövid megszólítás helyett "Jó napot kívánok!".
+export function foglalasSablonbol(sablon, link, ugyfelNev = '') {
+  return sablon.split('\n').map((sor) => {
+    if (!sor.includes('{nev}')) return sor;
+    if (ugyfelNev) return sor.replaceAll('{nev}', ugyfelNev);
+    return sor.length <= 40 ? 'Jó napot kívánok!' : sor.replaceAll('{nev}', '').replace(/\s{2,}/g, ' ');
+  }).join('\n').replaceAll('{link}', link);
+}
+
+// Az átírt üzenetből sablon: a mostani link és ügyfélnév helyére helyettesítő kerül.
+export function foglalasSablonba(szoveg, link, ugyfelNev = '') {
+  let s = link ? szoveg.split(link).join('{link}') : szoveg;
+  if (ugyfelNev) s = s.split(ugyfelNev).join('{nev}');
+  else s = s.replace(/^Jó napot kívánok!$/m, 'Tisztelt {nev}!');
+  return s;
+}
+
 // A Google Naptár szerkesztőoldalának címe (nem nyilvános foglalási link)?
 export const foglalasiLinkHibas = (link) => /calendar\.google\.com\/calendar\/(u\/\d+\/)?r\b/.test(link ?? '');

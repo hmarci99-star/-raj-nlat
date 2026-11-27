@@ -3,7 +3,7 @@ import { KIALLAS_TIPUSOK, SZERELVENY_KODOK, HOTERMELOK, szamolMunkadij, uresProj
 import { parseKonyvtar, gyujtAnyaglista, anyaglistaSzoveg, gerincAlapAnyag } from './anyaglista.js';
 import { boltValaszBeolvasas, ajanlat, tetelKulcs, parseSzam, nemTetelNev, anyagListaBeolvasas } from './arak.js';
 import { bovitettKonyvtar, bennVanAzAlapban, konyvtarCsv, felulirtKonyvtar } from './konyvtar.js';
-import { ugyfelAjanlatHtml, belsoOsszesitoHtml, fajlnev, ugyfelLevel, mailtoLink, naptarLink, foglalasiLinkHibas, foglalasUzenet } from './sablonok.js';
+import { ugyfelAjanlatHtml, belsoOsszesitoHtml, fajlnev, ugyfelLevel, mailtoLink, naptarLink, foglalasiLinkHibas, foglalasUzenet, foglalasSablonbol, foglalasSablonba } from './sablonok.js';
 import { pdfSzoveg } from './pdfszoveg.js';
 import { diktaltTetelek, vanDiktalas, diktalas } from './diktalas.js';
 import { hangosModInit } from './hangosfelulet.js';
@@ -18,6 +18,7 @@ const MENTES_KULCS = 'arajanlat.projekt';
 const ARAK_KULCS = 'arajanlat.arak';
 const BOLTOK_KULCS = 'arajanlat.boltok';
 const REJTETT_KULCS = 'arajanlat.rejtett-tetelek';
+const FOGLALAS_SABLON_KULCS = 'arajanlat.foglalas-sablon';
 const ARMEMORIA_KULCS = 'arajanlat.armemoria';
 const MENTES_IDO_KULCS = 'arajanlat.utolso-mentes';
 const MENTES_HALASZT_KULCS = 'arajanlat.mentes-halasztva';
@@ -1654,7 +1655,10 @@ function foglalasKuldes() {
   const jo = /^https?:\/\//.test(link) && !foglalasiLinkHibas(link);
   const hatter = document.createElement('div');
   hatter.className = 'parbeszed-hatter';
-  const uzenet = jo ? foglalasUzenet(adatok.vallalkozo, adatok.ugyfel.nev) : '';
+  const sablon = betoltMentett(FOGLALAS_SABLON_KULCS);
+  const ugyfelNev = adatok.ugyfel.nev ?? '';
+  const uzenet = !jo ? '' : typeof sablon === 'string' && sablon.includes('{link}')
+    ? foglalasSablonbol(sablon, link, ugyfelNev) : foglalasUzenet(adatok.vallalkozo, ugyfelNev);
   hatter.innerHTML = `<form class="parbeszed munka-urlap" role="dialog" aria-modal="true" aria-labelledby="fk-cim">
     <h2 id="fk-cim">Foglalási link küldése</h2>
     ${jo ? `<p class="muted" style="margin:0">Az ügyfél a linken kiválaszt egy szabad időpontot, és az bekerül a naptáradba. Az üzenet átírható.</p>
@@ -1665,7 +1669,8 @@ function foglalasKuldes() {
         <a class="button" data-fk="email" href="#" data-ikon="level">E-mail</a>
         <button type="button" class="button" data-fk="masol" data-ikon="masol">Másolás</button>
       </div>
-      <p class="muted fk-uzenet" aria-live="polite" style="margin:0"></p>`
+      <p class="muted fk-uzenet" aria-live="polite" style="margin:0">${typeof sablon === 'string' ? 'A saját szövegedet használja. ' : ''}A módosítás magától mentődik, legközelebb is ez lesz.</p>
+      ${typeof sablon === 'string' ? '<button type="button" class="link-gomb" data-fk="alap" style="margin:0;justify-self:start">Eredeti szöveg visszaállítása</button>' : ''}`
     : `<p style="margin:0">${link ? '<strong>Ez a link a naptárad saját szerkesztőoldala</strong>, az ügyfél nem tudja megnyitni.' : 'Még nincs megadva a foglalási link.'}
         A Google Naptárban a foglalási naptárnál a <strong>„Megosztás”</strong> alatt találod a nyilvános linket (pl. https://calendar.app.google/…). Másold ide:</p>
       <label class="mezo"><span>Időpontfoglalási link</span><input name="link" type="url" inputmode="url" required placeholder="https://calendar.app.google/…"></label>`}
@@ -1687,11 +1692,31 @@ function foglalasKuldes() {
       + `&body=${encodeURIComponent(szoveg().replace(/\r?\n/g, '\r\n'))}`;
   };
   linkek();
-  urlap.addEventListener('input', linkek);
+  let mentesIdozito = null;
+  urlap.addEventListener('input', (ev) => {
+    linkek();
+    if (ev.target.name !== 'uzenet') return;
+    clearTimeout(mentesIdozito);
+    mentesIdozito = setTimeout(() => {
+      const uj = foglalasSablonba(szoveg(), link, ugyfelNev);
+      if (!uj.includes('{link}')) {
+        urlap.querySelector('.fk-uzenet').textContent = 'A link hiányzik a szövegből, ezért ezt nem mentem el sablonnak.';
+        return;
+      }
+      ment(FOGLALAS_SABLON_KULCS, uj);
+      urlap.querySelector('.fk-uzenet').textContent = 'Mentve: legközelebb is ez a szöveg lesz.';
+    }, 400);
+  });
   hatter.addEventListener('click', async (ev) => {
     if (ev.target === hatter || ev.target.closest('.mu-megse')) { zar(); return; }
     const g = ev.target.closest('[data-fk]');
     if (!g) return;
+    if (g.dataset.fk === 'alap') {
+      try { localStorage.removeItem(FOGLALAS_SABLON_KULCS); } catch { /* nem kötelező */ }
+      zar();
+      foglalasKuldes();
+      return;
+    }
     if (g.dataset.fk === 'megoszt') {
       try { await navigator.share({ text: szoveg() }); } catch { /* megszakítva */ }
     } else if (g.dataset.fk === 'masol') {
@@ -2125,7 +2150,7 @@ function ajanlatEsemenyek() {
   $('mentes-fajlba').addEventListener('click', () => {
     if (allapot.aktualisId) { const r = allapot.ajanlatok.find((x) => x.id === allapot.aktualisId); if (r) rekordFrissites(r); }
     const tartalom = exportAdat(allapot.ajanlatok, { vallalkozo: olvasAdatok().vallalkozo, bovitesek: allapot.bovitesek, sajatMunkak: allapot.sajatMunkak, konyvtarFelulirasok: allapot.konyvtarFelulirasok,
-      munkadijFelulirasok: allapot.munkadijFelulirasok, gerincAnyag: allapot.gerincAnyag, sajatKiallasok: allapot.sajatKiallasok, kiallasNevek: allapot.kiallasNevek, kiallasArak: allapot.kiallasArak, armemoria: allapot.armemoria, rejtett: allapot.rejtett });
+      munkadijFelulirasok: allapot.munkadijFelulirasok, gerincAnyag: allapot.gerincAnyag, sajatKiallasok: allapot.sajatKiallasok, kiallasNevek: allapot.kiallasNevek, kiallasArak: allapot.kiallasArak, armemoria: allapot.armemoria, rejtett: allapot.rejtett, foglalasSablon: betoltMentett(FOGLALAS_SABLON_KULCS) });
     const nev = `arajanlatok-${maISO()}.json`;
     const kesz = () => {
       try { localStorage.setItem(MENTES_IDO_KULCS, String(Date.now())); localStorage.removeItem(MENTES_HALASZT_KULCS); } catch { /* nem kötelező */ }
@@ -2183,6 +2208,7 @@ function ajanlatEsemenyek() {
       ment(ARMEMORIA_KULCS, allapot.armemoria);
       for (const m of r.beallitasok.rejtett ?? []) if (typeof m === 'string' && !allapot.rejtett.includes(m)) allapot.rejtett.push(m);
       ment(REJTETT_KULCS, allapot.rejtett);
+      if (typeof r.beallitasok.foglalasSablon === 'string' && !betoltMentett(FOGLALAS_SABLON_KULCS)) ment(FOGLALAS_SABLON_KULCS, r.beallitasok.foglalasSablon);
       ment(KIALLAS_AR_KULCS, allapot.kiallasArak);
       kiallasFelepit();
       cimkekFrissitese();
