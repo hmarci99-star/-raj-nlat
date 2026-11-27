@@ -987,7 +987,7 @@ function megjelenitAnyag() {
   }
   const sorok = e.sorok.map((s) => `
     <tr>
-      <td class="cikk-oszlop">${escape(s.cikk)}${s.plusz ? ` <span class="cimke">${s.forras === 'pdf' ? 'bolt' : 'plusz'}</span>` : ''}</td>
+      <td class="cikk-oszlop">${escape(s.cikk)}${s.plusz ? ` <span class="cimke">${s.forras === 'pdf' ? 'bolt' : s.forras === 'ai' ? 'AI' : 'plusz'}</span>` : ''}</td>
       <td class="num">${ft.format(s.mennyiseg)} ${escape(s.egyseg)}${s.listaMennyiseg !== undefined
         ? `<div class="muted">PDF szerint; lista: ${ft.format(s.listaMennyiseg)}</div>` : ''}</td>
       <td class="torles-oszlop">${s.plusz ? `<button type="button" class="sor-torles" data-plusz-torles="${escape(tetelKulcs(s))}"
@@ -1433,7 +1433,7 @@ function megjelenitPlusz() {
     const alapKiallas = osszesKiallas().find((k) => kiallasDarab(k.nev) > 0)?.nev ?? KIALLAS_TIPUSOK[0].nev;
     return `<li class="plusz-sor">
       <div class="plusz-fej">
-        <span class="plusz-nev">${escape(t.cikk)}${t.forras === 'pdf' ? '<br><span class="muted">a bolt PDF-jéből</span>' : ''}</span>
+        <span class="plusz-nev">${escape(t.cikk)}${t.forras === 'pdf' ? '<br><span class="muted">a bolt PDF-jéből</span>' : t.forras === 'ai' ? ' <span class="ai-cimke">AI</span>' : ''}</span>
         <span class="plusz-menny"><input type="number" min="0" step="any" class="plusz-mennyiseg" data-i="${i}"
           value="${t.mennyiseg}" aria-label="Mennyiség: ${escape(t.cikk)}"> ${escape(t.egyseg)}</span>
       </div>
@@ -1462,6 +1462,7 @@ function megjelenitPlusz() {
 
   $('plusz').innerHTML = `
     <h2 class="kartya-fej"><span class="fej-ikon">${ikon('plusz')}</span>Plusz tételek</h2>
+    ${allapot.plusz.some((t) => t.forras === 'ai') ? `<div class="actions kicsi-gombok"><button type="button" class="kicsi button" id="ai-tetelek-torles">AI által felvett tételek törlése (${allapot.plusz.filter((t) => t.forras === 'ai').length})</button></div>` : ''}
     ${allapot.plusz.length ? lenyilo('plusz', `Plusz tételek (${allapot.plusz.length})`, '', `<ul class="plusz-lista">${sorok}</ul>`, allapot.plusz.length <= 5)
       : '<p class="muted">A bolt PDF-jében talált új tételek, vagy amit kézzel adsz hozzá. A „Könyvtárba…” gombbal egy kiállás csomagjába is elmenthető, így legközelebb magától benne lesz.</p>'}
     <form id="plusz-uj" class="plusz-uj">
@@ -1569,6 +1570,15 @@ function pluszEsemenyek() {
     const b = ev.target.closest('button');
     if (!b) return;
     const i = Number(b.dataset.i);
+    if (b.id === 'ai-tetelek-torles') {
+      allapot.plusz = allapot.plusz.filter((t) => t.forras !== 'ai');
+      allapot.konyvtarbaNyitva = null;
+      ment(PLUSZ_KULCS, allapot.plusz);
+      frissit();
+      megjelenitPlusz();
+      megjelenitArTabla(true);
+      return;
+    }
     if (b.classList.contains('plusz-torles')) {
       allapot.plusz.splice(i, 1);
       allapot.konyvtarbaNyitva = null;
@@ -1834,6 +1844,7 @@ function megjelenitAiJavaslat(megjegyzes, koltseg) {
         <span class="ai-nev">${escape(j.cikk)}${j.biztos === 'biztos' ? '<span class="ai-cimke">biztosan kell</span>' : '<span class="ai-cimke ai-talan">talán</span>'}${j.ismert ? '' : '<span class="ai-cimke">új tétel</span>'}</span>
         <span class="ai-menny"><input type="number" min="0" step="any" data-ai-menny="${i}" value="${j.mennyiseg}" aria-label="Mennyiség"> ${escape(j.egyseg)}</span>
         <span class="ai-indok">${escape(j.indok ?? '')}</span>
+        <button type="button" class="ai-elvet" data-ai-elvet="${i}" aria-label="Nem kell: ${escape(j.cikk)}" title="Nem kell">×</button>
       </li>`).join('')}</ul>
       <p class="muted" style="font-size:.78rem;margin:0">A „talán” javaslatok nincsenek bepipálva. Ami bepipálatlan marad, azt az AI legközelebb nem javasolja.</p>
       <div class="actions"><button type="button" id="ai-felvesz">Kijelöltek felvétele</button></div>`
@@ -1881,6 +1892,17 @@ function aiEsemenyek() {
   $('ai-keres').addEventListener('click', aiJavaslatKeres);
   $('ai-beallitas').addEventListener('click', () => aiBeallitasAblak());
   $('ai-eredmeny').addEventListener('click', (ev) => {
+    const elvet = ev.target.closest('[data-ai-elvet]');
+    if (elvet) {
+      // Egy javaslat elvetése: eltűnik, és legközelebb sem jön.
+      const li = elvet.closest('li');
+      const j = allapot.aiJavaslatok[Number(elvet.dataset.aiElvet)];
+      const elutasitott = aiElutasitott();
+      if (j && !elutasitott.includes(j.cikk)) { elutasitott.push(j.cikk); ment(AI_ELUTASITOTT_KULCS, elutasitott.slice(-200)); }
+      li.remove();
+      if (!$('ai-eredmeny').querySelector('.ai-lista li')) $('ai-eredmeny').innerHTML = '<p class="muted">Minden javaslatot elvetettél.</p>';
+      return;
+    }
     if (!ev.target.closest('#ai-felvesz')) return;
     let n = 0;
     const elutasitott = aiElutasitott();
@@ -1893,7 +1915,7 @@ function aiEsemenyek() {
       const j = allapot.aiJavaslatok[Number(doboz.dataset.aiI)];
       const menny = Number($('ai-eredmeny').querySelector(`[data-ai-menny="${doboz.dataset.aiI}"]`).value) || 0;
       if (!j || !(menny > 0)) continue;
-      pluszHozzaad({ cikk: j.cikk.trim(), mennyiseg: menny, egyseg: j.egyseg || 'db' });
+      pluszHozzaad({ cikk: j.cikk.trim(), mennyiseg: menny, egyseg: j.egyseg || 'db', forras: 'ai' });
       n += 1;
     }
     ment(AI_ELUTASITOTT_KULCS, elutasitott.slice(-200));
@@ -2255,6 +2277,10 @@ function munkaBetoltes(adat, id) {
   allapot.feltoltesek = klon(adat?.feltoltesek ?? {});
   allapot.boltok = klon(adat?.boltok ?? []);
   $('bolt-uzenet').innerHTML = '';
+  // Az előző munka AI-javaslatai és leírása ne maradjon itt.
+  allapot.aiJavaslatok = [];
+  $('ai-eredmeny').innerHTML = '';
+  $('ai-leiras').value = '';
   allapot.diktalt = [];
   const vallalkozo = olvasAdatok().vallalkozo;
   const ugyfel = { nev: '', cim: '', munkaHelye: '', email: '', ...adat?.adatok?.ugyfel };
